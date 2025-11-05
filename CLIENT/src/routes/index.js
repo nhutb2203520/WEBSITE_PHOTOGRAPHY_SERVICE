@@ -1,6 +1,10 @@
 import { lazy } from 'react';
 const routes = [
   {
+    path: '*',
+    component: lazy(() => import('../NotFound'))
+  },
+  {
     path: '/',
     component: lazy(() => import('../components/HomePageCustomer/HomePageCustomer'))
   },
