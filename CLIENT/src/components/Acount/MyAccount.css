@@ -118,28 +118,29 @@
 }
 
 .profile-info h1 {
-    font-size: 26px;
+    font-size: 30px;
     font-weight: 600;
     color: #333;
-    margin: 0;
+    margin: 20px;
 }
 
 .profile-info p {
-    font-size: 15px;
+    font-size: 25px;
     color: #777;
-    margin-top: 5px;
+    margin-left: 15px;
+    margin-top: 0;
 }
 
 
 /* ===== NỘI DUNG CHÍNH ===== */
 .myaccount-content {
-    padding: 20px 50px;
+    padding: 5px 50px;
 }
 
 .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 5px;
+    gap: 20px 30px;
 }
 
 .form-group label {
@@ -156,6 +157,7 @@
     font-size: 20px;
     color: #333;
     border: 1px solid #eee;
+    min-width: 0;
 }
 
 .form-group input,
