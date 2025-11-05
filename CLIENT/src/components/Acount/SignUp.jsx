@@ -8,7 +8,8 @@
   import { registerUser, clearError } from '../../redux/Slices/authSlice';
   import { toast } from 'react-toastify';
   import './SignUp.css';
-
+  import Header from '../Header/Header'
+  import Footer from '../Footer/Footer'
   export default function RegisterCustomer() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -129,6 +130,8 @@
     };
 
     return (
+      <>
+      <Header />
       <div className="register-container">
         <div className="register-card">
           <div className="register-header">
@@ -333,5 +336,7 @@
           </form>
         </div>
       </div>
+      <Footer />
+      </>
     );
   }

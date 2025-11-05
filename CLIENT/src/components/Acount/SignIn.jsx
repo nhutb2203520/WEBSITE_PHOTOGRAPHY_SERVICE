@@ -5,7 +5,8 @@ import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
 import { login } from '../../redux/Slices/authSlice';
 import './SignIn.css';
-
+import Header from '../../components/Header/Header';
+import Footer from '../../components/Footer/Footer';
 export default function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -83,8 +84,10 @@ export default function Login() {
       setIsLoading(false);
     }
   };
-
+ 
   return (
+     <>
+    <Header />
     <div className="login-container">
       <div className="login-card">
         {/* Header */}
@@ -204,5 +207,8 @@ export default function Login() {
         </form>
       </div>
     </div>
+     <Footer />
+    </>
   );
+ 
 }

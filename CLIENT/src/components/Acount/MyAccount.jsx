@@ -1,23 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import {
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  MapPin,
-  Camera,
-  Edit2,
-  Save,
-  Lock
-} from 'lucide-react';
-import {
-  getInfoUser,
-  updateProfile,
-  changePassword,
-  uploadAvatar,
-  uploadCover
-} from '../../redux/Slices/userSlice';
+import { User, Mail, Phone, Calendar, MapPin, Camera, Edit2, Save, X, Lock } from 'lucide-react';
+import { getInfoUser, updateProfile, changePassword, uploadAvatar, uploadCover } from '../../redux/Slices/userSlice';
 import './MyAccount.css';
 
 export default function CustomerProfile() {
@@ -27,23 +11,14 @@ export default function CustomerProfile() {
   const [showChangePassword, setShowChangePassword] = useState(false);
 
   const [formData, setFormData] = useState({
-    HoTen: '',
-    Email: '',
-    SoDienThoai: '',
-    NgaySinh: '',
-    GioiTinh: '',
-    DiaChi: ''
+    HoTen: '', Email: '', SoDienThoai: '', NgaySinh: '', GioiTinh: '', DiaChi: ''
   });
 
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: '', newPassword: '', confirmPassword: ''
   });
 
-  useEffect(() => {
-    dispatch(getInfoUser());
-  }, [dispatch]);
+  useEffect(() => { dispatch(getInfoUser()); }, [dispatch]);
 
   useEffect(() => {
     if (user) {
@@ -51,27 +26,19 @@ export default function CustomerProfile() {
         HoTen: user.HoTen || '',
         Email: user.Email || '',
         SoDienThoai: user.SoDienThoai || '',
-        NgaySinh: user.NgaySinh
-          ? new Date(user.NgaySinh).toISOString().split('T')[0]
-          : '',
+        NgaySinh: user.NgaySinh ? new Date(user.NgaySinh).toISOString().split('T')[0] : '',
         GioiTinh: user.GioiTinh || '',
         DiaChi: user.DiaChi || ''
       });
     }
   }, [user]);
 
-  const handleInputChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const handlePasswordChange = (e) =>
-    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-
-  const handleEditToggle = () => {
-    // Chuyển đổi giữa chế độ chỉnh sửa và lưu
-    if (isEditing) {
-      dispatch(updateProfile(formData));
-    }
-    setIsEditing(!isEditing);
+  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  
+  const handleSaveProfile = () => {
+    dispatch(updateProfile(formData));
+    setIsEditing(false);
   };
 
   const handleChangePassword = () => {
@@ -79,12 +46,10 @@ export default function CustomerProfile() {
       alert('Mật khẩu xác nhận không khớp!');
       return;
     }
-    dispatch(
-      changePassword({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      })
-    );
+    dispatch(changePassword({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword
+    }));
     setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     setShowChangePassword(false);
   };
@@ -95,7 +60,7 @@ export default function CustomerProfile() {
     return date.toLocaleDateString('vi-VN');
   };
 
-  // Upload ảnh đại diện và ảnh bìa
+  // Xử lý upload ảnh
   const handleUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -109,10 +74,12 @@ export default function CustomerProfile() {
       await dispatch(uploadCover(formData));
     }
 
+    // ✅ Sau khi upload xong, cập nhật lại thông tin user
     setTimeout(() => {
       dispatch(getInfoUser());
     }, 300);
   };
+
 
   if (loading) {
     return (
@@ -128,6 +95,7 @@ export default function CustomerProfile() {
   return (
     <div className="myaccount-container">
       <div className="myaccount-card">
+
         {/* ẢNH BÌA */}
         <div className="cover-container">
           <img
@@ -169,9 +137,11 @@ export default function CustomerProfile() {
             </div>
 
             <div className="profile-info">
-              <h1>{formData.HoTen || 'Chưa cập nhật'}</h1>
+              <h1>{user?.HoTen || 'Chưa cập nhật'}</h1>
               <p>@{user?.TenDangNhap || 'username'}</p>
             </div>
+
+            
           </div>
         </div>
 
@@ -182,121 +152,48 @@ export default function CustomerProfile() {
               { label: 'Họ và tên', name: 'HoTen', type: 'text' },
               { label: 'Email', name: 'Email', type: 'email' },
               { label: 'Số điện thoại', name: 'SoDienThoai', type: 'tel' },
-              { label: 'Ngày sinh', name: 'NgaySinh', type: 'date' }
+              { label: 'Ngày sinh', name: 'NgaySinh', type: 'date' },
             ].map(({ label, name, type }) => (
               <div className="form-group" key={name}>
                 <label>{label}</label>
-                {isEditing ? (
-                  <input
-                    type={type}
-                    name={name}
-                    value={formData[name]}
-                    onChange={handleInputChange}
-                  />
-                ) : (
-                  <p>
-                    {name === 'NgaySinh'
-                      ? formatDate(user?.NgaySinh)
-                      : user?.[name] || 'Chưa cập nhật'}
-                  </p>
-                )}
+                {isEditing
+                  ? <input type={type} name={name} value={formData[name]} onChange={handleInputChange} />
+                  : <p>{name === 'NgaySinh' ? formatDate(user?.NgaySinh) : user?.[name] || 'Chưa cập nhật'}</p>}
               </div>
             ))}
 
             <div className="form-group">
               <label>Giới tính</label>
               {isEditing ? (
-                <select
-                  name="GioiTinh"
-                  value={formData.GioiTinh}
-                  onChange={handleInputChange}
-                >
+                <select name="GioiTinh" value={formData.GioiTinh} onChange={handleInputChange}>
                   <option value="">Chọn giới tính</option>
                   <option value="male">Nam</option>
                   <option value="female">Nữ</option>
                   <option value="other">Khác</option>
                 </select>
-              ) : (
-                <p>
-                  {user?.GioiTinh === 'male'
-                    ? 'Nam'
-                    : user?.GioiTinh === 'female'
-                    ? 'Nữ'
-                    : 'Khác'}
-                </p>
-              )}
+              ) : <p>{user?.GioiTinh === 'male' ? 'Nam' : user?.GioiTinh === 'female' ? 'Nữ' : 'Khác'}</p>}
             </div>
 
             <div className="form-group full">
               <label>Địa chỉ</label>
-              {isEditing ? (
-                <textarea
-                  name="DiaChi"
-                  value={formData.DiaChi}
-                  onChange={handleInputChange}
-                />
-              ) : (
-                <p>{user?.DiaChi || 'Chưa cập nhật'}</p>
-              )}
+              {isEditing ? <textarea name="DiaChi" value={formData.DiaChi} onChange={handleInputChange} />
+                : <p>{user?.DiaChi || 'Chưa cập nhật'}</p>}
             </div>
           </div>
 
-          {/* Nút hành động */}
           <div className="form-buttons">
-            <button className="submit-btn" onClick={handleEditToggle}>
-              {isEditing ? (
-                <>
-                  <Save size={20} /> Lưu thông tin
-                </>
-              ) : (
-                <>
-                  <Edit2 size={20} /> Cập nhật thông tin
-                </>
-              )}
-            </button>
-
-            <button
-              className="submit-btn-alt"
-              onClick={() => setShowChangePassword(!showChangePassword)}
-            >
-              <Lock size={20} /> Đổi mật khẩu
-            </button>
+            <button className="submit-btn" onClick={handleSaveProfile}><Save size={20}/>Cập nhật thông tin</button>
+            <button className="submit-btn-alt" onClick={() => setShowChangePassword(!showChangePassword)}><Lock size={20}/>Đổi mật khẩu</button>
           </div>
 
-          {/* Form đổi mật khẩu */}
           {showChangePassword && (
             <div className="password-group">
-              <input
-                type="password"
-                name="currentPassword"
-                placeholder="Mật khẩu hiện tại"
-                value={passwordData.currentPassword}
-                onChange={handlePasswordChange}
-              />
-              <input
-                type="password"
-                name="newPassword"
-                placeholder="Mật khẩu mới"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-              />
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Xác nhận mật khẩu mới"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-              />
+              <input type="password" name="currentPassword" placeholder="Mật khẩu hiện tại" value={passwordData.currentPassword} onChange={handlePasswordChange}/>
+              <input type="password" name="newPassword" placeholder="Mật khẩu mới" value={passwordData.newPassword} onChange={handlePasswordChange}/>
+              <input type="password" name="confirmPassword" placeholder="Xác nhận mật khẩu mới" value={passwordData.confirmPassword} onChange={handlePasswordChange}/>
               <div className="password-buttons">
-                <button className="submit-btn" onClick={handleChangePassword}>
-                  Xác nhận
-                </button>
-                <button
-                  className="cancel-btn"
-                  onClick={() => setShowChangePassword(false)}
-                >
-                  Hủy
-                </button>
+                <button className="submit-btn" onClick={handleChangePassword}>Xác nhận</button>
+                <button className="cancel-btn" onClick={() => setShowChangePassword(false)}>Hủy</button>
               </div>
             </div>
           )}
