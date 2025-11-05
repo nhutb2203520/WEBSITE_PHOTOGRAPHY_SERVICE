@@ -1,0 +1,51 @@
+import mongoose from "mongoose";
+import counterModel from "./counter.js";
+
+const khachHangSchema = new mongoose.Schema(
+  {
+    MaKhachHang: { type: String, unique: true },
+    TenDangNhap: { type: String, required: true }, // thêm để mapping từ username
+    HoTen: { type: String, required: true },
+    NgaySinh: { type: Date, required: true },
+    GioiTinh: { type: String, required: true }, // sửa đúng theo error log
+    DiaChi: { type: String },
+    SoDienThoai: { type: String },
+    Password: { type: String },
+    Email: { type: String, required: true },
+    Avatar: {
+    type: String,
+    default: "",
+    },
+    CoverImage: {
+    type: String,
+    default: "",
+    },
+    RefreshToken: { type: String },
+    MaTT: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "bangTTKhachHang",
+      required: true,
+    },
+    isPhotographer: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true,
+    minimize: false,
+    collection: "KHACHHANG",
+  }
+);
+
+khachHangSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    const counter = await counterModel.findOneAndUpdate(
+      { _id: "khachhang" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    this.MaKhachHang = "KH" + String(counter.seq).padStart(4, "0");
+  }
+  next();
+});
+
+const KhachHang = mongoose.model("bangKhachHang", khachHangSchema);
+export default KhachHang;

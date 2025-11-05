@@ -1,0 +1,77 @@
+.activity-page {
+    min-height: 100vh;
+    background-color: #f9fafb;
+    padding: 60px 0;
+}
+
+.activity-page h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #111827;
+}
+
+.activity-intro {
+    text-align: center;
+    color: #6b7280;
+    margin-bottom: 50px;
+    font-size: 1.1rem;
+}
+
+.activity-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.activity-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.step-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #9333ea;
+    background: #f3e8ff;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.step-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #111827;
+}
+
+.step-content p {
+    color: #6b7280;
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+    .activity-step {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .step-number {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+}
