@@ -1,83 +1,65 @@
 import ApiError from "../ApiError.js";
 import KhachHangService from "../services/khachhang.service.js";
 
-// [GET] /customers/me hoặc /api/my-profile
+// [GET] /api/khachhang/me
 export const getMyAccount = async (req, res, next) => {
   try {
-    // ✅ Lấy id từ req.user
     const userId = req.user.id || req.user._id;
-    
+    console.log("📥 getMyAccount userId:", userId);
     const result = await KhachHangService.getMyAccount(userId);
-    return res.status(200).json(result);
+    return res.status(200).json(result.customer);
   } catch (err) {
     console.error("❌ Error in getMyAccount:", err);
     return next(new ApiError(500, "Lỗi khi lấy thông tin tài khoản người dùng."));
   }
 };
 
-// Các hàm khác giữ nguyên...
-export const register = async (req, res, next) => {
-  try {
-    const data = req.body;
-    const khachHangService = new KhachHangService();
-    const result = await khachHangService.register(data);
-    return res.status(201).json(result);
-  } catch (err) {
-    console.error(err);
-    return next(new ApiError(500, "Lỗi khi người dùng đăng ký tài khoản."));
-  }
-};
-
-export const login = async (req, res, next) => {
-  try {
-    const data = req.body;
-    const khachHangService = new KhachHangService();
-    const result = await khachHangService.login(data);
-    return res.status(200).json(result);
-  } catch (err) {
-    console.error(err);
-    return next(new ApiError(500, "Lỗi khi người dùng đăng nhập."));
-  }
-};
-
+// [PATCH] /api/khachhang/update
 export const updateAccount = async (req, res, next) => {
   try {
-    const customer = req.user;
+    const userId = req.user.id || req.user._id;
     const data = req.body;
-    const khachHangService = new KhachHangService();
-    const result = await khachHangService.updateAccount(customer._id, data);
+    console.log("📤 updateAccount request:", { userId, data });
+
+    const result = await KhachHangService.updateAccount(userId, data);
     return res.status(200).json(result);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error in updateAccount:", err);
     return next(new ApiError(500, "Lỗi khi cập nhật tài khoản người dùng."));
   }
 };
 
-export const deleteMyAccount = async (req, res, next) => {
+// [POST] /api/khachhang/login
+export const login = async (req, res, next) => {
   try {
-    const customer = req.user;
-    const khachHangService = new KhachHangService();
-    const result = await khachHangService.deleteAccount(customer._id);
+    const result = await KhachHangService.login(req.body);
     return res.status(200).json(result);
   } catch (err) {
-    console.error(err);
-    return next(new ApiError(500, "Lỗi khi xóa tài khoản người dùng."));
+    console.error("❌ Error in login:", err);
+    return next(new ApiError(500, "Lỗi khi đăng nhập."));
   }
 };
 
+// [POST] /api/khachhang/register
+export const register = async (req, res, next) => {
+  try {
+    const result = await KhachHangService.register(req.body);
+    return res.status(201).json(result);
+  } catch (err) {
+    console.error("❌ Error in register:", err);
+    return next(new ApiError(500, "Lỗi khi đăng ký tài khoản."));
+  }
+};
+
+// [PATCH] /api/khachhang/change-password
 export const changePassword = async (req, res, next) => {
   try {
-    const customer = req.user;
+    const userId = req.user.id || req.user._id;
     const { currentPassword, newPassword } = req.body;
-    const khachHangService = new KhachHangService();
-    const result = await khachHangService.changePassword(
-      customer._id,
-      currentPassword,
-      newPassword
-    );
+    const result = await KhachHangService.changePassword(userId, currentPassword, newPassword);
     return res.status(200).json(result);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error in changePassword:", err);
     return next(new ApiError(500, "Lỗi khi đổi mật khẩu."));
   }
 };
@@ -87,6 +69,5 @@ export default {
   register,
   login,
   updateAccount,
-  deleteMyAccount,
-  changePassword,
+  changePassword
 };

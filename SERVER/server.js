@@ -18,7 +18,7 @@ app.use(express.json());
 // ✅ Cho phép truy cập ảnh đã upload
 app.use("/uploads", express.static("uploads"));
 
-// ✅ Routes
+// ✅ Mount route chính
 app.use("/api/auth", authRoutes);
 app.use("/api/khachhang", khachHangRoutes);
 app.use("/api/upload", uploadRoutes);

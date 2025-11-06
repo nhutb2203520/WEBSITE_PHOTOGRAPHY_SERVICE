@@ -14,9 +14,7 @@ export const verifyTokenUser = (req, res, next) => {
       console.log("❌ Lỗi xác thực token:", err.message);
       return res.status(403).json({ message: "Invalid token." });
     }
-
-    console.log("✅ Payload từ token:", user);
-    req.user = user; // Giữ payload gốc (chứa id / _id)
+    req.user = user;
     next();
   });
 };

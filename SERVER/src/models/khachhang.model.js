@@ -4,21 +4,21 @@ import counterModel from "./counter.js";
 const khachHangSchema = new mongoose.Schema(
   {
     MaKhachHang: { type: String, unique: true },
-    TenDangNhap: { type: String, required: true }, // thêm để mapping từ username
+    TenDangNhap: { type: String, required: true },
     HoTen: { type: String, required: true },
-    NgaySinh: { type: Date, required: true },
-    GioiTinh: { type: String, required: true }, // sửa đúng theo error log
+    NgaySinh: { type: Date },
+    GioiTinh: { type: String },
     DiaChi: { type: String },
     SoDienThoai: { type: String },
     Password: { type: String },
     Email: { type: String, required: true },
     Avatar: {
-    type: String,
-    default: "",
+      type: String,
+      default: "",
     },
     CoverImage: {
-    type: String,
-    default: "",
+      type: String,
+      default: "",
     },
     RefreshToken: { type: String },
     MaTT: {

@@ -2,112 +2,81 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import userApi from '../../apis/userService';
 import { toast } from 'react-toastify';
 
-/**
- * Lấy thông tin người dùng hiện tại
- */
-export const getInfoUser = createAsyncThunk(
-  'user/getInfoUser',
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await userApi.getUserById();
-      // ✅ Lưu username dạng string thường, không cần JSON.stringify
-      if (res.customer) {
-        sessionStorage.setItem('username', res.customer.HoTen || res.customer.TenDangNhap);
-      }
-      return res;
-    } catch (err) {
-      return rejectWithValue(err.response?.data);
-    }
-  }
-);;
+/** 🔹 Lấy thông tin user hiện tại */
+export const getInfoUser = createAsyncThunk('user/getInfoUser', async (_, { rejectWithValue }) => {
+  try {
+    console.log('📩 [Thunk] Gửi yêu cầu lấy thông tin user hiện tại...');
+    const res = await userApi.getInfo();
+    console.log('✅ [Thunk] Nhận dữ liệu user:', res);
 
-/**
- * Upload ảnh đại diện
- */
-export const uploadAvatar = createAsyncThunk(
-  'user/uploadAvatar',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await userApi.uploadAvatar(data);
-      toast.success('Cập nhật ảnh đại diện thành công!');
-      return res;
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Tải ảnh đại diện thất bại.');
-      return rejectWithValue(err.response?.data);
-    }
-  }
-);
-/**
- * Upload ảnh bìa
- */
-export const uploadCover = createAsyncThunk(
-  'user/uploadCover',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await userApi.uploadCover(data);
-      toast.success('Cập nhật ảnh bìa thành công!');
-      return res;
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Tải ảnh bìa thất bại.');
-      return rejectWithValue(err.response?.data);
-    }
-  }
-);
-/**
- * Cập nhật thông tin hồ sơ cá nhân
- */
-export const updateProfile = createAsyncThunk(
-  'user/updateProfile',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await userApi.updateProfile(data);
-      toast.success('Cập nhật hồ sơ thành công!');
-      return res;
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Cập nhật thất bại.');
-      return rejectWithValue(err.response?.data);
-    }
-  }
-);
+    if (res?.HoTen || res?.TenDangNhap)
+      sessionStorage.setItem('username', res.HoTen || res.TenDangNhap);
 
-/**
- * Đổi mật khẩu
- */
-export const changePassword = createAsyncThunk(
-  'user/changePassword',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await userApi.changePassword(data);
-      toast.success('Đổi mật khẩu thành công.');
-      return res;
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Đổi mật khẩu thất bại.');
-      return rejectWithValue(err.response?.data?.message);
-    }
+    return res;
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi khi lấy thông tin user:', err.response?.data || err);
+    return rejectWithValue(err.response?.data || { message: 'Không thể lấy thông tin user' });
   }
-);
+});
 
-/**
- * Nâng cấp tài khoản thành nhà cung cấp
- */
-export const upgradeToProvider = createAsyncThunk(
-  'user/upgradeToProvider',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await userApi.upgradeToProvider(data);
-      toast.success(res.message || 'Đăng ký nhà cung cấp thành công.');
-      return res;
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'Đăng ký thất bại.');
-      return rejectWithValue(err.response?.data?.message);
-    }
+/** 🔹 Upload avatar */
+export const uploadAvatar = createAsyncThunk('user/uploadAvatar', async (formData, { rejectWithValue }) => {
+  try {
+    console.log('📤 [Thunk] Upload avatar...');
+    const res = await userApi.uploadAvatar(formData);
+    toast.success('Cập nhật ảnh đại diện thành công!');
+    return res;
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi upload avatar:', err.response?.data || err);
+    toast.error(err.response?.data?.message || 'Tải ảnh đại diện thất bại.');
+    return rejectWithValue(err.response?.data);
   }
-);
+});
 
-/**
- * Slice quản lý người dùng
- */
+/** 🔹 Upload ảnh bìa */
+export const uploadCover = createAsyncThunk('user/uploadCover', async (formData, { rejectWithValue }) => {
+  try {
+    console.log('📤 [Thunk] Upload cover...');
+    const res = await userApi.uploadCover(formData);
+    toast.success('Cập nhật ảnh bìa thành công!');
+    return res;
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi upload cover:', err.response?.data || err);
+    toast.error(err.response?.data?.message || 'Tải ảnh bìa thất bại.');
+    return rejectWithValue(err.response?.data);
+  }
+});
+
+/** 🔹 Cập nhật hồ sơ cá nhân */
+export const updateProfile = createAsyncThunk('user/updateProfile', async (data, { rejectWithValue }) => {
+  try {
+    console.log('📤 [Thunk] Gửi yêu cầu cập nhật hồ sơ:', data);
+    const res = await userApi.updateProfile(data);
+    console.log('✅ [Thunk] Hồ sơ đã được cập nhật:', res);
+
+    toast.success(res.message || 'Cập nhật hồ sơ thành công!');
+    return res;
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi cập nhật hồ sơ:', err.response?.data || err);
+    toast.error(err.response?.data?.message || 'Cập nhật thất bại.');
+    return rejectWithValue(err.response?.data);
+  }
+});
+
+/** 🔹 Đổi mật khẩu */
+export const changePassword = createAsyncThunk('user/changePassword', async (data, { rejectWithValue }) => {
+  try {
+    console.log('📤 [Thunk] Gửi yêu cầu đổi mật khẩu');
+    const res = await userApi.changePassword(data);
+    toast.success('Đổi mật khẩu thành công!');
+    return res;
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi đổi mật khẩu:', err.response?.data || err);
+    toast.error(err.response?.data?.message || 'Đổi mật khẩu thất bại.');
+    return rejectWithValue(err.response?.data?.message);
+  }
+});
+
 const userSlice = createSlice({
   name: 'user',
   initialState: {
@@ -121,20 +90,21 @@ const userSlice = createSlice({
       state.user = null;
       state.avatar = null;
       sessionStorage.removeItem('username');
+      sessionStorage.removeItem('token');
       toast.info('Đã đăng xuất.');
     }
   },
   extraReducers: (builder) => {
     builder
-      // Lấy thông tin người dùng
+      /** 🔸 GET INFO */
       .addCase(getInfoUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(getInfoUser.fulfilled, (state, action) => {
         state.loading = false;
-        // ✅ Backend trả về { customer: {...}, message: "..." }
-        state.user = action.payload.customer; // ← Lấy customer từ payload
-        state.avatar = action.payload.customer?.avatarUrl;
+        state.user = action.payload;
+        state.avatar = action.payload?.Avatar || null;
       })
       .addCase(getInfoUser.rejected, (state, action) => {
         state.loading = false;
@@ -142,20 +112,44 @@ const userSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Upload avatar
+      /** 🔸 UPLOAD AVATAR */
       .addCase(uploadAvatar.fulfilled, (state, action) => {
-        state.avatar = action.payload.avatarUrl;
-        if (state.user) {
-          state.user.avatarUrl = action.payload.avatarUrl;
-        }
+        const avatarUrl = action.payload?.avatarUrl || action.payload?.fileUrl;
+        if (state.user) state.user.Avatar = avatarUrl;
+        state.avatar = avatarUrl;
       })
-      //upload ảnh bìa
-      .addCase(uploadCover.fulfilled, (state, action) => {
-        if (state.user) {
-          state.user.CoverImage = action.payload.fileUrl; // hoặc .coverUrl tùy backend
-        }
-      });
 
+      /** 🔸 UPLOAD COVER */
+      .addCase(uploadCover.fulfilled, (state, action) => {
+        const coverUrl = action.payload?.fileUrl;
+        if (state.user) state.user.CoverImage = coverUrl;
+      })
+
+      /** 🔸 UPDATE PROFILE */
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        const updated = action.payload?.customer || action.payload;
+        if (updated) state.user = updated;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      /** 🔸 CHANGE PASSWORD */
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(changePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   }
 });
 

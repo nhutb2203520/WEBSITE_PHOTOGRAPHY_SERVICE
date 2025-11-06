@@ -94,8 +94,8 @@ export default function AboutWeb() {
             <ul>
               <li>Điều khoản sử dụng và chính sách bảo mật đảm bảo quyền lợi khách hàng.</li>
               <li>Xử lý khiếu nại minh bạch, nhanh chóng.</li>
-              <li>Liên hệ qua email: <a href="mailto:support@photowebsite.com">support@photowebsite.com</a></li>
-              <li>Hotline: <strong>+84 912 345 678</strong></li>
+              <li>Liên hệ qua email: <a href="mailto:Nhutnhut716@gmail.com">Nhutnhut716@gmail.com</a></li>
+              <li>Hotline: <strong>+84 776 560 730</strong></li>
             </ul>
           </section>
 

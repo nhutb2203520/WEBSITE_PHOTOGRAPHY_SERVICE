@@ -8,12 +8,9 @@ import LOGO from '/src/assets/image/LOGO.png';
 export default function PhotoBookingHeader() {
   const location = useLocation();
   const dispatch = useDispatch();
-
-  // Redux state
   const { token } = useSelector((state) => state.auth);
   const { user } = useSelector((state) => state.user);
 
-  // Local state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -23,27 +20,27 @@ export default function PhotoBookingHeader() {
 
   const isActive = (path) => location.pathname === path;
 
-  // ✅ Lấy tên hiển thị từ Redux hoặc sessionStorage
- const displayName = (() => {
-  try {
-    return (
-      user?.HoTen ||
-      user?.TenDangNhap ||
-      sessionStorage.getItem('username') ||
-      'Tài khoản'
-    );
-  } catch (error) {
-    return 'Tài khoản';
-  }
-})();
-  // CSS nội tuyến
+  const displayName = (() => {
+    try {
+      return (
+        user?.HoTen ||
+        user?.TenDangNhap ||
+        sessionStorage.getItem('username') ||
+        'Tài khoản'
+      );
+    } catch (error) {
+      return 'Tài khoản';
+    }
+  })();
+
   const styles = {
     header: {
-      backgroundColor: '#ffffffff',
+      backgroundColor: '#fff',
       borderBottom: '3px solid #9333ea',
       position: 'sticky',
       top: 0,
       zIndex: 1000,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
     },
     container: {
       maxWidth: '1280px',
@@ -61,7 +58,7 @@ export default function PhotoBookingHeader() {
       alignItems: 'center',
       gap: '12px',
       textDecoration: 'none',
-      transition: 'opacity 0.3s',
+      transition: 'transform 0.3s ease',
     },
     logoImage: {
       height: '70px',
@@ -71,20 +68,24 @@ export default function PhotoBookingHeader() {
     nav: {
       display: 'flex',
       alignItems: 'center',
-      gap: '32px',
+      gap: '36px',
     },
     navLink: {
-      fontSize: '20px',
+      fontSize: '18px',
       fontWeight: '500',
       color: '#374151',
       textDecoration: 'none',
-      transition: 'all 0.3s',
+      transition: 'all 0.3s ease',
+      padding: '6px 10px',
+      borderRadius: '8px',
     },
     navLinkActive: {
-      fontSize: '20px',
+      fontSize: '18px',
       fontWeight: '600',
       color: '#9333ea',
       textDecoration: 'none',
+      borderBottom: '2px solid #9333ea',
+      paddingBottom: '4px',
     },
     authButtons: {
       display: 'flex',
@@ -100,7 +101,7 @@ export default function PhotoBookingHeader() {
       backgroundColor: 'transparent',
       cursor: 'pointer',
       textDecoration: 'none',
-      transition: 'all 0.3s',
+      transition: 'all 0.3s ease',
     },
     registerBtn: {
       padding: '10px 24px',
@@ -111,7 +112,7 @@ export default function PhotoBookingHeader() {
       borderRadius: '8px',
       cursor: 'pointer',
       textDecoration: 'none',
-      transition: 'all 0.3s',
+      transition: 'all 0.3s ease',
     },
     userInfo: {
       display: 'flex',
@@ -137,37 +138,11 @@ export default function PhotoBookingHeader() {
     mobileMenuContent: {
       padding: '16px 24px',
     },
-    mobileNavLink: {
-      display: 'block',
-      padding: '12px 0',
-      fontSize: '15px',
-      fontWeight: '500',
-      color: '#374151',
-      textDecoration: 'none',
-      transition: 'color 0.3s',
-    },
-    mobileNavLinkActive: {
-      display: 'block',
-      padding: '12px 0',
-      fontSize: '15px',
-      fontWeight: '500',
-      color: '#9333ea',
-      textDecoration: 'none',
-    },
-    mobileDivider: {
-      borderTop: '1px solid #e5e7eb',
-      paddingTop: '16px',
-      marginTop: '16px',
-    },
   };
 
-  // CSS media query riêng (ẩn/hiện menu mobile)
   const mediaQueryStyles = `
     @media (max-width: 1024px) {
-      .desktop-nav {
-        display: none !important;
-      }
-      .desktop-auth {
+      .desktop-nav, .desktop-auth {
         display: none !important;
       }
       .mobile-menu-btn {
@@ -181,9 +156,33 @@ export default function PhotoBookingHeader() {
       }
     }
 
+    /* 🌟 Hiệu ứng hover mượt và nổi bật */
     .nav-link:hover {
       color: #9333ea;
-      transform: scale(1.08);
+      transform: translateY(-2px);
+      text-shadow: 0 2px 8px rgba(147, 51, 234, 0.3);
+    }
+
+    .login-btn:hover {
+      background-color: #9333ea;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
+      transform: scale(1.05);
+    }
+
+    .register-btn:hover {
+      background-color: #7e22ce;
+      box-shadow: 0 4px 12px rgba(147, 51, 234, 0.5);
+      transform: scale(1.05);
+    }
+
+    .logo:hover {
+      transform: scale(1.05) rotate(-1deg);
+      filter: drop-shadow(0 3px 8px rgba(147, 51, 234, 0.3));
+    }
+
+    button, a {
+      transition: all 0.3s ease;
     }
   `;
 
@@ -194,58 +193,33 @@ export default function PhotoBookingHeader() {
       <header style={styles.header}>
         <div style={styles.container}>
           <div style={styles.flexContainer}>
-            {/* Logo */}
-            <Link to="/" style={styles.logo}>
+            <Link to="/" style={styles.logo} className="logo">
               <img src={LOGO} alt="PhotoBooking Logo" style={styles.logoImage} />
             </Link>
 
-            {/* Navigation (Desktop) */}
             <nav style={styles.nav} className="desktop-nav">
-              <Link
-                to="/"
-                style={isActive('/') ? styles.navLinkActive : styles.navLink}
-              >
-                Trang chủ
-              </Link>
-              <Link
-                to="/photographers"
-                style={
-                  isActive('/photographers')
-                    ? styles.navLinkActive
-                    : styles.navLink
-                }
-              >
-                Nhiếp ảnh gia
-              </Link>
-              <Link
-                to="/service-package"
-                style={
-                  isActive('/service-package')
-                    ? styles.navLinkActive
-                    : styles.navLink
-                }
-              >
-                Gói chụp
-              </Link>
-              <Link
-                to="/activity"
-                style={
-                  isActive('/activity')
-                    ? styles.navLinkActive
-                    : styles.navLink
-                }
-              >
-                Cách hoạt động
-              </Link>
-              <Link
-                to="/about-web"
-                style={isActive('/about-web') ? styles.navLinkActive : styles.navLink}
-              >
-                Về chúng tôi
-              </Link>
+              {[
+                { path: '/', label: 'Trang chủ' },
+                { path: '/photographers', label: 'Nhiếp ảnh gia' },
+                { path: '/service-package', label: 'Gói chụp' },
+                { path: '/activity', label: 'Cách hoạt động' },
+                { path: '/about-web', label: 'Về chúng tôi' },
+              ].map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  style={
+                    isActive(item.path)
+                      ? styles.navLinkActive
+                      : styles.navLink
+                  }
+                  className="nav-link"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </nav>
 
-            {/* Auth Buttons (Desktop) */}
             <div style={styles.authButtons} className="desktop-auth">
               {token ? (
                 <>
@@ -265,17 +239,24 @@ export default function PhotoBookingHeader() {
                 </>
               ) : (
                 <>
-                  <Link to="/signin" style={styles.loginBtn}>
+                  <Link
+                    to="/signin"
+                    style={styles.loginBtn}
+                    className="login-btn"
+                  >
                     Đăng nhập
                   </Link>
-                  <Link to="/signup" style={styles.registerBtn}>
+                  <Link
+                    to="/signup"
+                    style={styles.registerBtn}
+                    className="register-btn"
+                  >
                     Đăng ký
                   </Link>
                 </>
               )}
             </div>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               style={styles.mobileMenuBtn}
@@ -286,109 +267,55 @@ export default function PhotoBookingHeader() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {isMenuOpen && (
           <div style={styles.mobileMenu} className="mobile-menu">
             <div style={styles.mobileMenuContent}>
-              <Link
-                to="/"
-                onClick={() => setIsMenuOpen(false)}
-                style={
-                  isActive('/')
-                    ? styles.mobileNavLinkActive
-                    : styles.mobileNavLink
-                }
-              >
-                Trang chủ
-              </Link>
-              <Link
-                to="/photographers"
-                onClick={() => setIsMenuOpen(false)}
-                style={
-                  isActive('/photographers')
-                    ? styles.mobileNavLinkActive
-                    : styles.mobileNavLink
-                }
-              >
-                Nhiếp ảnh gia
-              </Link>
-              <Link
-                to="/services"
-                onClick={() => setIsMenuOpen(false)}
-                style={
-                  isActive('/services')
-                    ? styles.mobileNavLinkActive
-                    : styles.mobileNavLink
-                }
-              >
-                Gói chụp
-              </Link>
-              <Link
-                to="/how-it-works"
-                onClick={() => setIsMenuOpen(false)}
-                style={
-                  isActive('/how-it-works')
-                    ? styles.mobileNavLinkActive
-                    : styles.mobileNavLink
-                }
-              >
-                Cách hoạt động
-              </Link>
-              <Link
-                to="/about"
-                onClick={() => setIsMenuOpen(false)}
-                style={
-                  isActive('/about')
-                    ? styles.mobileNavLinkActive
-                    : styles.mobileNavLink
-                }
-              >
-                Về chúng tôi
-              </Link>
+              {[
+                { path: '/', label: 'Trang chủ' },
+                { path: '/photographers', label: 'Nhiếp ảnh gia' },
+                { path: '/service-package', label: 'Gói chụp' },
+                { path: '/activity', label: 'Cách hoạt động' },
+                { path: '/about-web', label: 'Về chúng tôi' },
+              ].map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMenuOpen(false)}
+                  style={
+                    isActive(item.path)
+                      ? { color: '#9333ea', fontWeight: 600 }
+                      : { color: '#374151' }
+                  }
+                  className="block py-2 text-lg"
+                >
+                  {item.label}
+                </Link>
+              ))}
 
-              {/* Auth Section (Mobile) */}
               {token ? (
-                <div style={styles.mobileDivider}>
-                  <div style={styles.userInfo}>
+                <div className="mt-4 border-t border-gray-200 pt-3">
+                  <div className="flex items-center gap-2 mb-2">
                     <User size={22} color="#9333ea" />
                     <span>{displayName}</span>
                   </div>
                   <button
                     onClick={handleLogout}
-                    style={{
-                      ...styles.mobileNavLink,
-                      background: 'none',
-                      border: 'none',
-                      width: '100%',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                    }}
+                    className="text-left w-full text-gray-600 hover:text-purple-600"
                   >
                     Đăng xuất
                   </button>
                 </div>
               ) : (
-                <div style={styles.mobileDivider}>
+                <div className="mt-4 border-t border-gray-200 pt-3 flex flex-col gap-2">
                   <Link
                     to="/signin"
-                    onClick={() => setIsMenuOpen(false)}
-                    style={{
-                      ...styles.loginBtn,
-                      display: 'block',
-                      textAlign: 'center',
-                      marginBottom: '12px',
-                    }}
+                    className="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg text-center hover:bg-purple-600 hover:text-white transition"
                   >
                     Đăng nhập
                   </Link>
                   <Link
                     to="/signup"
-                    onClick={() => setIsMenuOpen(false)}
-                    style={{
-                      ...styles.registerBtn,
-                      display: 'block',
-                      textAlign: 'center',
-                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-center hover:bg-purple-700 transition"
                   >
                     Đăng ký
                   </Link>

@@ -10,19 +10,19 @@ const routes = [
   },
   {
     path:'/signup',
-    component: lazy(() => import('../components/Acount/SignUp'))
+    component: lazy(() => import('../components/Account/SignUp'))
   },
   {
     path:'/signin',
-    component: lazy(() => import('../components/Acount/SignIn'))
+    component: lazy(() => import('../components/Account/SignIn'))
   },
   {
     path:'/forgot-password',
-    component: lazy(() => import('../components/Acount/ForgotPass'))
+    component: lazy(() => import('../components/Account/ForgotPass'))
   },
   {
     path:'/my-account',
-    component: lazy(() => import('../components/Acount/MyAccount'))
+    component: lazy(() => import('../components/Account/MyAccount'))
   },
   {
     path:'/photographers',

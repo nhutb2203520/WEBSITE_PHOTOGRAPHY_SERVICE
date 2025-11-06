@@ -1,59 +1,29 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "http://localhost:5000/api/khachhang";
 
-// Interceptor tự động thêm token từ sessionStorage
-axios.interceptors.request.use(
-  (config) => {
-    const token = sessionStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+axios.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 const userApi = {
-  getUserById: async () => {
-    const response = await axios.get(`${API_URL}/my-profile`);
-    return response.data; // { customer, message }
+  getInfo: async () => {
+    const res = await axios.get(`${API_URL}/me`);
+    console.log("📥 getInfoUser response:", res.data);
+    return res.data;
   },
 
-  uploadAvatar: async (data) => {
-    const response = await axios.post(`${API_URL}/upload/avatar`, data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data; // { message, fileUrl }
-  },
-
-
-  uploadCover: async (data) => {
-    const response = await axios.post(`${API_URL}/upload/cover`, data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data; // { message, fileUrl }
-  },
-
-  
   updateProfile: async (data) => {
-    const response = await axios.patch(`${API_URL}/khachhang/update`, data);
-    return response.data; // { message, updatedUser }
+    const res = await axios.patch(`${API_URL}/update`, data);
+    console.log("📤 updateProfile response:", res.data);
+    return res.data;
   },
 
-  
   changePassword: async (data) => {
-    const response = await axios.patch(`${API_URL}/khachhang/change-password`, data);
-    return response.data; // { message }
-  },
-
-  /**
-   * ✅ Nâng cấp tài khoản thành nhà cung cấp
-   * POST /api/khachhang/upgrade
-   */
-  upgradeToProvider: async (data) => {
-    const response = await axios.post(`${API_URL}/khachhang/upgrade`, data);
-    return response.data; // { message }
+    const res = await axios.patch(`${API_URL}/change-password`, data);
+    return res.data;
   },
 };
 

@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import mongoose from "mongoose"; // ← Thêm dòng này
+import mongoose from "mongoose";
 
 import khachHangModel from "../models/khachhang.model.js";
 import trangThaiKhachHangModel from "../models/trangthaikhachhang.model.js";
@@ -9,34 +9,44 @@ import trangThaiKhachHangModel from "../models/trangthaikhachhang.model.js";
 dotenv.config();
 
 class KhachHangService {
+  // 🔹 Tạo token và lưu refresh token
   async generateAndSaveTokens(user) {
-    const { Password, ...customerInfo } = user._doc;
-    const token = jwt.sign(
-      customerInfo,
-      process.env.JWT_SECRET || "Luan Van Tot Nghiep-B2203520",
-      { expiresIn: "30s" }
-    );
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET || "RefreshSecretKey",
-      { expiresIn: "7d" }
-    );
-    await khachHangModel.findByIdAndUpdate(user._id, {
-      RefreshToken: refreshToken,
-    });
-    return { token, refreshToken, customerInfo };
+    try {
+      const { Password, ...customerInfo } = user._doc;
+      const token = jwt.sign(
+        customerInfo,
+        process.env.JWT_SECRET || "Luan Van Tot Nghiep-B2203520",
+        { expiresIn: "30s" }
+      );
+      const refreshToken = jwt.sign(
+        { id: user._id },
+        process.env.JWT_REFRESH_SECRET || "RefreshSecretKey",
+        { expiresIn: "7d" }
+      );
+
+      await khachHangModel.findByIdAndUpdate(user._id, {
+        RefreshToken: refreshToken,
+      });
+
+      console.log("✅ Tokens generated for user:", user._id);
+      return { token, refreshToken, customerInfo };
+    } catch (error) {
+      console.error("❌ Error in generateAndSaveTokens:", error);
+      throw error;
+    }
   }
 
+  // 🔹 Lấy thông tin tài khoản hiện tại
   async getMyAccount(id) {
     try {
-      
-      // ✅ Chuyển đổi string thành ObjectId nếu cần
-      const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
-      
+      const objectId = typeof id === "string" ? new mongoose.Types.ObjectId(id) : id;
+
       const customer = await khachHangModel
         .findById(objectId)
         .select("-Password")
         .populate("MaTT");
+
+      console.log("✅ getMyAccount result:", customer);
 
       if (!customer) {
         return { message: "Tài khoản độc giả không tồn tại." };
@@ -49,124 +59,172 @@ class KhachHangService {
     }
   }
 
+  // 🔹 Đăng ký
   async register(data) {
-    const kiemTraKH = await khachHangModel.findOne({
-      $or: [
-        { SoDienThoai: data.SoDienThoai.trim() },
-        { Email: data.Email.trim().toLowerCase() },
-      ],
-    });
+    try {
+      console.log("📝 Register data:", data);
 
-    if (kiemTraKH) {
-      return { message: "Số điện thoại hoặc email đã đăng ký tài khoản." };
+      const existing = await khachHangModel.findOne({
+        $or: [
+          { SoDienThoai: data.SoDienThoai?.trim() },
+          { Email: data.Email?.trim().toLowerCase() },
+        ],
+      });
+
+      if (existing) {
+        return { message: "Số điện thoại hoặc email đã đăng ký tài khoản." };
+      }
+
+      if (!data.HoTen) {
+        return { message: "Họ tên không được để trống." };
+      }
+
+      const status = await trangThaiKhachHangModel.findOne({ TenTT: "active" });
+      data.MaTT = status?._id;
+
+      data.Password = await bcrypt.hash(data.Password, 10);
+      data.Email = data.Email.trim().toLowerCase();
+
+      const newKH = new khachHangModel(data);
+      await newKH.save();
+      await newKH.populate("MaTT");
+
+      const { Password, ...khachHangInfo } = newKH._doc;
+
+      console.log("✅ New user registered:", khachHangInfo);
+
+      return { khachhang: khachHangInfo, message: "Đăng ký tài khoản thành công." };
+    } catch (error) {
+      console.error("❌ Error in register:", error);
+      throw error;
     }
-
-    if (!data.HoTen) {
-      return { message: "Họ tên không được để trống." };
-    }
-
-    const customerStatus = await trangThaiKhachHangModel.findOne({
-      TenTT: "active",
-    });
-
-    data.MaTT = customerStatus?._id;
-    const hashedPassword = await bcrypt.hash(data.Password, 10);
-    data.Password = hashedPassword;
-    data.Email = data.Email.trim().toLowerCase();
-
-    const newKH = new khachHangModel(data);
-    await newKH.save();
-    await newKH.populate("MaTT");
-
-    const { Password, ...khachHangInfo } = newKH._doc;
-
-    return {
-      khachhang: khachHangInfo,
-      message: "Đăng ký tài khoản thành công.",
-    };
   }
 
+  // 🔹 Đăng nhập
   async login(data) {
-  if (!data.identifier) {
-    return { message: "Vui lòng nhập username, số điện thoại hoặc email để đăng nhập." };
+    try {
+      console.log("📝 Login data:", data);
+
+      if (!data.identifier) {
+        return { message: "Vui lòng nhập username, số điện thoại hoặc email để đăng nhập." };
+      }
+
+      const customer = await khachHangModel
+        .findOne({
+          $or: [
+            { TenDangNhap: data.identifier.trim() },
+            { Email: data.identifier.trim().toLowerCase() },
+            { SoDienThoai: data.identifier.trim() },
+          ],
+        })
+        .populate("MaTT", "TenTT");
+
+      if (!customer) {
+        return { message: "Username/Email/Số điện thoại chưa đăng ký tài khoản." };
+      }
+
+      if (customer.MaTT?.TenTT !== "active") {
+        return { message: "Tài khoản bị khóa, liên hệ quản trị viên." };
+      }
+
+      const isMatch = await bcrypt.compare(data.Password, customer.Password);
+      if (!isMatch) return { message: "Mật khẩu không đúng." };
+
+      const { token, refreshToken, customerInfo } = await this.generateAndSaveTokens(customer);
+
+      console.log("✅ User logged in:", customer._id);
+
+      return { token, refreshToken, customer: customerInfo, message: "Đăng nhập thành công." };
+    } catch (error) {
+      console.error("❌ Error in login:", error);
+      throw error;
+    }
   }
 
-  const customer = await khachHangModel
-    .findOne({
-      $or: [
-        { TenDangNhap: data.identifier.trim() },
-        { Email: data.identifier.trim().toLowerCase() },
-        { SoDienThoai: data.identifier.trim() },
-      ],
-    })
-    .populate("MaTT", "TenTT");
-
-  if (customer && customer.MaTT?.TenTT !== "active") {
-    return {
-      message: "Tài khoản của bạn bị khóa, vui lòng liên hệ quản trị viên để giải quyết.",
-    };
-  }
-
-  if (!customer) {
-    return { message: "Username/Email/Số điện thoại chưa đăng ký tài khoản." };
-  }
-
-  const isMatch = await bcrypt.compare(data.Password, customer.Password);
-  if (!isMatch) {
-    return { message: "Mật khẩu không đúng." };
-  }
-
-  const { token, refreshToken, customerInfo } = await this.generateAndSaveTokens(customer);
-
-  return {
-    token,
-    refreshToken,
-    customer: customerInfo,
-    message: "Đăng nhập thành công.",
-  };
-}
-
-
+  // 🔹 Cập nhật hồ sơ người dùng
   async updateAccount(id, data) {
-    const kiemTraCustomer = await khachHangModel.findOne({
-      _id: { $ne: id },
-      $or: [
-        { SoDienThoai: data.SoDienThoai.trim() },
-        { Email: data.Email.trim().toLowerCase() },
-      ],
-    });
+    try {
+      console.log('🔍 updateAccount received data:', data);
 
-    if (kiemTraCustomer) {
-      return { message: "Số điện thoại hoặc Email đã tồn tại." };
+      if (!data || typeof data !== 'object') {
+        throw new Error('No update data provided');
+      }
+
+      const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+      const allowedFields = ["HoTen","Email","SoDienThoai","DiaChi","NgaySinh","GioiTinh","Avatar","CoverImage"];
+      const updateData = {};
+
+      allowedFields.forEach(field => {
+        // Chỉ bỏ qua nếu là undefined, chấp nhận cả giá trị rỗng
+        if (data.hasOwnProperty(field) && data[field] !== undefined) {
+          if (field === "NgaySinh") {
+            const date = new Date(data[field]);
+            if (!isNaN(date.getTime())) {
+              updateData[field] = date;
+            }
+          } else if (field === "Email" && data[field]) {
+            updateData[field] = data[field].trim().toLowerCase();
+          } else {
+            updateData[field] = data[field];
+          }
+        }
+      });
+
+      console.log('✅ updateData after processing:', updateData);
+
+      if (Object.keys(updateData).length === 0) {
+        return { message: "Không có dữ liệu hợp lệ để cập nhật." };
+      }
+
+      // Kiểm tra trùng Email/SĐT (chỉ khi có thay đổi)
+      const orConditions = [];
+      if (updateData.Email) orConditions.push({ Email: updateData.Email });
+      if (updateData.SoDienThoai) orConditions.push({ SoDienThoai: updateData.SoDienThoai });
+
+      if (orConditions.length > 0) {
+        const duplicate = await khachHangModel.findOne({
+          _id: { $ne: objectId },
+          $or: orConditions
+        });
+        if (duplicate) {
+          return { message: "Email hoặc Số điện thoại đã tồn tại." };
+        }
+      }
+
+      const updatedCustomer = await khachHangModel.findByIdAndUpdate(
+        objectId,
+        updateData,
+        { new: true, runValidators: true, context: 'query' }
+      ).select("-Password").populate("MaTT");
+
+      console.log('✅ Updated customer:', updatedCustomer);
+
+      return { customer: updatedCustomer, message: "Cập nhật tài khoản thành công." };
+    } catch (error) {
+      console.error("❌ Error in updateAccount:", error);
+      throw error;
     }
-
-    const updatedCustomer = await khachHangModel
-      .findByIdAndUpdate(id, data, { new: true })
-      .select("-Password");
-
-    if (!updatedCustomer) {
-      return { message: "Độc giả không tồn tại." };
-    }
-
-    return { customer: updatedCustomer, message: "Cập nhật tài khoản thành công." };
   }
 
+  // 🔹 Đổi mật khẩu
   async changePassword(id, currentPassword, newPassword) {
-    const customer = await khachHangModel.findById(id);
-    if (!customer) {
-      return { message: "Người dùng không tồn tại." };
+    try {
+      const customer = await khachHangModel.findById(id);
+      if (!customer) return { message: "Người dùng không tồn tại." };
+
+      const isMatch = await bcrypt.compare(currentPassword, customer.Password);
+      if (!isMatch) return { message: "Mật khẩu cũ không đúng." };
+
+      customer.Password = await bcrypt.hash(newPassword, 10);
+      await customer.save();
+
+      console.log("✅ Password changed for user:", customer._id);
+
+      return { message: "Đổi mật khẩu thành công." };
+    } catch (error) {
+      console.error("❌ Error in changePassword:", error);
+      throw error;
     }
-
-    const isMatch = await bcrypt.compare(currentPassword, customer.Password);
-    if (!isMatch) {
-      return { message: "Mật khẩu cũ không đúng." };
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    customer.Password = hashedPassword;
-    await customer.save();
-
-    return { message: "Đổi mật khẩu thành công." };
   }
 }
 
