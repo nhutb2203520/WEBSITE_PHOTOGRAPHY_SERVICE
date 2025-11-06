@@ -1,136 +1,148 @@
-  import React, { useState, useEffect } from 'react';
-  import { Link, useNavigate } from 'react-router-dom';
-  import { useDispatch, useSelector } from 'react-redux';
-  import {
-    Eye, EyeOff, User, Mail, Phone, Calendar,
-    Users, Lock, Camera, AlertCircle
-  } from 'lucide-react';
-  import { registerUser, clearError } from '../../redux/Slices/authSlice';
-  import { toast } from 'react-toastify';
-  import './SignUp.css';
-  import Header from '../Header/Header'
-  import Footer from '../Footer/Footer'
-  export default function RegisterCustomer() {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  Eye, EyeOff, User, Mail, Phone, Calendar,
+  Users, Lock, Camera, AlertCircle
+} from 'lucide-react';
+import { registerUser, clearError } from '../../redux/Slices/authSlice';
+import { toast } from 'react-toastify';
+import './SignUp.css';
+import Header from '../Header/Header';
+import Footer from '../Footer/Footer';
 
-    const { isLoading, error, isSuccess } = useSelector((state) => state.auth);
+export default function RegisterCustomer() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-    const [formData, setFormData] = useState({
-      username: '',
-      fullname: '',
-      email: '',
-      phone: '',
-      dateOfBirth: '',
-      gender: '',
-      password: '',
-      confirmPassword: '',
-      isPhotographer: false,
-    });
+  const { isLoading, error, isSuccess } = useSelector((state) => state.auth);
 
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [errors, setErrors] = useState({});
+  const [formData, setFormData] = useState({
+    username: '',
+    fullname: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    gender: '',
+    password: '',
+    confirmPassword: '',
+    isPhotographer: false,
+  });
 
-    // Xóa lỗi khi unmount
-    useEffect(() => {
-      return () => dispatch(clearError());
-    }, [dispatch]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState({});
 
-    // ✅ Hiển thị Toast khi đăng ký thành công
-    useEffect(() => {
-      if (isSuccess) {
-        toast.success('🎉 Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.', {
-          position: 'top-right',
-          autoClose: 3000,
-          theme: 'colored',
-        });
-        setTimeout(() => navigate('/signin'), 3500);
+  // Xóa lỗi khi unmount
+  useEffect(() => {
+    return () => dispatch(clearError());
+  }, [dispatch]);
+
+  // ✅ Hiển thị Toast khi đăng ký thành công
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success('🎉 Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.', {
+        position: 'top-right',
+        autoClose: 3000,
+        theme: 'colored',
+      });
+      setTimeout(() => navigate('/signin'), 3500);
+    }
+  }, [isSuccess, navigate]);
+
+  // ✅ Hiển thị Toast & lỗi cụ thể khi có lỗi từ backend
+  useEffect(() => {
+    if (error) {
+      const message = typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi.';
+
+      toast.error(message, {
+        position: 'top-right',
+        autoClose: 3000,
+        theme: 'colored',
+      });
+
+      // Hiển thị lỗi ngay tại input tương ứng
+      if (message.includes('Email')) {
+        setErrors((prev) => ({ ...prev, email: message }));
+      } else if (message.includes('Tên đăng nhập') || message.includes('username')) {
+        setErrors((prev) => ({ ...prev, username: message }));
+      } else if (message.includes('Số điện thoại')) {
+        setErrors((prev) => ({ ...prev, phone: message }));
       }
-    }, [isSuccess, navigate]);
+    }
+  }, [error]);
 
-    // ✅ Hiển thị Toast khi có lỗi
-    useEffect(() => {
-      if (error) {
-        toast.error(error, {
-          position: 'top-right',
-          autoClose: 3000,
-          theme: 'colored',
-        });
-      }
-    }, [error]);
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
 
-    const handleChange = (e) => {
-      const { name, value, type, checked } = e.target;
-      setFormData((prev) => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value,
-      }));
+    // Xóa lỗi khi người dùng nhập lại
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+    if (error) dispatch(clearError());
+  };
 
-      // Xóa lỗi khi người dùng nhập lại
-      if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
-      if (error) dispatch(clearError());
-    };
+  const validateForm = () => {
+    const newErrors = {};
 
-    const validateForm = () => {
-      const newErrors = {};
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username không được để trống';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username phải có ít nhất 3 ký tự';
+    }
 
-      if (!formData.username.trim()) {
-        newErrors.username = 'Username không được để trống';
-      } else if (formData.username.length < 3) {
-        newErrors.username = 'Username phải có ít nhất 3 ký tự';
-      }
+    if (!formData.fullname.trim()) {
+      newErrors.fullname = 'Họ tên không được để trống';
+    }
 
-      if (!formData.fullname.trim()) {
-        newErrors.fullname = 'Họ tên không được để trống';
-      }
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email không được để trống';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email không hợp lệ';
+    }
 
-      if (!formData.email.trim()) {
-        newErrors.email = 'Email không được để trống';
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = 'Email không hợp lệ';
-      }
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Số điện thoại không được để trống';
+    } else if (!/^0\d{9}$/.test(formData.phone)) {
+      newErrors.phone = 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0';
+    }
 
-      if (!formData.phone.trim()) {
-        newErrors.phone = 'Số điện thoại không được để trống';
-      } else if (!/^[0-9]{10}$/.test(formData.phone)) {
-        newErrors.phone = 'Số điện thoại phải có 10 chữ số';
-      }
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = 'Ngày sinh không được để trống';
+    }
 
-      if (!formData.dateOfBirth) {
-        newErrors.dateOfBirth = 'Ngày sinh không được để trống';
-      }
+    if (!formData.gender) {
+      newErrors.gender = 'Vui lòng chọn giới tính';
+    }
 
-      if (!formData.gender) {
-        newErrors.gender = 'Vui lòng chọn giới tính';
-      }
+    if (!formData.password) {
+      newErrors.password = 'Mật khẩu không được để trống';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+    }
 
-      if (!formData.password) {
-        newErrors.password = 'Mật khẩu không được để trống';
-      } else if (formData.password.length < 6) {
-        newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-      }
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
+    }
 
-      if (!formData.confirmPassword) {
-        newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
-      } else if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
-      }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      if (!validateForm()) return;
+    const { confirmPassword, ...dataToSend } = formData;
+    dispatch(registerUser(dataToSend));
+  };
 
-      const { confirmPassword, ...dataToSend } = formData;
-      dispatch(registerUser(dataToSend));
-    };
-
-    return (
-      <>
+  return (
+    <>
       <Header />
       <div className="register-container">
         <div className="register-card">
@@ -140,10 +152,10 @@
           </div>
 
           <form className="register-form" onSubmit={handleSubmit}>
-            {error && (
+            {error && !Object.keys(errors).length && (
               <div className="alert-error">
                 <AlertCircle size={20} />
-                <span>{error}</span>
+                <span>{typeof error === 'string' ? error : error.message}</span>
               </div>
             )}
 
@@ -199,7 +211,7 @@
                 {errors.email && <span className="error-text">{errors.email}</span>}
               </div>
 
-              {/* Phone */}
+              {/* Số điện thoại */}
               <div className="form-group">
                 <label className="form-label">Số điện thoại <span className="required">*</span></label>
                 <div className="input-wrapper">
@@ -337,6 +349,6 @@
         </div>
       </div>
       <Footer />
-      </>
-    );
-  }
+    </>
+  );
+}

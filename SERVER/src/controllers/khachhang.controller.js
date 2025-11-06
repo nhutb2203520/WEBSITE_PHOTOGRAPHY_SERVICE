@@ -5,7 +5,6 @@ import KhachHangService from "../services/khachhang.service.js";
 export const getMyAccount = async (req, res, next) => {
   try {
     const userId = req.user.id || req.user._id;
-    console.log("📥 getMyAccount userId:", userId);
     const result = await KhachHangService.getMyAccount(userId);
     return res.status(200).json(result.customer);
   } catch (err) {
@@ -19,7 +18,6 @@ export const updateAccount = async (req, res, next) => {
   try {
     const userId = req.user.id || req.user._id;
     const data = req.body;
-    console.log("📤 updateAccount request:", { userId, data });
 
     const result = await KhachHangService.updateAccount(userId, data);
     return res.status(200).json(result);

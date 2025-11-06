@@ -25,28 +25,42 @@ class AuthService {
       isPhotographer,
     } = data;
 
-    // Kiểm tra email trùng
-    const existingUser = await khachHangModel.findOne({ Email: email });
-    if (existingUser) throw new Error("Email đã được đăng ký.");
+    // ✅ Kiểm tra email trùng
+    const existingEmail = await khachHangModel.findOne({ Email: email.trim().toLowerCase() });
+    if (existingEmail) throw new Error("Email đã được đăng ký.");
 
-    // Lấy trạng thái khách hàng mặc định ("active")
+    // ✅ Kiểm tra số điện thoại trùng
+    const existingPhone = await khachHangModel.findOne({ SoDienThoai: phone.trim() });
+    if (existingPhone) throw new Error("Số điện thoại đã được đăng ký.");
+
+    // ✅ Kiểm tra username trùng
+    const existingUsername = await khachHangModel.findOne({ TenDangNhap: username.trim() });
+    if (existingUsername) throw new Error("Tên đăng nhập đã tồn tại.");
+
+    // ✅ Kiểm tra định dạng số điện thoại (Việt Nam)
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      throw new Error("Số điện thoại không hợp lệ (phải gồm 10 số và bắt đầu bằng 0).");
+    }
+
+    // ✅ Lấy trạng thái khách hàng mặc định ("active")
     let customerStatus = await trangThaiKhachHangModel.findOne({ TenTT: "active" });
     if (!customerStatus) {
       customerStatus = await trangThaiKhachHangModel.create({ TenTT: "active" });
     }
 
-    // Hash password
+    // ✅ Hash mật khẩu
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Tạo tài khoản
+    // ✅ Tạo tài khoản
     const newUser = new khachHangModel({
-      TenDangNhap: username,
-      HoTen: fullname,
+      TenDangNhap: username.trim(),
+      HoTen: fullname.trim(),
       NgaySinh: dateOfBirth,
       GioiTinh: gender,
-      SoDienThoai: phone,
-      Email: email,
+      SoDienThoai: phone.trim(),
+      Email: email.trim().toLowerCase(),
       Password: hashedPassword,
       MaTT: customerStatus._id,
       isPhotographer,
@@ -60,56 +74,56 @@ class AuthService {
         id: newUser._id,
         username: newUser.TenDangNhap,
         email: newUser.Email,
+        phone: newUser.SoDienThoai,
       },
     };
   }
 
   // --- Đăng nhập ---
   async login(identifier, password) {
-  const user = await khachHangModel
-    .findOne({
-      $or: [
-        { TenDangNhap: identifier.trim() },
-        { Email: identifier.trim().toLowerCase() },
-        { SoDienThoai: identifier.trim() },
-      ],
-    })
-    .populate("MaTT", "TenTT");
+    const user = await khachHangModel
+      .findOne({
+        $or: [
+          { TenDangNhap: identifier.trim() },
+          { Email: identifier.trim().toLowerCase() },
+          { SoDienThoai: identifier.trim() },
+        ],
+      })
+      .populate("MaTT", "TenTT");
 
-  if (!user) throw new Error("Người dùng không tồn tại.");
-  if (user.MaTT?.TenTT !== "active")
-    throw new Error("Tài khoản bị khóa, vui lòng liên hệ quản trị viên.");
+    if (!user) throw new Error("Người dùng không tồn tại.");
+    if (user.MaTT?.TenTT !== "active")
+      throw new Error("Tài khoản bị khóa, vui lòng liên hệ quản trị viên.");
 
-  const isMatch = await bcrypt.compare(password, user.Password);
-  if (!isMatch) throw new Error("Mật khẩu không đúng.");
+    const isMatch = await bcrypt.compare(password, user.Password);
+    if (!isMatch) throw new Error("Mật khẩu không đúng.");
 
-  const token = jwt.sign(
-    { id: user._id, Email: user.Email },
-    process.env.JWT_SECRET || "SecretKey",
-    { expiresIn: "1h" }
-  );
+    const token = jwt.sign(
+      { id: user._id, Email: user.Email },
+      process.env.JWT_SECRET || "SecretKey",
+      { expiresIn: "1h" }
+    );
 
-  const refreshToken = jwt.sign(
-    { id: user._id },
-    process.env.JWT_REFRESH_SECRET || "RefreshSecretKey",
-    { expiresIn: "7d" }
-  );
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_REFRESH_SECRET || "RefreshSecretKey",
+      { expiresIn: "7d" }
+    );
 
-  user.RefreshToken = refreshToken;
-  await user.save();
+    user.RefreshToken = refreshToken;
+    await user.save();
 
-  return {
-    message: "Đăng nhập thành công.",
-    token,
-    refreshToken,
-    user: {
-      id: user._id,
-      username: user.TenDangNhap,
-      email: user.Email,
-    },
-  };
-}
-
+    return {
+      message: "Đăng nhập thành công.",
+      token,
+      refreshToken,
+      user: {
+        id: user._id,
+        username: user.TenDangNhap,
+        email: user.Email,
+      },
+    };
+  }
 
   // --- Quên mật khẩu ---
   async requestResetPassword(identifier) {

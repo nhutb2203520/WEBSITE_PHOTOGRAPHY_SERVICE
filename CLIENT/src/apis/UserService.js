@@ -25,6 +25,26 @@ const userApi = {
     const res = await axios.patch(`${API_URL}/change-password`, data);
     return res.data;
   },
+
+  /** 🔹 Upload avatar */
+  uploadAvatar: async (formData) => {
+    console.log("📤 Upload avatar API gọi...");
+    const res = await axios.post(`${API_URL}/upload-avatar`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    console.log("📤 Upload avatar response:", res.data);
+    return res.data;
+  },
+
+  /** 🔹 Upload ảnh bìa */
+  uploadCover: async (formData) => {
+    console.log("📤 Upload cover API gọi...");
+    const res = await axios.post(`${API_URL}/upload-cover`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    console.log("📤 Upload cover response:", res.data);
+    return res.data;
+  },
 };
 
 export default userApi;

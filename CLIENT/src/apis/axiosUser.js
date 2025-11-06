@@ -66,8 +66,9 @@ axiosUser.interceptors.response.use(
           throw new Error('No refresh token');
         }
 
+        // ✅ SỬA: Đổi port từ 3000 → 5000 cho đúng với backend
         const res = await axios.post(
-          'http://localhost:3000/api/auth/refresh-token',
+          'http://localhost:5000/api/auth/refresh-token',
           {
             refreshToken
           }
@@ -87,8 +88,8 @@ axiosUser.interceptors.response.use(
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('refreshToken');
         const isAdmin = window.location.pathname.startsWith('/admin');
-        window.location.href = isAdmin ? '/admin/login' : '/login';
-        // window.location.href = '/login';
+        window.location.href = isAdmin ? '/admin/login' : '/signin';
+        
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
