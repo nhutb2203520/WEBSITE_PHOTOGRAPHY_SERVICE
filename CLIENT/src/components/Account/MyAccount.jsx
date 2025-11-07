@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Camera, Save, X, Lock, Edit2, Images, Star } from 'lucide-react';
+import { Camera, Save, X, Lock, Edit2 } from 'lucide-react';
 import {
   getInfoUser, updateProfile, changePassword, uploadAvatar, uploadCover
 } from '../../redux/Slices/userSlice';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
 import Sidebar from '../Sidebar/Sidebar';
-import './MyAccount.css';
 import WorksProfile from "../WorksProfile/WorksProfile";
+import './MyAccount.css';
 
 export default function MyAccount() {
   const dispatch = useDispatch();
@@ -16,11 +16,9 @@ export default function MyAccount() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-
   const [formData, setFormData] = useState({
     HoTen: '', Email: '', SoDienThoai: '', NgaySinh: '', GioiTinh: '', DiaChi: ''
   });
-
   const [passwordData, setPasswordData] = useState({
     currentPassword: '', newPassword: '', confirmPassword: ''
   });
@@ -51,15 +49,13 @@ export default function MyAccount() {
   };
 
   const isValueChanged = (newVal, oldVal, fieldName) => {
-    if (newVal === null || newVal === undefined || newVal === '') return false;
+    if (!newVal) return false;
     if (fieldName === 'NgaySinh') {
       const normalizedNew = normalizeDateString(newVal);
       const normalizedOld = normalizeDateString(oldVal);
       return normalizedNew !== normalizedOld && normalizedNew !== '';
     }
-    const newValue = typeof newVal === 'string' ? newVal.trim() : newVal;
-    const oldValue = typeof oldVal === 'string' ? oldVal.trim() : oldVal;
-    return newValue !== oldValue;
+    return String(newVal).trim() !== String(oldVal || '').trim();
   };
 
   const handleSaveProfile = async () => {
@@ -67,11 +63,10 @@ export default function MyAccount() {
     if (!user?._id) return alert('Thông tin người dùng chưa load xong!');
     try {
       const updateData = {};
-      const fields = ['HoTen', 'Email', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'DiaChi'];
-      fields.forEach(k => {
+      ['HoTen', 'Email', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'DiaChi'].forEach(k => {
         if (isValueChanged(formData[k], user[k], k)) updateData[k] = formData[k];
       });
-      if (Object.keys(updateData).length === 0) return alert('Bạn chưa thay đổi thông tin nào.');
+      if (!Object.keys(updateData).length) return alert('Bạn chưa thay đổi thông tin nào.');
       await dispatch(updateProfile({ id: user._id, ...updateData })).unwrap();
       setIsEditing(false);
       dispatch(getInfoUser());
@@ -109,21 +104,16 @@ export default function MyAccount() {
     const file = e.target.files[0];
     if (!file) return;
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) return alert('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)!');
-    if (file.size > 5 * 1024 * 1024) return alert('Kích thước file không được vượt quá 5MB!');
+    if (!validTypes.includes(file.type)) return alert('Chỉ chấp nhận file ảnh!');
+    if (file.size > 5 * 1024 * 1024) return alert('File quá 5MB!');
     const fd = new FormData();
     fd.append(type === 'avatar' ? 'avatar' : 'cover', file);
     try {
-      if (type === 'avatar') {
-        await dispatch(uploadAvatar(fd)).unwrap();
-        alert('Upload avatar thành công!');
-      } else {
-        await dispatch(uploadCover(fd)).unwrap();
-        alert('Upload ảnh bìa thành công!');
-      }
+      if (type === 'avatar') await dispatch(uploadAvatar(fd)).unwrap();
+      else await dispatch(uploadCover(fd)).unwrap();
       await dispatch(getInfoUser());
+      alert('Upload thành công!');
     } catch (err) {
-      console.error('❌ Upload error:', err);
       alert(err?.message || 'Upload thất bại!');
     }
   };
@@ -138,22 +128,13 @@ export default function MyAccount() {
 
   const isPhotographer = user?.isPhotographer;
 
-  // ✅ Giả lập dữ liệu portfolio dạng card
-  const mockPortfolio = [
-    { id: 1, title: "Gói Chụp Cưới", rating: 4.9, reviews: 45, price: 300, services: 5, image: "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=800" },
-    { id: 2, title: "Chụp Ngoại Cảnh", rating: 4.8, reviews: 38, price: 250, services: 4, image: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800" },
-    { id: 3, title: "Lookbook Fashion", rating: 5.0, reviews: 52, price: 280, services: 6, image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800" },
-    { id: 4, title: "Ảnh Gia Đình", rating: 4.7, reviews: 29, price: 200, services: 3, image: "https://images.unsplash.com/photo-1589571894960-20bbe2828d0a?w=800" },
-    { id: 5, title: "Ảnh Nghệ Thuật Studio", rating: 4.9, reviews: 41, price: 350, services: 5, image: "https://images.unsplash.com/photo-1600525831163-04307d4d2b9b?w=800" },
-  ];
-
   return (
     <>
       <Header />
       <Sidebar />
       <div className={`myaccount-container ${isPhotographer ? 'grid-layout' : ''}`}>
+        {/* Thông tin account */}
         <div className="myaccount-card">
-          {/* Ảnh bìa */}
           <div className="cover-container">
             <img src={user?.CoverImage || '/default-cover.jpg'} alt="cover" className="cover-photo" />
             <label htmlFor="coverUpload" className="cover-upload-btn">
@@ -162,7 +143,6 @@ export default function MyAccount() {
             <input type="file" id="coverUpload" hidden onChange={(e) => handleUpload(e, 'cover')} />
           </div>
 
-          {/* Thông tin cá nhân */}
           <div className="myaccount-header">
             <div className="avatar-wrapper">
               <img src={user?.Avatar || '/default-avatar.png'} alt="avatar" className="avatar-circle-img" />
@@ -175,7 +155,6 @@ export default function MyAccount() {
             </div>
           </div>
 
-          {/* Form thông tin */}
           <div className="myaccount-content">
             <div className="form-grid">
               {['HoTen', 'Email', 'SoDienThoai', 'NgaySinh'].map(name => (
@@ -212,7 +191,6 @@ export default function MyAccount() {
               </div>
             </div>
 
-            {/* Buttons */}
             <div className="form-buttons">
               {isEditing ? (
                 <>
@@ -238,12 +216,9 @@ export default function MyAccount() {
             )}
           </div>
         </div>
-        
-        {isPhotographer && (
-            <WorksProfile />
-        )}
-        
-      
+
+        {/* Portfolio bên phải */}
+        {isPhotographer && <WorksProfile />}
       </div>
       <Footer />
     </>
