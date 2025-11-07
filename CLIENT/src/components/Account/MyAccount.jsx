@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Camera, Save, X, Lock, Edit2, Images } from 'lucide-react';
+import { Camera, Save, X, Lock, Edit2, Images, Star } from 'lucide-react';
 import {
   getInfoUser, updateProfile, changePassword, uploadAvatar, uploadCover
 } from '../../redux/Slices/userSlice';
@@ -23,6 +23,24 @@ export default function MyAccount() {
     currentPassword: '', newPassword: '', confirmPassword: ''
   });
 
+  useEffect(() => { dispatch(getInfoUser()); }, [dispatch]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        HoTen: user.HoTen || '',
+        Email: user.Email || '',
+        SoDienThoai: user.SoDienThoai || '',
+        NgaySinh: user.NgaySinh ? new Date(user.NgaySinh).toISOString().split('T')[0] : '',
+        GioiTinh: user.GioiTinh || '',
+        DiaChi: user.DiaChi || ''
+      });
+    }
+  }, [user]);
+
+  const handleInputChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handlePasswordChange = e => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+
   const normalizeDateString = (date) => {
     if (!date) return '';
     const d = new Date(date);
@@ -42,37 +60,16 @@ export default function MyAccount() {
     return newValue !== oldValue;
   };
 
-  useEffect(() => { dispatch(getInfoUser()); }, [dispatch]);
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        HoTen: user.HoTen || '',
-        Email: user.Email || '',
-        SoDienThoai: user.SoDienThoai || '',
-        NgaySinh: user.NgaySinh ? new Date(user.NgaySinh).toISOString().split('T')[0] : '',
-        GioiTinh: user.GioiTinh || '',
-        DiaChi: user.DiaChi || ''
-      });
-    }
-  }, [user]);
-
-  const handleInputChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const handlePasswordChange = e => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-
   const handleSaveProfile = async () => {
     if (!isEditing) return setIsEditing(true);
     if (!user?._id) return alert('Thông tin người dùng chưa load xong!');
-
     try {
       const updateData = {};
       const fields = ['HoTen', 'Email', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'DiaChi'];
       fields.forEach(k => {
         if (isValueChanged(formData[k], user[k], k)) updateData[k] = formData[k];
       });
-
       if (Object.keys(updateData).length === 0) return alert('Bạn chưa thay đổi thông tin nào.');
-
       await dispatch(updateProfile({ id: user._id, ...updateData })).unwrap();
       setIsEditing(false);
       dispatch(getInfoUser());
@@ -107,42 +104,27 @@ export default function MyAccount() {
   };
 
   const handleUpload = async (e, type) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  // ✅ Kiểm tra loại file
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-  if (!validTypes.includes(file.type)) {
-    alert('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)!');
-    return;
-  }
-  
-  // ✅ Kiểm tra kích thước (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    alert('Kích thước file không được vượt quá 5MB!');
-    return;
-  }
-  
-  const fd = new FormData();
-  // ✅ Dùng đúng tên field
-  fd.append(type === 'avatar' ? 'avatar' : 'cover', file);
-  
-  try {
-    if (type === 'avatar') {
-      await dispatch(uploadAvatar(fd)).unwrap();
-      alert('Upload avatar thành công!');
-    } else {
-      await dispatch(uploadCover(fd)).unwrap();
-      alert('Upload ảnh bìa thành công!');
+    const file = e.target.files[0];
+    if (!file) return;
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) return alert('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)!');
+    if (file.size > 5 * 1024 * 1024) return alert('Kích thước file không được vượt quá 5MB!');
+    const fd = new FormData();
+    fd.append(type === 'avatar' ? 'avatar' : 'cover', file);
+    try {
+      if (type === 'avatar') {
+        await dispatch(uploadAvatar(fd)).unwrap();
+        alert('Upload avatar thành công!');
+      } else {
+        await dispatch(uploadCover(fd)).unwrap();
+        alert('Upload ảnh bìa thành công!');
+      }
+      await dispatch(getInfoUser());
+    } catch (err) {
+      console.error('❌ Upload error:', err);
+      alert(err?.message || 'Upload thất bại!');
     }
-    
-    // ✅ Reload thông tin user để hiển thị ảnh mới
-    await dispatch(getInfoUser());
-  } catch (err) {
-    console.error('❌ Upload error:', err);
-    alert(err?.message || 'Upload thất bại!');
-  }
-};
+  };
 
   const formatDate = (d) => {
     if (!d) return 'Chưa cập nhật';
@@ -154,13 +136,20 @@ export default function MyAccount() {
 
   const isPhotographer = user?.isPhotographer;
 
+  // ✅ Giả lập dữ liệu portfolio dạng card
+  const mockPortfolio = [
+    { id: 1, title: "Gói Chụp Cưới", rating: 4.9, reviews: 45, price: 300, services: 5, image: "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=800" },
+    { id: 2, title: "Chụp Ngoại Cảnh", rating: 4.8, reviews: 38, price: 250, services: 4, image: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800" },
+    { id: 3, title: "Lookbook Fashion", rating: 5.0, reviews: 52, price: 280, services: 6, image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800" },
+    { id: 4, title: "Ảnh Gia Đình", rating: 4.7, reviews: 29, price: 200, services: 3, image: "https://images.unsplash.com/photo-1589571894960-20bbe2828d0a?w=800" },
+    { id: 5, title: "Ảnh Nghệ Thuật Studio", rating: 4.9, reviews: 41, price: 350, services: 5, image: "https://images.unsplash.com/photo-1600525831163-04307d4d2b9b?w=800" },
+  ];
+
   return (
     <>
       <Header />
       <div className={`myaccount-container ${isPhotographer ? 'grid-layout' : ''}`}>
-        {/* Cột trái: Thông tin cá nhân */}
         <div className="myaccount-card">
-
           {/* Ảnh bìa */}
           <div className="cover-container">
             <img src={user?.CoverImage || '/default-cover.jpg'} alt="cover" className="cover-photo" />
@@ -170,31 +159,29 @@ export default function MyAccount() {
             <input type="file" id="coverUpload" hidden onChange={(e) => handleUpload(e, 'cover')} />
           </div>
 
-          {/* Thông tin người dùng */}
+          {/* Thông tin cá nhân */}
           <div className="myaccount-header">
-            <div className="profile-top">
-              <div className="avatar-wrapper">
-                <img src={user?.Avatar || '/default-avatar.png'} alt="avatar" className="avatar-circle-img" />
-                <label htmlFor="avatarUpload" className="avatar-camera"><Camera size={20} /></label>
-                <input type="file" id="avatarUpload" hidden onChange={(e) => handleUpload(e, 'avatar')} />
-              </div>
-              <div className="profile-info">
-                <h1>{user?.HoTen || 'Chưa cập nhật'}</h1>
-                <p>@{user?.TenDangNhap}</p>
-              </div>
+            <div className="avatar-wrapper">
+              <img src={user?.Avatar || '/default-avatar.png'} alt="avatar" className="avatar-circle-img" />
+              <label htmlFor="avatarUpload" className="avatar-camera"><Camera size={20} /></label>
+              <input type="file" id="avatarUpload" hidden onChange={(e) => handleUpload(e, 'avatar')} />
+            </div>
+            <div className="profile-info">
+              <h1>{user?.HoTen || 'Chưa cập nhật'}</h1>
+              <p>@{user?.TenDangNhap}</p>
             </div>
           </div>
 
           {/* Form thông tin */}
           <div className="myaccount-content">
             <div className="form-grid">
-              {['HoTen','Email','SoDienThoai','NgaySinh'].map(name => (
+              {['HoTen', 'Email', 'SoDienThoai', 'NgaySinh'].map(name => (
                 <div className="form-group" key={name}>
                   <label>{name}</label>
                   {isEditing ? (
-                    <input type={name==='NgaySinh'?'date':'text'} name={name} value={formData[name]} onChange={handleInputChange}/>
+                    <input type={name === 'NgaySinh' ? 'date' : 'text'} name={name} value={formData[name]} onChange={handleInputChange} />
                   ) : (
-                    <p>{name==='NgaySinh'?formatDate(user?.NgaySinh):user?.[name] || 'Chưa cập nhật'}</p>
+                    <p>{name === 'NgaySinh' ? formatDate(user?.NgaySinh) : user?.[name] || 'Chưa cập nhật'}</p>
                   )}
                 </div>
               ))}
@@ -208,14 +195,14 @@ export default function MyAccount() {
                     <option value="other">Khác</option>
                   </select>
                 ) : (
-                  <p>{user?.GioiTinh==='male'?'Nam':user?.GioiTinh==='female'?'Nữ':'Chưa cập nhật'}</p>
+                  <p>{user?.GioiTinh === 'male' ? 'Nam' : user?.GioiTinh === 'female' ? 'Nữ' : 'Chưa cập nhật'}</p>
                 )}
               </div>
 
               <div className="form-group full">
                 <label>Địa chỉ</label>
                 {isEditing ? (
-                  <textarea name="DiaChi" value={formData.DiaChi} onChange={handleInputChange}/>
+                  <textarea name="DiaChi" value={formData.DiaChi} onChange={handleInputChange} />
                 ) : (
                   <p>{user?.DiaChi || 'Chưa cập nhật'}</p>
                 )}
@@ -226,20 +213,20 @@ export default function MyAccount() {
             <div className="form-buttons">
               {isEditing ? (
                 <>
-                  <button className="submit-btn" onClick={handleSaveProfile}><Save size={18}/> Lưu</button>
-                  <button className="cancel-btn" onClick={handleCancelEdit}><X size={18}/> Hủy</button>
+                  <button className="submit-btn" onClick={handleSaveProfile}><Save size={18} /> Lưu</button>
+                  <button className="cancel-btn" onClick={handleCancelEdit}><X size={18} /> Hủy</button>
                 </>
               ) : (
-                <button className="submit-btn" onClick={() => setIsEditing(true)}><Edit2 size={18}/> Cập nhật thông tin</button>
+                <button className="submit-btn" onClick={() => setIsEditing(true)}><Edit2 size={18} /> Cập nhật thông tin</button>
               )}
-              <button className="submit-btn-alt" onClick={() => setShowChangePassword(!showChangePassword)}><Lock size={18}/> Đổi mật khẩu</button>
+              <button className="submit-btn-alt" onClick={() => setShowChangePassword(!showChangePassword)}><Lock size={18} /> Đổi mật khẩu</button>
             </div>
 
             {showChangePassword && (
               <div className="password-group">
-                <input type="password" name="currentPassword" placeholder="Mật khẩu hiện tại" value={passwordData.currentPassword} onChange={handlePasswordChange}/>
-                <input type="password" name="newPassword" placeholder="Mật khẩu mới" value={passwordData.newPassword} onChange={handlePasswordChange}/>
-                <input type="password" name="confirmPassword" placeholder="Xác nhận mật khẩu mới" value={passwordData.confirmPassword} onChange={handlePasswordChange}/>
+                <input type="password" name="currentPassword" placeholder="Mật khẩu hiện tại" value={passwordData.currentPassword} onChange={handlePasswordChange} />
+                <input type="password" name="newPassword" placeholder="Mật khẩu mới" value={passwordData.newPassword} onChange={handlePasswordChange} />
+                <input type="password" name="confirmPassword" placeholder="Xác nhận mật khẩu mới" value={passwordData.confirmPassword} onChange={handlePasswordChange} />
                 <div className="password-buttons">
                   <button className="submit-btn" onClick={handleChangePassword}>Xác nhận</button>
                   <button className="cancel-btn" onClick={() => setShowChangePassword(false)}>Hủy</button>
@@ -249,18 +236,22 @@ export default function MyAccount() {
           </div>
         </div>
 
-        {/* Cột phải: Hồ sơ tác phẩm (chỉ hiện với photographer) */}
+        {/* Hồ sơ tác phẩm */}
         {isPhotographer && (
           <div className="portfolio-card">
             <div className="portfolio-header">
-              <Images size={24}/> <h2>Hồ sơ tác phẩm của bạn</h2>
+              <Images size={24} /> <h2>Hồ sơ tác phẩm của bạn</h2>
             </div>
             <div className="portfolio-gallery">
-              {/* Giả lập hiển thị album ảnh */}
-              {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="portfolio-item">
-                  <img src={`/sample-albums/album${i}.jpg`} alt={`album ${i}`} />
-                  <p>Album {i}</p>
+              {mockPortfolio.map(item => (
+                <div key={item.id} className="portfolio-item">
+                  <div className="portfolio-img-wrapper">
+                    <img src={item.image} alt={item.title} />
+                  </div>
+                  <div className="portfolio-body">
+                    <h4>{item.title}</h4>
+                    <button className="detail-btn">Xem chi tiết</button>
+                  </div>
                 </div>
               ))}
             </div>
