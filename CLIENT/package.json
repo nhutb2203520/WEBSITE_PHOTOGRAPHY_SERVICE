@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@reduxjs/toolkit": "^2.9.2",
     "axios": "^1.13.1",
     "lucide-react": "^0.551.0",

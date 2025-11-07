@@ -5,6 +5,7 @@ import { Star, Heart } from 'lucide-react';
 import './Photographer.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
+import Sidebar from '../Sidebar/Sidebar';
 
 export default function Photographer() {
   const [favorites, setFavorites] = useState([]);
@@ -43,6 +44,7 @@ export default function Photographer() {
   return (
     <>
       <Header />
+      <Sidebar />
       <div className="photographers-page">
         <section className="photographers">
           <div className="container">

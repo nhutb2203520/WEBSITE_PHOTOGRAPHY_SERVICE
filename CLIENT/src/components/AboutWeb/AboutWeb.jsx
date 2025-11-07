@@ -6,11 +6,12 @@ import OWNER_IMG from '/src/assets/image/owner.jpg';
 import PHOTO_IMG from '/src/assets/image/photographer.jpg';
 import { Facebook, Instagram, Linkedin } from 'lucide-react';
 import { CheckCircle } from 'lucide-react';
-
+import Sidebar from '../Sidebar/Sidebar';
 export default function AboutWeb() {
   return (
     <>
       <Header />
+      <Sidebar />
       <div className="about-page">
         <div className="container">
           <h2>Về Website Chụp Ảnh</h2>

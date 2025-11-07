@@ -2,6 +2,7 @@ import React from 'react';
 import './Activity.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
+import Sidebar from '../Sidebar/Sidebar';
 
 export default function Activity() {
   const steps = [
@@ -45,6 +46,7 @@ export default function Activity() {
   return (
     <>
       <Header />
+      <Sidebar />
       <div className="activity-page">
         <div className="container">
           <h2>Cách thức hoạt động</h2>

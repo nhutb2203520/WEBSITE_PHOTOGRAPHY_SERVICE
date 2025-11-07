@@ -11,6 +11,10 @@ dotenv.config();
 
 const CLIENT_URL = process.env.CLIENT_URL;
 
+// ✅ Thống nhất JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET || "Luan Van Tot Nghiep-B2203520";
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "RefreshSecretKey";
+
 class AuthService {
   // --- Đăng ký khách hàng ---
   async register(data) {
@@ -98,20 +102,24 @@ class AuthService {
     const isMatch = await bcrypt.compare(password, user.Password);
     if (!isMatch) throw new Error("Mật khẩu không đúng.");
 
+    // ✅ SỬA: Dùng JWT_SECRET thống nhất
     const token = jwt.sign(
       { id: user._id, Email: user.Email },
-      process.env.JWT_SECRET || "SecretKey",
-      { expiresIn: "1h" }
+      JWT_SECRET,
+      { expiresIn: "24h" }  // ✅ Tăng thời gian từ 1h lên 24h
     );
 
     const refreshToken = jwt.sign(
       { id: user._id },
-      process.env.JWT_REFRESH_SECRET || "RefreshSecretKey",
+      JWT_REFRESH_SECRET,
       { expiresIn: "7d" }
     );
 
     user.RefreshToken = refreshToken;
     await user.save();
+
+    console.log("✅ Token created with secret:", JWT_SECRET.substring(0, 10) + "...");
+    console.log("✅ Token payload:", { id: user._id, Email: user.Email });
 
     return {
       message: "Đăng nhập thành công.",
@@ -170,19 +178,17 @@ class AuthService {
   async refreshAccessToken(refreshToken) {
     if (!refreshToken) throw new Error("Thiếu refresh token.");
 
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET || "RefreshSecretKey"
-    );
+    const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
 
     const user = await khachHangModel.findById(decoded.id);
     if (!user || user.RefreshToken !== refreshToken)
       throw new Error("Refresh token không hợp lệ.");
 
+    // ✅ SỬA: Dùng JWT_SECRET thống nhất
     const accessToken = jwt.sign(
       { id: user._id, Email: user.Email },
-      process.env.JWT_SECRET || "SecretKey",
-      { expiresIn: "1h" }
+      JWT_SECRET,
+      { expiresIn: "24h" }
     );
 
     return { token: accessToken };

@@ -5,6 +5,7 @@ import { Star, Heart } from 'lucide-react';
 import './ServicePagke.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
+import Sidebar from '../Sidebar/Sidebar';
 
 export default function Package() {
   const [favorites, setFavorites] = useState([]);
@@ -43,6 +44,7 @@ export default function Package() {
   return (
     <>
       <Header />
+      <Sidebar />
       <div className="packages-page">
         <section className="packages">
           <div className="container">

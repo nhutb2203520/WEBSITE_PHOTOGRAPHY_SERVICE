@@ -6,7 +6,9 @@ import {
 } from '../../redux/Slices/userSlice';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
+import Sidebar from '../Sidebar/Sidebar';
 import './MyAccount.css';
+import WorksProfile from "../WorksProfile/WorksProfile";
 
 export default function MyAccount() {
   const dispatch = useDispatch();
@@ -148,6 +150,7 @@ export default function MyAccount() {
   return (
     <>
       <Header />
+      <Sidebar />
       <div className={`myaccount-container ${isPhotographer ? 'grid-layout' : ''}`}>
         <div className="myaccount-card">
           {/* Ảnh bìa */}
@@ -235,28 +238,12 @@ export default function MyAccount() {
             )}
           </div>
         </div>
-
-        {/* Hồ sơ tác phẩm */}
+        
         {isPhotographer && (
-          <div className="portfolio-card">
-            <div className="portfolio-header">
-              <Images size={24} /> <h2>Hồ sơ tác phẩm của bạn</h2>
-            </div>
-            <div className="portfolio-gallery">
-              {mockPortfolio.map(item => (
-                <div key={item.id} className="portfolio-item">
-                  <div className="portfolio-img-wrapper">
-                    <img src={item.image} alt={item.title} />
-                  </div>
-                  <div className="portfolio-body">
-                    <h4>{item.title}</h4>
-                    <button className="detail-btn">Xem chi tiết</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+            <WorksProfile />
         )}
+        
+      
       </div>
       <Footer />
     </>

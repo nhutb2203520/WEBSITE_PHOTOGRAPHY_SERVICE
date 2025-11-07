@@ -259,7 +259,7 @@ body {
   margin-top: 12px;
 }
 
-/* ===== PORTFOLIO ===== */
+/* ===== PORTFOLIO SECTION ===== */
 .portfolio-card {
   margin-top: 40px;
   width: 100%;
@@ -270,24 +270,62 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+/* ===== HEADER (ICON + TITLE + BUTTON) ===== */
 .portfolio-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
   gap: 10px;
-  margin-bottom: 20px;
 }
 
-.portfolio-header h2 {
-  font-size: 20px;
-  font-weight: 600;
+.portfolio-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portfolio-title svg {
+  width: 22px;
+  height: 22px;
   color: var(--color-text);
 }
 
-/* ===== GALLERY (4 hồ sơ 1 hàng, tự xuống dòng) ===== */
+.portfolio-title h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ===== ADD BUTTON ===== */
+.add-portfolio-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.add-portfolio-btn:hover {
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
+  transform: translateY(-2px);
+}
+
+/* ===== GALLERY ===== */
 .portfolio-gallery {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 24px;
+  width: 100%;
+  justify-items: center;
 }
 
 @media (max-width: 1200px) {
@@ -306,72 +344,4 @@ body {
   .portfolio-gallery {
     grid-template-columns: 1fr;
   }
-}
-
-/* ===== ITEM ===== */
-.portfolio-item {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-}
-
-.portfolio-item:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-lg);
-}
-
-.portfolio-img-wrapper {
-  position: relative;
-  width: 100%;
-  height: 180px;
-  overflow: hidden;
-}
-
-.portfolio-img-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.35s ease;
-}
-
-.portfolio-item:hover img {
-  transform: scale(1.1);
-}
-
-.portfolio-body {
-  padding: 14px 16px 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.portfolio-body h4 {
-  font-size: 17px;
-  font-weight: 600;
-  color: #1c1e21;
-  margin: 4px 0;
-  text-align: left;
-}
-
-.detail-btn {
-  align-self: stretch;
-  text-align: center;
-  padding: 10px 0;
-  background: linear-gradient(90deg, #a855f7, #ec4899);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.detail-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
 }

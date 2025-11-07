@@ -4,7 +4,7 @@ import { Search, Star, Heart, Users, Camera, Award, TrendingUp } from 'lucide-re
 import './HomePageCustomer.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
-
+import Sidebar from '../Sidebar/Sidebar';
 export default function HomePageCustomer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
@@ -169,6 +169,7 @@ export default function HomePageCustomer() {
   return (
     <>
       <Header />
+      <Sidebar />
       <div className="homepage-customer">
         {/* Hero Section */}
         <section className="hero">

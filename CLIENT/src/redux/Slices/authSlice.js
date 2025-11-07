@@ -10,7 +10,7 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const res = await authApi.register(userData);
-      return res; // Dữ liệu trả về từ server
+      return res;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Đăng ký thất bại');
     }
@@ -26,14 +26,22 @@ export const login = createAsyncThunk(
     try {
       const res = await authApi.login(credentials);
 
-      // Lưu token và refreshToken
-      sessionStorage.setItem('token', res.token);
-      sessionStorage.setItem('refreshToken', res.refreshToken);
-      if (res.role) sessionStorage.setItem('role', res.role);
+      // 🔹 Backend của bạn trả về res.token hoặc res.accessToken
+      const token = res.token || res.accessToken;
+      const refreshToken = res.refreshToken;
+      const role = res.role || null;
+      const username = res.user?.HoTen || res.user?.TenDangNhap || null;
 
-      // Gọi API lấy thông tin user
+      // ✅ Lưu session chính xác cho verifyTokenUser hoạt động
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('refreshToken', refreshToken);
+      sessionStorage.setItem('role', role);
+      if (username) sessionStorage.setItem('username', JSON.stringify(username));
+
+      // Gọi API lấy thông tin người dùng
       await dispatch(getInfoUser());
-      return res;
+
+      return { token, refreshToken, role, username };
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Đăng nhập thất bại');
     }
@@ -48,9 +56,9 @@ const initialState = {
   refreshToken: sessionStorage.getItem('refreshToken') || null,
   role: sessionStorage.getItem('role') || null,
   username: JSON.parse(sessionStorage.getItem('username')) || null,
-  isLoading: false,   // ✅ Trạng thái loading toàn cục
-  isSuccess: false,   // ✅ Báo hiệu thao tác thành công (cho toast)
-  error: null,        // ✅ Lưu thông báo lỗi
+  isLoading: false,
+  isSuccess: false,
+  error: null,
 };
 
 // ==========================
@@ -60,17 +68,12 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // ✅ Xóa lỗi
     clearError(state) {
       state.error = null;
     },
-
-    // ✅ Xóa trạng thái thành công
     clearSuccess(state) {
       state.isSuccess = false;
     },
-
-    // ✅ Đăng xuất chung
     logout(state) {
       state.token = null;
       state.refreshToken = null;
@@ -80,15 +83,9 @@ const authSlice = createSlice({
       state.isSuccess = false;
       state.error = null;
 
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('refreshToken');
-      sessionStorage.removeItem('role');
-      sessionStorage.removeItem('username');
-
+      sessionStorage.clear();
       window.location.replace('/');
     },
-
-    // ✅ Đăng xuất riêng cho admin
     logoutForAdmin(state) {
       state.token = null;
       state.refreshToken = null;
@@ -97,17 +94,10 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.isSuccess = false;
       state.error = null;
-
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('refreshToken');
-      sessionStorage.removeItem('role');
-      sessionStorage.removeItem('username');
+      sessionStorage.clear();
     },
   },
 
-  // ==========================
-  // 🔹 Xử lý async actions
-  // ==========================
   extraReducers: (builder) => {
     // Đăng ký
     builder
@@ -118,12 +108,11 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state) => {
         state.isLoading = false;
-        state.isSuccess = true; // ✅ Cho phép hiển thị toast success
+        state.isSuccess = true;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.isSuccess = false;
-        state.error = action.payload || 'Đăng ký thất bại';
+        state.error = action.payload;
       });
 
     // Đăng nhập
@@ -138,12 +127,13 @@ const authSlice = createSlice({
         state.isSuccess = true;
         state.token = action.payload.token;
         state.refreshToken = action.payload.refreshToken;
-        state.role = action.payload.role || null;
+        state.role = action.payload.role;
+        state.username = action.payload.username;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.isSuccess = false;
-        state.error = action.payload || 'Đăng nhập thất bại';
+        state.error = action.payload;
       });
   },
 });
