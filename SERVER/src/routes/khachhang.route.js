@@ -8,13 +8,13 @@ import KhachHang from "../models/khachhang.model.js"; // ← THÊM IMPORT
 
 const router = express.Router();
 
-// ✅ Đảm bảo thư mục tồn tại
+
 const avatarDir = "uploads/avatars";
 if (!fs.existsSync(avatarDir)) {
   fs.mkdirSync(avatarDir, { recursive: true });
 }
 
-// ⚙️ Cấu hình nơi lưu file upload
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, avatarDir);
@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
   },
 });
 
-// ✅ Thêm filter để chỉ chấp nhận ảnh
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -45,7 +45,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // Giới hạn 5MB
 });
 
-// --- Các route hiện có ---
+
 router
   .get("/me", verifyTokenUser, khachHangController.getMyAccount)
   .post("/register", khachHangController.register)
@@ -53,7 +53,6 @@ router
   .patch("/update", verifyTokenUser, khachHangController.updateAccount)
   .patch("/change-password", verifyTokenUser, khachHangController.changePassword);
 
-// 🆕 Route upload avatar - CẬP NHẬT VÀO DATABASE
 router.post(
   "/upload-avatar",
   verifyTokenUser,
@@ -86,8 +85,6 @@ router.post(
       if (!updated) {
         return res.status(404).json({ message: "Không tìm thấy người dùng!" });
       }
-
-      console.log("✅ Upload avatar thành công:", fileUrl);
       
       res.status(200).json({
         message: "Tải ảnh đại diện thành công!",
@@ -133,10 +130,7 @@ router.post(
 
       if (!updated) {
         return res.status(404).json({ message: "Không tìm thấy người dùng!" });
-      }
-
-      console.log("✅ Upload cover thành công:", fileUrl);
-      
+      }     
       res.status(200).json({
         message: "Tải ảnh bìa thành công!",
         fileUrl,
@@ -148,5 +142,23 @@ router.post(
     }
   }
 );
+// 🆕 API công khai: Lấy danh sách photographer
+router.get("/photographers", async (req, res) => {
+  try {
+    const photographers = await KhachHang.find(
+      { isPhotographer: true },
+      "HoTen Avatar CoverImage Email isPhotographer"
+    ).lean();
+
+    if (!photographers.length) {
+      return res.status(200).json([]);
+    }
+
+    res.status(200).json(photographers);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách photographer:", error);
+    res.status(500).json({ message: "Lỗi máy chủ khi lấy danh sách photographer" });
+  }
+});
 
 export default router;

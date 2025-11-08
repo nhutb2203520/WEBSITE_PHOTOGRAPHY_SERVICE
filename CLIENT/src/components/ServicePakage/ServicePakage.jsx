@@ -2,16 +2,21 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart } from 'lucide-react';
-import './ServicePagke.css';
+import './ServicePackage.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
 import Sidebar from '../Sidebar/Sidebar';
+import { useSelector } from 'react-redux';
+import Package from '../PhotographerPage/Package';
 
-export default function Package() {
+export default function PackagePage() {
   const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState('');
   const [priceOrder, setPriceOrder] = useState('');
   const [servicesOrder, setServicesOrder] = useState('');
+
+  const { user } = useSelector(state => state.user); // Lấy thông tin user từ Redux
+  const isPhotographer = user?.isPhotographer;     // Kiểm tra nếu là photographer
 
   const packages = [
     { id: 1, name: 'Gói Chụp Cưới', cover: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop', rating: 4.9, reviews: 45, price: 300, services: 5 },
@@ -30,13 +35,12 @@ export default function Package() {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
-  // Filtered & Sorted
+  // Filter & sort
   let filtered = packages.filter(pk => pk.name.toLowerCase().includes(search.toLowerCase()));
 
   if(priceOrder) {
     filtered = filtered.sort((a,b)=> priceOrder==='asc' ? a.price - b.price : b.price - a.price);
   }
-
   if(servicesOrder) {
     filtered = filtered.sort((a,b)=> servicesOrder==='asc' ? a.services - b.services : b.services - a.services);
   }
@@ -73,7 +77,16 @@ export default function Package() {
               </select>
             </div>
 
-            {/* Grid */}
+            {/* Nếu là photographer, hiển thị PhotographerPackage */}
+            {isPhotographer && (
+              <Package
+                search={search}
+                priceOrder={priceOrder}
+                servicesOrder={servicesOrder}
+              />
+            )}
+
+            {/* Grid gói bình thường */}
             <div className="packages-grid">
               {filtered.map(pk => (
                 <div key={pk.id} className="package-card">
