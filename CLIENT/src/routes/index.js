@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+
 const routes = [
   {
     path: '*',
@@ -9,38 +10,42 @@ const routes = [
     component: lazy(() => import('../components/HomePageCustomer/HomePageCustomer'))
   },
   {
-    path:'/signup',
+    path: '/signup',
     component: lazy(() => import('../components/Account/SignUp'))
   },
   {
-    path:'/signin',
+    path: '/signin',
     component: lazy(() => import('../components/Account/SignIn'))
   },
   {
-    path:'/forgot-password',
+    path: '/forgot-password',
     component: lazy(() => import('../components/Account/ForgotPass'))
   },
   {
-    path:'/my-account',
+    path: '/my-account',
     component: lazy(() => import('../components/Account/MyAccount'))
   },
   {
-    path:'/photographers',
+    path: '/photographers',
     component: lazy(() => import('../components/PhotographerPage/Photographer'))
   },
   {
-     path:'/service-package',
+    path: '/service-package',
     component: lazy(() => import('../components/ServicePakage/ServicePakage'))
   },
   {
-     path:'/activity',
+    path: '/activity',
     component: lazy(() => import('../components/Activity/Activity'))
   },
   {
-     path:'/about-web',
+    path: '/about-web',
     component: lazy(() => import('../components/AboutWeb/AboutWeb'))
+  },
+  // ✅ FIX: Thêm dynamic parameter :username
+  {
+    path: '/photographer/:username',
+    component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
   }
-  
 ];
 
 export default routes;

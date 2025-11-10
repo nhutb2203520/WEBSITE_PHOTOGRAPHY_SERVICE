@@ -88,7 +88,7 @@ export default function PackagePage() {
                 />
               </div>
             )}
-             <h2>Danh sách Gói Chụp khác</h2>
+             <h2>Danh sách Gói Chụp</h2>
             <div className="packages-grid">
               {filtered.map(pk => (
                 <div key={pk.id} className="package-card">

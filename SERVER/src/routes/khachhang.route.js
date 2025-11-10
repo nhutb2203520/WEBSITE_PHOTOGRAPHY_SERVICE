@@ -4,16 +4,14 @@ import { verifyTokenUser } from "../middlewares/verifyToken.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import KhachHang from "../models/khachhang.model.js"; // ← THÊM IMPORT
+import KhachHang from "../models/khachhang.model.js";
 
 const router = express.Router();
-
 
 const avatarDir = "uploads/avatars";
 if (!fs.existsSync(avatarDir)) {
   fs.mkdirSync(avatarDir, { recursive: true });
 }
-
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -25,7 +23,6 @@ const storage = multer.diskStorage({
     cb(null, `${userId}-${Date.now()}${ext}`);
   },
 });
-
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
@@ -42,10 +39,10 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ 
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // Giới hạn 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-
+// ================== AUTHENTICATION ROUTES ==================
 router
   .get("/me", verifyTokenUser, khachHangController.getMyAccount)
   .post("/register", khachHangController.register)
@@ -53,6 +50,7 @@ router
   .patch("/update", verifyTokenUser, khachHangController.updateAccount)
   .patch("/change-password", verifyTokenUser, khachHangController.changePassword);
 
+// ================== UPLOAD ROUTES ==================
 router.post(
   "/upload-avatar",
   verifyTokenUser,
@@ -75,7 +73,6 @@ router.post(
       const userId = req.user._id || req.user.id;
       const fileUrl = `${req.protocol}://${req.get("host")}/uploads/avatars/${req.file.filename}`;
       
-      // ✅ CẬP NHẬT VÀO DATABASE
       const updated = await KhachHang.findByIdAndUpdate(
         userId,
         { Avatar: fileUrl },
@@ -98,7 +95,6 @@ router.post(
   }
 );
 
-// 🆕 Route upload ảnh bìa - CẬP NHẬT VÀO DATABASE
 router.post(
   "/upload-cover",
   verifyTokenUser,
@@ -121,7 +117,6 @@ router.post(
       const userId = req.user._id || req.user.id;
       const fileUrl = `${req.protocol}://${req.get("host")}/uploads/avatars/${req.file.filename}`;
       
-      // ✅ CẬP NHẬT VÀO DATABASE
       const updated = await KhachHang.findByIdAndUpdate(
         userId,
         { CoverImage: fileUrl },
@@ -142,22 +137,85 @@ router.post(
     }
   }
 );
-// 🆕 API công khai: Lấy danh sách photographer
+
+// ================== PHOTOGRAPHER ROUTES ==================
+// 🆕 Get all photographers
 router.get("/photographers", async (req, res) => {
   try {
     const photographers = await KhachHang.find(
       { isPhotographer: true },
-      "HoTen Avatar CoverImage Email isPhotographer"
+      "TenDangNhap HoTen Avatar CoverImage Email SDT DiaChi isPhotographer"
     ).lean();
 
-    if (!photographers.length) {
-      return res.status(200).json([]);
-    }
-
+    console.log(`✅ Found ${photographers.length} photographers`);
+    
     res.status(200).json(photographers);
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh sách photographer:", error);
+    console.error("❌ Error fetching photographers:", error);
     res.status(500).json({ message: "Lỗi máy chủ khi lấy danh sách photographer" });
+  }
+});
+
+// ✅ FIX: Get photographer by username
+router.get("/photographers/username/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    console.log(`🔍 Searching for photographer with username: ${username}`);
+    
+    // ✅ FIX: Use correct model name and field
+    const photographer = await KhachHang.findOne({ 
+      TenDangNhap: username,
+      isPhotographer: true 
+    });
+
+    if (!photographer) {
+      console.log(`❌ Photographer not found: ${username}`);
+      return res.status(404).json({ 
+        message: `Không tìm thấy photographer với username: ${username}` 
+      });
+    }
+
+    console.log(`✅ Found photographer:`, photographer.HoTen);
+    res.status(200).json(photographer);
+    
+  } catch (error) {
+    console.error("❌ Error fetching photographer by username:", error);
+    res.status(500).json({ 
+      message: "Lỗi máy chủ khi lấy thông tin photographer",
+      error: error.message 
+    });
+  }
+});
+
+// ✅ OPTIONAL: Get photographer by ID (fallback)
+router.get("/photographers/id/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`🔍 Searching for photographer with ID: ${id}`);
+    
+    const photographer = await KhachHang.findOne({
+      _id: id,
+      isPhotographer: true
+    });
+
+    if (!photographer) {
+      console.log(`❌ Photographer not found: ${id}`);
+      return res.status(404).json({ 
+        message: `Không tìm thấy photographer với ID: ${id}` 
+      });
+    }
+
+    console.log(`✅ Found photographer:`, photographer.HoTen);
+    res.status(200).json(photographer);
+    
+  } catch (error) {
+    console.error("❌ Error fetching photographer by ID:", error);
+    res.status(500).json({ 
+      message: "Lỗi máy chủ khi lấy thông tin photographer",
+      error: error.message 
+    });
   }
 });
 
