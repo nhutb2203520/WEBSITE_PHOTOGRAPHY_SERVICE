@@ -1,4 +1,4 @@
-// Package.jsx
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart } from 'lucide-react';
@@ -15,8 +15,8 @@ export default function PackagePage() {
   const [priceOrder, setPriceOrder] = useState('');
   const [servicesOrder, setServicesOrder] = useState('');
 
-  const { user } = useSelector(state => state.user); // Lấy thông tin user từ Redux
-  const isPhotographer = user?.isPhotographer;     // Kiểm tra nếu là photographer
+  const { user } = useSelector(state => state.user);
+  const isPhotographer = user?.isPhotographer;
 
   const packages = [
     { id: 1, name: 'Gói Chụp Cưới', cover: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop', rating: 4.9, reviews: 45, price: 300, services: 5 },
@@ -35,29 +35,29 @@ export default function PackagePage() {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
-  // Filter & sort
   let filtered = packages.filter(pk => pk.name.toLowerCase().includes(search.toLowerCase()));
 
-  if(priceOrder) {
-    filtered = filtered.sort((a,b)=> priceOrder==='asc' ? a.price - b.price : b.price - a.price);
+  if (priceOrder) {
+    filtered.sort((a,b)=> priceOrder==='asc' ? a.price - b.price : b.price - a.price);
   }
-  if(servicesOrder) {
-    filtered = filtered.sort((a,b)=> servicesOrder==='asc' ? a.services - b.services : b.services - a.services);
+  if (servicesOrder) {
+    filtered.sort((a,b)=> servicesOrder==='asc' ? a.services - b.services : b.services - a.services);
   }
 
   return (
     <>
       <Header />
       <Sidebar />
+
       <div className="packages-page">
         <section className="packages">
           <div className="container">
+
             <div className="section-header">
               <h2>Danh sách Gói Chụp</h2>
               <p>Chọn gói chụp phù hợp với nhu cầu của bạn</p>
             </div>
 
-            {/* Search & Filters */}
             <div className="search-filter">
               <input
                 type="text"
@@ -65,11 +65,13 @@ export default function PackagePage() {
                 value={search}
                 onChange={(e)=>setSearch(e.target.value)}
               />
+
               <select value={priceOrder} onChange={(e)=>setPriceOrder(e.target.value)}>
                 <option value="">Giá</option>
                 <option value="asc">Thấp → Cao</option>
                 <option value="desc">Cao → Thấp</option>
               </select>
+
               <select value={servicesOrder} onChange={(e)=>setServicesOrder(e.target.value)}>
                 <option value="">Số dịch vụ</option>
                 <option value="asc">Thấp → Cao</option>
@@ -77,16 +79,16 @@ export default function PackagePage() {
               </select>
             </div>
 
-            {/* Nếu là photographer, hiển thị PhotographerPackage */}
             {isPhotographer && (
-              <Package
-                search={search}
-                priceOrder={priceOrder}
-                servicesOrder={servicesOrder}
-              />
+              <div className="photographer-section-wrapper">
+                <Package
+                  search={search}
+                  priceOrder={priceOrder}
+                  servicesOrder={servicesOrder}
+                />
+              </div>
             )}
-
-            {/* Grid gói bình thường */}
+             <h2>Danh sách Gói Chụp khác</h2>
             <div className="packages-grid">
               {filtered.map(pk => (
                 <div key={pk.id} className="package-card">
@@ -103,25 +105,33 @@ export default function PackagePage() {
                       />
                     </button>
                   </div>
+
                   <div className="package-content">
                     <h3 className="package-name">{pk.name}</h3>
+
                     <div className="package-rating">
                       <Star className="star-icon" fill="#fbbf24" color="#fbbf24" />
-                      <span className="rating-number">{pk.rating}</span>
-                      <span className="rating-count">({pk.reviews} đánh giá)</span>
+                      <span>{pk.rating}</span>
+                      <span>({pk.reviews} đánh giá)</span>
                     </div>
+
                     <div className="package-info">
                       <span className="package-price">${pk.price}</span>
                       <span className="package-services">{pk.services} dịch vụ</span>
                     </div>
-                    <Link to={`/package/${pk.id}`} className="btn-view">Xem chi tiết</Link>
+
+                    <Link to={`/package/${pk.id}`} className="btn-view">
+                      Xem chi tiết
+                    </Link>
                   </div>
                 </div>
               ))}
             </div>
+
           </div>
         </section>
       </div>
+
       <Footer />
     </>
   );
