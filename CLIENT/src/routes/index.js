@@ -45,6 +45,11 @@ const routes = [
   {
     path: '/photographer/:username',
     component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
+  },
+  //My Package
+  {
+    path: '/my-packages',
+    component: lazy(() => import('../components/PhotographerPage/Package'))
   }
 ];
 

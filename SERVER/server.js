@@ -10,6 +10,7 @@ import worksProfileRoutes from "./src/routes/worksprofile.route.js";
 
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
+import servicePackageRoutes from "./src/routes/servicePackage.route.js";
 
 dotenv.config();
 connectDB();
@@ -28,6 +29,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/khachhang", khachHangRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/worksprofile", worksProfileRoutes);
+app.use('/api/service-packages', servicePackageRoutes); 
 
 // ✅ Lấy thông tin tài khoản hiện tại (user profile)
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
@@ -35,6 +37,18 @@ app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 // ✅ Route mặc định (test server)
 app.get("/", (req, res) => {
   res.send("🎨 Photography Service API đang hoạt động!");
+});
+// SERVICEPACKGE
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Photography Service API is running!',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      customers: '/api/khachhang',
+      servicePackages: '/api/service-packages' // ✅ NEW
+    }
+  });
 });
 
 // ✅ Xử lý lỗi không tìm thấy route
@@ -45,3 +59,4 @@ app.use((req, res) => {
 // ✅ Khởi chạy server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server chạy trên cổng ${PORT}`));
+

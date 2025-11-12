@@ -128,6 +128,7 @@ export default function MyAccount() {
 
   const isPhotographer = user?.isPhotographer;
 
+
   return (
     <>
       <Header />
