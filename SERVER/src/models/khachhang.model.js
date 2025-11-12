@@ -47,5 +47,5 @@ khachHangSchema.pre("save", async function (next) {
   next();
 });
 
-const KhachHang = mongoose.model("bangKhachHang", khachHangSchema);
+const KhachHang = mongoose.models.bangKhachHang || mongoose.model("bangKhachHang", khachHangSchema);
 export default KhachHang;

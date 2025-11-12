@@ -1,48 +1,89 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart } from 'lucide-react';
 import './ServicePackage.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
 import Sidebar from '../Sidebar/Sidebar';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { getAllPackages } from '../../redux/Slices/servicepackageSlice';
 import Package from '../PhotographerPage/Package';
 
 export default function PackagePage() {
+  const dispatch = useDispatch();
   const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState('');
-  const [priceOrder, setPriceOrder] = useState('');
-  const [servicesOrder, setServicesOrder] = useState('');
+  const [loaiGoi, setLoaiGoi] = useState('');
+  const [sortBy, setSortBy] = useState('');
 
   const { user } = useSelector(state => state.user);
+  const { packages, loading } = useSelector(state => state.package);
   const isPhotographer = user?.isPhotographer;
 
-  const packages = [
-    { id: 1, name: 'Gói Chụp Cưới', cover: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop', rating: 4.9, reviews: 45, price: 300, services: 5 },
-    { id: 2, name: 'Gói Chụp Ngoại Cảnh', cover: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&h=400&fit=crop', rating: 4.8, reviews: 67, price: 250, services: 3 },
-    { id: 3, name: 'Gói Chụp Gia Đình', cover: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop', rating: 5.0, reviews: 89, price: 200, services: 4 },
-    { id: 4, name: 'Gói Chụp Sự Kiện', cover: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=400&fit=crop', rating: 4.9, reviews: 78, price: 400, services: 6 },
-    { id: 5, name: 'Gói Chụp Thời Trang', cover: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&h=400&fit=crop', rating: 4.8, reviews: 92, price: 350, services: 5 },
-    { id: 6, name: 'Gói Chụp Concept', cover: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=600&h=400&fit=crop', rating: 4.9, reviews: 64, price: 280, services: 4 },
-    { id: 7, name: 'Gói Chụp Sản Phẩm', cover: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&h=400&fit=crop', rating: 4.7, reviews: 33, price: 150, services: 3 },
-    { id: 8, name: 'Gói Chụp Hồ Sơ', cover: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop', rating: 4.8, reviews: 52, price: 180, services: 2 },
-    { id: 9, name: 'Gói Chụp Phim Ngắn', cover: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&h=400&fit=crop', rating: 5.0, reviews: 41, price: 500, services: 7 },
-    { id: 10, name: 'Gói Chụp Lifestyle', cover: 'https://images.unsplash.com/photo-1504198458649-3128b932f49f?w=600&h=400&fit=crop', rating: 4.9, reviews: 55, price: 220, services: 4 },
-  ];
+  useEffect(() => {
+    // Fetch tất cả gói dịch vụ khi component mount
+    dispatch(getAllPackages());
+  }, [dispatch]);
 
   const toggleFavorite = (id) => {
-    setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+    setFavorites(prev => 
+      prev.includes(id) 
+        ? prev.filter(f => f !== id) 
+        : [...prev, id]
+    );
   };
 
-  let filtered = packages.filter(pk => pk.name.toLowerCase().includes(search.toLowerCase()));
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return "https://via.placeholder.com/600x400?text=No+Image";
+    if (imageUrl.startsWith("http")) return imageUrl;
+    return `http://localhost:5000/${imageUrl.replace(/^\/+/, "")}`;
+  };
 
-  if (priceOrder) {
-    filtered.sort((a,b)=> priceOrder==='asc' ? a.price - b.price : b.price - a.price);
+  const getPriceRange = (dichVu) => {
+    if (!dichVu || dichVu.length === 0) return { min: 0, max: 0 };
+    const prices = dichVu.map(s => Number(s.Gia)).filter(p => p > 0);
+    if (prices.length === 0) return { min: 0, max: 0 };
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices)
+    };
+  };
+
+  const formatPriceRange = (dichVu) => {
+    const { min, max } = getPriceRange(dichVu);
+    if (min === 0 && max === 0) return "Liên hệ";
+    if (min === max) return `${min.toLocaleString("vi-VN")} VNĐ`;
+    return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} VNĐ`;
+  };
+
+  // Filter packages
+  let filtered = packages.filter(pkg => {
+    const matchSearch = pkg.TenGoi?.toLowerCase().includes(search.toLowerCase()) ||
+                       pkg.MoTa?.toLowerCase().includes(search.toLowerCase());
+    const matchLoaiGoi = !loaiGoi || pkg.LoaiGoi === loaiGoi;
+    return matchSearch && matchLoaiGoi;
+  });
+
+  // Sort packages
+  if (sortBy === 'rating') {
+    filtered.sort((a, b) => (b.DanhGia || 0) - (a.DanhGia || 0));
+  } else if (sortBy === 'popular') {
+    filtered.sort((a, b) => (b.SoLuongDaDat || 0) - (a.SoLuongDaDat || 0));
+  } else if (sortBy === 'newest') {
+    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
-  if (servicesOrder) {
-    filtered.sort((a,b)=> servicesOrder==='asc' ? a.services - b.services : b.services - a.services);
-  }
+
+  const handleFilterChange = () => {
+    const filters = {};
+    if (loaiGoi) filters.loaiGoi = loaiGoi;
+    if (search) filters.search = search;
+    if (sortBy) filters.sort = sortBy;
+    dispatch(getAllPackages(filters));
+  };
+
+  useEffect(() => {
+    handleFilterChange();
+  }, [loaiGoi, sortBy]);
 
   return (
     <>
@@ -54,73 +95,117 @@ export default function PackagePage() {
           <div className="container">
 
             <div className="section-header">
-              <h2>Danh sách Gói Chụp</h2>
-              <p>Chọn gói chụp phù hợp với nhu cầu của bạn</p>
+              <h2>Gói Dịch Vụ Chụp Ảnh</h2>
+              <p>Khám phá các gói dịch vụ chất lượng từ các photographer chuyên nghiệp</p>
             </div>
 
+            {/* Search & Filter */}
             <div className="search-filter">
               <input
                 type="text"
-                placeholder="Tìm kiếm theo tên..."
+                placeholder="Tìm kiếm gói dịch vụ..."
                 value={search}
-                onChange={(e)=>setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleFilterChange()}
               />
 
-              <select value={priceOrder} onChange={(e)=>setPriceOrder(e.target.value)}>
-                <option value="">Giá</option>
-                <option value="asc">Thấp → Cao</option>
-                <option value="desc">Cao → Thấp</option>
+              <select value={loaiGoi} onChange={(e) => setLoaiGoi(e.target.value)}>
+                <option value="">Tất cả loại gói</option>
+                <option value="Wedding">Wedding</option>
+                <option value="Event">Event</option>
+                <option value="Family">Family</option>
+                <option value="Portrait">Portrait</option>
+                <option value="Product">Product</option>
+                <option value="Fashion">Fashion</option>
+                <option value="Other">Other</option>
               </select>
 
-              <select value={servicesOrder} onChange={(e)=>setServicesOrder(e.target.value)}>
-                <option value="">Số dịch vụ</option>
-                <option value="asc">Thấp → Cao</option>
-                <option value="desc">Cao → Thấp</option>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="">Sắp xếp theo</option>
+                <option value="newest">Mới nhất</option>
+                <option value="rating">Đánh giá cao</option>
+                <option value="popular">Phổ biến nhất</option>
               </select>
             </div>
 
+            {/* Photographer Section */}
             {isPhotographer && (
               <div className="photographer-section-wrapper">
-                <Package
-                  search={search}
-                  priceOrder={priceOrder}
-                  servicesOrder={servicesOrder}
-                />
+                <div className="section-divider">
+                  <h3>Quản lý gói dịch vụ của bạn</h3>
+                </div>
+                <Package />
               </div>
             )}
-             <h2>Danh sách Gói Chụp</h2>
+
+            {/* Public Packages Grid */}
+            <div className="section-divider">
+              <h3>Tất cả gói dịch vụ</h3>
+            </div>
+
+            {loading && <div className="loading">Đang tải...</div>}
+
+            {!loading && filtered.length === 0 && (
+              <div className="no-packages">
+                <p>Không tìm thấy gói dịch vụ nào.</p>
+              </div>
+            )}
+
             <div className="packages-grid">
-              {filtered.map(pk => (
-                <div key={pk.id} className="package-card">
+              {filtered.map(pkg => (
+                <div key={pkg._id} className="package-card">
                   <div className="package-image">
-                    <img src={pk.cover} alt={pk.name} />
+                    <img 
+                      src={getImageUrl(pkg.AnhBia)} 
+                      alt={pkg.TenGoi}
+                      onError={(e) => {
+                        e.target.src = "https://via.placeholder.com/600x400?text=No+Image";
+                      }}
+                    />
                     <button
                       className="favorite-btn"
-                      onClick={()=>toggleFavorite(pk.id)}
+                      onClick={() => toggleFavorite(pkg._id)}
                     >
                       <Heart
-                        className={favorites.includes(pk.id)?'favorited':''}
-                        fill={favorites.includes(pk.id)?'#ef4444':'none'}
-                        color={favorites.includes(pk.id)?'#ef4444':'#6b7280'}
+                        className={favorites.includes(pkg._id) ? 'favorited' : ''}
+                        fill={favorites.includes(pkg._id) ? '#ef4444' : 'none'}
+                        color={favorites.includes(pkg._id) ? '#ef4444' : '#6b7280'}
                       />
                     </button>
+                    <div className="package-badge">{pkg.LoaiGoi}</div>
                   </div>
 
                   <div className="package-content">
-                    <h3 className="package-name">{pk.name}</h3>
+                    <h3 className="package-name">{pkg.TenGoi}</h3>
+                    <p className="package-description">{pkg.MoTa}</p>
 
                     <div className="package-rating">
                       <Star className="star-icon" fill="#fbbf24" color="#fbbf24" />
-                      <span>{pk.rating}</span>
-                      <span>({pk.reviews} đánh giá)</span>
+                      <span>{(pkg.DanhGia || 0).toFixed(1)}</span>
+                      <span className="reviews-count">({pkg.SoLuotDanhGia || 0})</span>
                     </div>
 
                     <div className="package-info">
-                      <span className="package-price">${pk.price}</span>
-                      <span className="package-services">{pk.services} dịch vụ</span>
+                      <span className="package-price">
+                        {formatPriceRange(pkg.DichVu)}
+                      </span>
+                      <span className="package-services">
+                        {pkg.DichVu?.length || 0} dịch vụ
+                      </span>
                     </div>
 
-                    <Link to={`/package/${pk.id}`} className="btn-view">
+                    {pkg.PhotographerId && (
+                      <div className="photographer-info">
+                        <img 
+                          src={getImageUrl(pkg.PhotographerId.Avatar)} 
+                          alt={pkg.PhotographerId.HoTen}
+                          className="photographer-avatar"
+                        />
+                        <span>{pkg.PhotographerId.HoTen}</span>
+                      </div>
+                    )}
+
+                    <Link to={`/package/${pkg._id}`} className="btn-view">
                       Xem chi tiết
                     </Link>
                   </div>

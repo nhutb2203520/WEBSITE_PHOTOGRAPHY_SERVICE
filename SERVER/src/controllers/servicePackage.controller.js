@@ -1,4 +1,5 @@
-import ServicePackage from '../models/servicePackage.model.js';
+// SERVER/src/controllers/servicePackage.controller.js
+import { ServicePackage, KhachHang } from '../models/index.js';
 import mongoose from 'mongoose';
 
 const servicePackageController = {
@@ -10,14 +11,12 @@ const servicePackageController = {
       
       const { TenGoi, MoTa, DichVu, LoaiGoi, ThoiGianThucHien } = req.body;
 
-      // ✅ Validate
       if (!TenGoi || !MoTa || !DichVu || !Array.isArray(DichVu) || DichVu.length === 0) {
         return res.status(400).json({
           message: 'Vui lòng điền đầy đủ thông tin: Tên gói, Mô tả, Dịch vụ'
         });
       }
 
-      // ✅ Validate từng dịch vụ phải có name và Gia
       const invalidServices = DichVu.filter(s => !s.name || !s.Gia || s.Gia <= 0);
       if (invalidServices.length > 0) {
         return res.status(400).json({
@@ -25,7 +24,6 @@ const servicePackageController = {
         });
       }
 
-      // ✅ Tạo gói mới
       const newPackage = await ServicePackage.create({
         TenGoi,
         MoTa,
@@ -53,12 +51,12 @@ const servicePackageController = {
     }
   },
 
-  // 📋 Lấy tất cả gói dịch vụ (Công khai)
+  // 📋 Lấy tất cả gói dịch vụ (Công khai - không cần đăng nhập)
   getAllPackages: async (req, res) => {
     try {
-      const { loaiGoi, minPrice, maxPrice, photographerId, sort } = req.query;
+      const { loaiGoi, minPrice, maxPrice, photographerId, sort, search } = req.query;
 
-      let query = { TrangThai: 'active' };
+      let query = { TrangThai: 'active', isDeleted: false };
 
       // Filter theo loại gói
       if (loaiGoi) {
@@ -70,9 +68,17 @@ const servicePackageController = {
         query.PhotographerId = photographerId;
       }
 
-      // ✅ Filter theo giá - dùng aggregation để tìm min/max
+      // Search theo tên hoặc mô tả
+      if (search) {
+        query.$or = [
+          { TenGoi: { $regex: search, $options: 'i' } },
+          { MoTa: { $regex: search, $options: 'i' } }
+        ];
+      }
+
       let packages;
       
+      // ✅ Filter theo khoảng giá
       if (minPrice || maxPrice) {
         const matchStage = { ...query };
         const pipeline = [
@@ -93,25 +99,37 @@ const servicePackageController = {
 
         packages = await ServicePackage.aggregate(pipeline);
         
-        // Populate photographer info
-        await ServicePackage.populate(packages, {
-          path: 'PhotographerId',
-          select: 'HoTen Avatar TenDangNhap'
-        });
+        // ✅ FIX: Populate sau aggregate - tìm trong KHACHHANG collection
+        for (let i = 0; i < packages.length; i++) {
+          const photographer = await mongoose.connection.db.collection('KHACHHANG')
+            .findOne(
+              { _id: packages[i].PhotographerId },
+              { projection: { HoTen: 1, Avatar: 1, TenDangNhap: 1 } }
+            );
+          packages[i].PhotographerId = photographer;
+        }
       } else {
         // Sorting
         let sortOption = {};
         if (sort === 'rating') sortOption.DanhGia = -1;
         else if (sort === 'popular') sortOption.SoLuongDaDat = -1;
+        else if (sort === 'newest') sortOption.createdAt = -1;
         else sortOption.createdAt = -1;
 
         packages = await ServicePackage.find(query)
-          .populate('PhotographerId', 'HoTen Avatar TenDangNhap')
+          .populate({
+            path: 'PhotographerId',
+            select: 'HoTen Avatar TenDangNhap',
+            model: 'bangKhachHang'
+          })
           .sort(sortOption)
           .lean();
       }
 
+      console.log('✅ Fetched packages:', packages.length);
+
       res.status(200).json({
+        success: true,
         total: packages.length,
         packages
       });
@@ -119,6 +137,7 @@ const servicePackageController = {
     } catch (error) {
       console.error('❌ Error fetching packages:', error);
       res.status(500).json({
+        success: false,
         message: 'Lỗi khi lấy danh sách gói dịch vụ',
         error: error.message
       });
@@ -135,7 +154,11 @@ const servicePackageController = {
       }
 
       const package_data = await ServicePackage.findById(id)
-        .populate('PhotographerId', 'HoTen Avatar TenDangNhap Email SDT DiaChi');
+        .populate({
+          path: 'PhotographerId',
+          select: 'HoTen Avatar TenDangNhap Email SDT DiaChi',
+          model: 'bangKhachHang'
+        });
 
       if (!package_data) {
         return res.status(404).json({ message: 'Không tìm thấy gói dịch vụ' });
@@ -158,8 +181,11 @@ const servicePackageController = {
       const photographerId = req.user._id || req.user.id;
 
       const packages = await ServicePackage.find({ 
-        PhotographerId: photographerId 
+        PhotographerId: photographerId,
+        isDeleted: false
       }).sort({ createdAt: -1 });
+
+      console.log('✅ My packages:', packages.length);
 
       res.status(200).json({
         total: packages.length,
@@ -180,10 +206,8 @@ const servicePackageController = {
     try {
       const { username } = req.params;
 
-      // Tìm photographer
-      const photographer = await mongoose.model('KhachHang').findOne({ 
-        TenDangNhap: username 
-      });
+      const photographer = await mongoose.connection.db.collection('KHACHHANG')
+        .findOne({ TenDangNhap: username });
 
       if (!photographer) {
         return res.status(404).json({ message: 'Không tìm thấy photographer' });
@@ -191,7 +215,8 @@ const servicePackageController = {
 
       const packages = await ServicePackage.find({
         PhotographerId: photographer._id,
-        TrangThai: 'active'
+        TrangThai: 'active',
+        isDeleted: false
       }).sort({ createdAt: -1 });
 
       res.status(200).json({
@@ -218,7 +243,6 @@ const servicePackageController = {
         return res.status(400).json({ message: 'ID không hợp lệ' });
       }
 
-      // Kiểm tra quyền sở hữu
       const package_data = await ServicePackage.findById(id);
       if (!package_data) {
         return res.status(404).json({ message: 'Không tìm thấy gói dịch vụ' });
@@ -228,7 +252,6 @@ const servicePackageController = {
         return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa gói này' });
       }
 
-      // ✅ Validate DichVu nếu được gửi lên
       if (req.body.DichVu) {
         if (!Array.isArray(req.body.DichVu) || req.body.DichVu.length === 0) {
           return res.status(400).json({ message: 'Dịch vụ phải là mảng và không được rỗng' });
@@ -240,7 +263,6 @@ const servicePackageController = {
         }
       }
 
-      // Cập nhật
       const allowedUpdates = ['TenGoi', 'MoTa', 'DichVu', 'LoaiGoi', 'ThoiGianThucHien', 'TrangThai'];
       const updates = {};
       
@@ -280,7 +302,6 @@ const servicePackageController = {
         return res.status(400).json({ message: 'ID không hợp lệ' });
       }
 
-      // Kiểm tra quyền sở hữu
       const package_data = await ServicePackage.findById(id);
       if (!package_data) {
         return res.status(404).json({ message: 'Không tìm thấy gói dịch vụ' });
@@ -290,7 +311,6 @@ const servicePackageController = {
         return res.status(403).json({ message: 'Bạn không có quyền xóa gói này' });
       }
 
-      // Soft delete
       await ServicePackage.findByIdAndUpdate(id, {
         isDeleted: true,
         TrangThai: 'deleted'
@@ -324,13 +344,11 @@ const servicePackageController = {
         return res.status(404).json({ message: 'Không tìm thấy gói dịch vụ' });
       }
 
-      // Tính toán đánh giá mới
       const currentTotal = package_data.DanhGia * package_data.SoLuotDanhGia;
       const newTotal = currentTotal + rating;
       const newCount = package_data.SoLuotDanhGia + 1;
       const newAvgRating = newTotal / newCount;
 
-      // Cập nhật
       await ServicePackage.findByIdAndUpdate(id, {
         DanhGia: newAvgRating,
         SoLuotDanhGia: newCount

@@ -2,6 +2,18 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import servicePackageApi from '../../apis/ServicePackageService';
 import { toast } from 'react-toastify';
 
+/** 🔹 Lấy tất cả gói dịch vụ công khai (không cần đăng nhập) */
+export const getAllPackages = createAsyncThunk('package/getAllPackages', async (filters = {}, { rejectWithValue }) => {
+  try {
+    console.log('📥 [Thunk] Fetch all packages with filters:', filters);
+    const res = await servicePackageApi.getAllPackages(filters);
+    return res.packages || [];
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi getAllPackages:', err.response?.data || err);
+    return rejectWithValue(err.response?.data?.message || 'Không thể tải danh sách gói dịch vụ');
+  }
+});
+
 /** 🔹 Lấy tất cả gói dịch vụ của photographer hiện tại */
 export const getMyPackages = createAsyncThunk('package/getMyPackages', async (_, { rejectWithValue }) => {
   try {
@@ -62,7 +74,7 @@ export const uploadPackageImage = createAsyncThunk('package/uploadPackageImage',
     console.log('📤 [Thunk] Upload package image for:', id);
     const res = await servicePackageApi.uploadPackageImage(id, formData);
     toast.success('Tải ảnh thành công!');
-    return { id, imageUrl: res.imageUrl || res.url };
+    return { id, imageUrl: res.fileUrl || res.imageUrl || res.url };
   } catch (err) {
     console.error('❌ [Thunk] Lỗi uploadPackageImage:', err.response?.data || err);
     toast.error(err.response?.data?.message || 'Không thể tải ảnh.');
@@ -74,12 +86,27 @@ const servicePackageSlice = createSlice({
   name: 'package',
   initialState: {
     packages: [],
+    myPackages: [],
     loading: false,
     error: null,
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // 📦 GET ALL PACKAGES (Public)
+      .addCase(getAllPackages.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getAllPackages.fulfilled, (state, action) => {
+        state.loading = false;
+        state.packages = action.payload;
+      })
+      .addCase(getAllPackages.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       // 📦 GET MY PACKAGES
       .addCase(getMyPackages.pending, (state) => {
         state.loading = true;
@@ -87,7 +114,7 @@ const servicePackageSlice = createSlice({
       })
       .addCase(getMyPackages.fulfilled, (state, action) => {
         state.loading = false;
-        state.packages = action.payload;
+        state.myPackages = action.payload;
       })
       .addCase(getMyPackages.rejected, (state, action) => {
         state.loading = false;
@@ -100,7 +127,7 @@ const servicePackageSlice = createSlice({
       })
       .addCase(createPackage.fulfilled, (state, action) => {
         state.loading = false;
-        state.packages.push(action.payload);
+        state.myPackages.push(action.payload);
       })
       .addCase(createPackage.rejected, (state, action) => {
         state.loading = false;
@@ -109,18 +136,18 @@ const servicePackageSlice = createSlice({
 
       // ✏️ UPDATE
       .addCase(updatePackage.fulfilled, (state, action) => {
-        const index = state.packages.findIndex(p => p._id === action.payload._id);
-        if (index !== -1) state.packages[index] = action.payload;
+        const index = state.myPackages.findIndex(p => p._id === action.payload._id);
+        if (index !== -1) state.myPackages[index] = action.payload;
       })
 
       // 🗑️ DELETE
       .addCase(deletePackage.fulfilled, (state, action) => {
-        state.packages = state.packages.filter(pkg => pkg._id !== action.payload);
+        state.myPackages = state.myPackages.filter(pkg => pkg._id !== action.payload);
       })
 
       // 📸 UPLOAD IMAGE
       .addCase(uploadPackageImage.fulfilled, (state, action) => {
-        const pkg = state.packages.find(p => p._id === action.payload.id);
+        const pkg = state.myPackages.find(p => p._id === action.payload.id);
         if (pkg) pkg.AnhBia = action.payload.imageUrl;
       });
   },

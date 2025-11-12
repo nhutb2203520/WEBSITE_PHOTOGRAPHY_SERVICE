@@ -1,10 +1,11 @@
+// SERVER/src/routes/servicePackage.route.js
 import express from 'express';
 import servicePackageController from "../controllers/servicePackage.controller.js";
 import { verifyTokenUser } from "../middlewares/verifyToken.js";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import ServicePackage from "../models/servicePackage.model.js";
+import { ServicePackage } from "../models/index.js";
 
 const router = express.Router();
 

@@ -110,13 +110,8 @@ ServicePackageSchema.virtual('avgRating').get(function() {
     : 0;
 });
 
-// ✅ Middleware: Ẩn các gói đã xóa
-ServicePackageSchema.pre(/^find/, function(next) {
-  if (!this.getOptions().includeDeleted) {
-    this.where({ isDeleted: false });
-  }
-  next();
-});
+// ✅ Middleware: Ẩn các gói đã xóa (REMOVED - gây conflict)
+// Sẽ filter trong controller thay vì middleware
 
 // ✅ Method: Thêm đánh giá mới
 ServicePackageSchema.methods.addReview = function(rating) {

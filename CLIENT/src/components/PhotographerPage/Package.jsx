@@ -1,4 +1,3 @@
-// CLIENT/src/components/PhotographerPage/Package.jsx
 import React, { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Upload, Star, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -50,7 +49,6 @@ export default function Package() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ FIX: Deep clone để tránh read-only error
   const handleServiceChange = (index, field, value) => {
     const newServices = formData.DichVu.map((service, i) => {
       if (i === index) {
@@ -62,9 +60,9 @@ export default function Package() {
   };
 
   const addServiceField = () => {
-    setFormData((prev) => ({ 
-      ...prev, 
-      DichVu: [...prev.DichVu, { name: "", Gia: "" }] 
+    setFormData((prev) => ({
+      ...prev,
+      DichVu: [...prev.DichVu, { name: "", Gia: "" }],
     }));
   };
 
@@ -77,9 +75,9 @@ export default function Package() {
 
   const handleModalImageUpload = (e) => {
     const files = Array.from(e.target.files || []);
-    const images = files.map((file) => ({ 
-      file, 
-      preview: URL.createObjectURL(file) 
+    const images = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
     }));
     setModalImages((prev) => [...prev, ...images]);
   };
@@ -116,10 +114,7 @@ export default function Package() {
 
     const packageData = {
       ...formData,
-      DichVu: filteredServices.map((s) => ({ 
-        name: s.name, 
-        Gia: Number(s.Gia) 
-      })),
+      DichVu: filteredServices.map((s) => ({ name: s.name, Gia: Number(s.Gia) })),
     };
 
     try {
@@ -133,9 +128,8 @@ export default function Package() {
       }
 
       const createdPkg = resultAction?.payload;
-      const pkgId = createdPkg?._id || 
-                    createdPkg?.id || 
-                    (editingPackage && editingPackage._id);
+      const pkgId =
+        createdPkg?._id || createdPkg?.id || (editingPackage && editingPackage._id);
 
       if (pkgId && modalImages.length > 0) {
         for (const imgObj of modalImages) {
@@ -155,16 +149,15 @@ export default function Package() {
     }
   };
 
-  // ✅ FIX: Deep clone DichVu khi edit để tránh read-only
   const handleEdit = (pkg) => {
     setEditingPackage(pkg);
     setFormData({
       TenGoi: pkg.TenGoi || "",
       MoTa: pkg.MoTa || "",
-      // ✅ Deep clone array of objects
-      DichVu: pkg.DichVu?.length > 0 
-        ? pkg.DichVu.map(s => ({ name: s.name, Gia: s.Gia }))
-        : [{ name: "", Gia: "" }],
+      DichVu:
+        pkg.DichVu?.length > 0
+          ? pkg.DichVu.map((s) => ({ name: s.name, Gia: s.Gia }))
+          : [{ name: "", Gia: "" }],
       LoaiGoi: pkg.LoaiGoi || "Other",
       ThoiGianThucHien: pkg.ThoiGianThucHien || "",
     });
@@ -197,23 +190,15 @@ export default function Package() {
     return `http://localhost:5000/${imageUrl.replace(/^\/+/, "")}`;
   };
 
-  // ✅ Helper: Lấy giá thấp nhất và cao nhất
   const getPriceRange = (dichVu) => {
     if (!dichVu || dichVu.length === 0) return { min: 0, max: 0 };
-    
-    const prices = dichVu.map(s => Number(s.Gia)).filter(p => p > 0);
+    const prices = dichVu.map((s) => Number(s.Gia)).filter((p) => p > 0);
     if (prices.length === 0) return { min: 0, max: 0 };
-    
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices)
-    };
+    return { min: Math.min(...prices), max: Math.max(...prices) };
   };
 
-  // ✅ Format hiển thị giá
   const formatPriceRange = (dichVu) => {
     const { min, max } = getPriceRange(dichVu);
-    
     if (min === 0 && max === 0) return "Chưa có giá";
     if (min === max) return `${min.toLocaleString("vi-VN")} VNĐ`;
     return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} VNĐ`;
@@ -252,9 +237,10 @@ export default function Package() {
               <img
                 src={getImageUrl(pkg.AnhBia || pkg.images?.[0])}
                 alt={pkg.TenGoi || pkg.name}
-                onError={(e) => (
-                  e.target.src = "https://via.placeholder.com/600x400?text=No+Image"
-                )}
+                onError={(e) =>
+                  (e.target.src =
+                    "https://via.placeholder.com/600x400?text=No+Image")
+                }
               />
               <label className="upload-overlay">
                 <Upload size={20} />
@@ -263,7 +249,7 @@ export default function Package() {
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => 
+                  onChange={(e) =>
                     handleUploadCover(pkg._id || pkg.id, e.target.files[0])
                   }
                 />
@@ -273,17 +259,15 @@ export default function Package() {
             <div className="package-body">
               <div className="package-badge">{pkg.LoaiGoi}</div>
               <h3>{pkg.TenGoi || pkg.name}</h3>
-              <p className="package-description">
-                {pkg.MoTa || pkg.description}
-              </p>
+              <p className="package-description">{pkg.MoTa || pkg.description}</p>
 
               <div className="package-stats">
                 <div className="stat">
                   <Star size={16} fill="#fbbf24" color="#fbbf24" />
                   <span>
-                    {(pkg.DanhGia ?? 0).toFixed 
-                      ? pkg.DanhGia.toFixed(1) 
-                      : (pkg.DanhGia || 0)}
+                    {pkg.DanhGia?.toFixed
+                      ? pkg.DanhGia.toFixed(1)
+                      : pkg.DanhGia || 0}
                   </span>
                   <span className="stat-label">({pkg.SoLuotDanhGia || 0})</span>
                 </div>
@@ -302,8 +286,7 @@ export default function Package() {
                     </li>
                   ))}
                 </ul>
-                
-                {/* ✅ Hiển thị giá thấp nhất - cao nhất */}
+
                 <div className="package-price-range">
                   <strong>Khoảng giá:</strong>{" "}
                   <span className="price-highlight">
@@ -317,8 +300,8 @@ export default function Package() {
                   <button onClick={() => handleEdit(pkg)} title="Chỉnh sửa">
                     <Edit size={18} />
                   </button>
-                  <button 
-                    onClick={() => handleDelete(pkg._id || pkg.id)} 
+                  <button
+                    onClick={() => handleDelete(pkg._id || pkg.id)}
                     title="Xóa"
                   >
                     <Trash2 size={18} />
@@ -330,46 +313,47 @@ export default function Package() {
         ))}
       </div>
 
-      {/* Modal */}
+      {/* Modal Form */}
       {showModal && (
-        <div 
-          className="modal-overlay" 
-          onClick={() => { 
-            resetForm(); 
-            setShowModal(false); 
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            resetForm();
+            setShowModal(false);
           }}
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>{editingPackage ? "Chỉnh sửa" : "Tạo"} Gói Dịch Vụ</h3>
 
             <form onSubmit={handleSubmit}>
+              {/* Các trường nhập liệu */}
               <div className="form-group">
                 <label>Tên gói *</label>
-                <input 
-                  type="text" 
-                  name="TenGoi" 
-                  value={formData.TenGoi} 
-                  onChange={handleInputChange} 
-                  required 
+                <input
+                  type="text"
+                  name="TenGoi"
+                  value={formData.TenGoi}
+                  onChange={handleInputChange}
+                  required
                 />
               </div>
 
               <div className="form-group">
                 <label>Mô tả *</label>
-                <textarea 
-                  name="MoTa" 
-                  value={formData.MoTa} 
-                  onChange={handleInputChange} 
-                  required 
-                  rows="3" 
+                <textarea
+                  name="MoTa"
+                  value={formData.MoTa}
+                  onChange={handleInputChange}
+                  required
+                  rows="3"
                 />
               </div>
 
               <div className="form-group">
                 <label>Loại gói</label>
-                <select 
-                  name="LoaiGoi" 
-                  value={formData.LoaiGoi} 
+                <select
+                  name="LoaiGoi"
+                  value={formData.LoaiGoi}
                   onChange={handleInputChange}
                 >
                   <option value="Wedding">Wedding</option>
@@ -384,27 +368,27 @@ export default function Package() {
 
               <div className="form-group">
                 <label>Thời gian thực hiện</label>
-                <input 
-                  type="text" 
-                  name="ThoiGianThucHien" 
-                  value={formData.ThoiGianThucHien} 
-                  onChange={handleInputChange} 
+                <input
+                  type="text"
+                  name="ThoiGianThucHien"
+                  value={formData.ThoiGianThucHien}
+                  onChange={handleInputChange}
                   placeholder="Ví dụ: 2-3 giờ"
                 />
               </div>
 
-              {/* Images upload */}
+              {/* Upload ảnh */}
               <div className="form-group">
-                <label>Hình ảnh (chọn nhiều) — kéo thả để sắp xếp</label>
+                <label>Hình ảnh (chọn nhiều)</label>
                 <label className="upload-button">
                   <Upload size={16} />
                   <span>Chọn ảnh</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    multiple 
-                    hidden 
-                    onChange={handleModalImageUpload} 
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={handleModalImageUpload}
                   />
                 </label>
 
@@ -412,15 +396,15 @@ export default function Package() {
                   <DragDropContext onDragEnd={onDragEndModalImages}>
                     <Droppable droppableId="modal-images" direction="horizontal">
                       {(provided) => (
-                        <div 
-                          className="images-preview-dragdrop" 
-                          {...provided.droppableProps} 
+                        <div
+                          className="images-preview-dragdrop"
+                          {...provided.droppableProps}
                           ref={provided.innerRef}
                         >
                           {modalImages.map((img, idx) => (
-                            <Draggable 
-                              key={idx.toString()} 
-                              draggableId={idx.toString()} 
+                            <Draggable
+                              key={idx.toString()}
+                              draggableId={idx.toString()}
                               index={idx}
                             >
                               {(prov, snapshot) => (
@@ -433,9 +417,9 @@ export default function Package() {
                                   {...prov.dragHandleProps}
                                 >
                                   <img src={img.preview} alt={`preview-${idx}`} />
-                                  <button 
-                                    type="button" 
-                                    className="btn-remove-image" 
+                                  <button
+                                    type="button"
+                                    className="btn-remove-image"
                                     onClick={() => removeModalImage(idx)}
                                   >
                                     <X size={16} />
@@ -452,7 +436,7 @@ export default function Package() {
                 )}
               </div>
 
-              {/* Dịch vụ + giá */}
+              {/* Dịch vụ */}
               <div className="form-group">
                 <label>Dịch vụ bao gồm *</label>
                 {formData.DichVu.map((s, i) => (
@@ -461,7 +445,7 @@ export default function Package() {
                       type="text"
                       placeholder="Tên dịch vụ"
                       value={s.name}
-                      onChange={(e) => 
+                      onChange={(e) =>
                         handleServiceChange(i, "name", e.target.value)
                       }
                     />
@@ -470,14 +454,14 @@ export default function Package() {
                       placeholder="Giá (VNĐ)"
                       value={s.Gia}
                       min="0"
-                      onChange={(e) => 
+                      onChange={(e) =>
                         handleServiceChange(i, "Gia", e.target.value)
                       }
                     />
                     {formData.DichVu.length > 1 && (
-                      <button 
-                        type="button" 
-                        onClick={() => removeServiceField(i)} 
+                      <button
+                        type="button"
+                        onClick={() => removeServiceField(i)}
                         className="btn-remove-service"
                       >
                         ✕
@@ -485,16 +469,15 @@ export default function Package() {
                     )}
                   </div>
                 ))}
-                <button 
-                  type="button" 
-                  onClick={addServiceField} 
+                <button
+                  type="button"
+                  onClick={addServiceField}
                   className="btn-add-service"
                 >
                   + Thêm dịch vụ
                 </button>
-                
-                {/* ✅ Hiển thị khoảng giá preview */}
-                {formData.DichVu.some(s => s.Gia) && (
+
+                {formData.DichVu.some((s) => s.Gia) && (
                   <div className="form-price-preview">
                     <strong>Khoảng giá:</strong>{" "}
                     <span className="price-highlight">
@@ -505,19 +488,21 @@ export default function Package() {
               </div>
 
               <div className="modal-actions">
-                <button 
-                  type="button" 
-                  onClick={() => { 
-                    resetForm(); 
-                    setShowModal(false); 
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setShowModal(false);
                   }}
                 >
                   Hủy
                 </button>
                 <button type="submit" disabled={loading}>
-                  {loading 
-                    ? "Đang lưu..." 
-                    : (editingPackage ? "Cập nhật" : "Tạo mới")}
+                  {loading
+                    ? "Đang lưu..."
+                    : editingPackage
+                    ? "Cập nhật"
+                    : "Tạo mới"}
                 </button>
               </div>
             </form>

@@ -161,3 +161,86 @@
         grid-template-columns: 1fr;
     }
 }
+/* Section Divider */
+.section-divider {
+    margin: 40px 0 20px 0;
+    padding: 15px 0;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.section-divider h3 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* Photographer Section Wrapper */
+.photographer-section-wrapper {
+    margin-bottom: 60px;
+    padding: 30px;
+    background: #f9fafb;
+    border-radius: 12px;
+}
+
+/* Photographer Info in Card */
+.photographer-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.photographer-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Package Description */
+.package-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    margin: 8px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Reviews Count */
+.reviews-count {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+/* Price Range Display */
+.package-price-range {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.price-highlight {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 1.05em;
+}
+
+.form-price-preview {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f0fdf4;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
