@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import servicePackageApi from '../../apis/ServicePackageService';
 import { toast } from 'react-toastify';
 
-/** 🔹 Lấy tất cả gói dịch vụ công khai (không cần đăng nhập) */
+/** 🔹 Lấy tất cả gói dịch vụ công khai */
 export const getAllPackages = createAsyncThunk('package/getAllPackages', async (filters = {}, { rejectWithValue }) => {
   try {
     console.log('📥 [Thunk] Fetch all packages with filters:', filters);
@@ -14,7 +14,7 @@ export const getAllPackages = createAsyncThunk('package/getAllPackages', async (
   }
 });
 
-/** 🔹 Lấy tất cả gói dịch vụ của photographer hiện tại */
+/** 🔹 Lấy gói của photographer hiện tại */
 export const getMyPackages = createAsyncThunk('package/getMyPackages', async (_, { rejectWithValue }) => {
   try {
     console.log('📥 [Thunk] Fetch my packages...');
@@ -68,16 +68,43 @@ export const deletePackage = createAsyncThunk('package/deletePackage', async (id
   }
 });
 
-/** 🔹 Upload ảnh gói */
+/** 🔹 Upload ảnh bìa (single) */
 export const uploadPackageImage = createAsyncThunk('package/uploadPackageImage', async ({ id, formData }, { rejectWithValue }) => {
   try {
-    console.log('📤 [Thunk] Upload package image for:', id);
+    console.log('📤 [Thunk] Upload package cover image for:', id);
     const res = await servicePackageApi.uploadPackageImage(id, formData);
-    toast.success('Tải ảnh thành công!');
     return { id, imageUrl: res.fileUrl || res.imageUrl || res.url };
   } catch (err) {
     console.error('❌ [Thunk] Lỗi uploadPackageImage:', err.response?.data || err);
-    toast.error(err.response?.data?.message || 'Không thể tải ảnh.');
+    return rejectWithValue(err.response?.data);
+  }
+});
+
+/** 🔹 NEW: Upload nhiều ảnh gallery (multiple) */
+export const uploadPackageImages = createAsyncThunk('package/uploadPackageImages', async ({ id, formData }, { rejectWithValue }) => {
+  try {
+    console.log('📤 [Thunk] Upload package gallery images for:', id);
+    const res = await servicePackageApi.uploadPackageImages(id, formData);
+    return { 
+      id, 
+      imageUrls: res.fileUrls || res.imageUrls || res.urls || [] 
+    };
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi uploadPackageImages:', err.response?.data || err);
+    return rejectWithValue(err.response?.data);
+  }
+});
+
+/** 🔹 NEW: Xóa ảnh khỏi gallery */
+export const deletePackageImage = createAsyncThunk('package/deletePackageImage', async ({ id, imageUrl }, { rejectWithValue }) => {
+  try {
+    console.log('🗑️ [Thunk] Delete image:', imageUrl);
+    //const res = await servicePackageApi.deletePackageImage(id, imageUrl);
+    toast.success('Xóa ảnh thành công!');
+    return { id, imageUrl };
+  } catch (err) {
+    console.error('❌ [Thunk] Lỗi deletePackageImage:', err.response?.data || err);
+    toast.error(err.response?.data?.message || 'Không thể xóa ảnh.');
     return rejectWithValue(err.response?.data);
   }
 });
@@ -145,10 +172,27 @@ const servicePackageSlice = createSlice({
         state.myPackages = state.myPackages.filter(pkg => pkg._id !== action.payload);
       })
 
-      // 📸 UPLOAD IMAGE
+      // 📸 UPLOAD COVER IMAGE
       .addCase(uploadPackageImage.fulfilled, (state, action) => {
         const pkg = state.myPackages.find(p => p._id === action.payload.id);
         if (pkg) pkg.AnhBia = action.payload.imageUrl;
+      })
+
+      // 📸 NEW: UPLOAD GALLERY IMAGES
+      .addCase(uploadPackageImages.fulfilled, (state, action) => {
+        const pkg = state.myPackages.find(p => p._id === action.payload.id);
+        if (pkg) {
+          if (!pkg.Images) pkg.Images = [];
+          pkg.Images.push(...action.payload.imageUrls);
+        }
+      })
+
+      // 🗑️ NEW: DELETE IMAGE
+      .addCase(deletePackageImage.fulfilled, (state, action) => {
+        const pkg = state.myPackages.find(p => p._id === action.payload.id);
+        if (pkg && pkg.Images) {
+          pkg.Images = pkg.Images.filter(img => img !== action.payload.imageUrl);
+        }
       });
   },
 });

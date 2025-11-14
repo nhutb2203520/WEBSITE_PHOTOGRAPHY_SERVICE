@@ -9,6 +9,7 @@ import {
   updatePackage,
   deletePackage,
   uploadPackageImage,
+  uploadPackageImages, // ✅ ADD THIS
 } from "../../redux/Slices/servicepackageSlice";
 
 export default function Package() {
@@ -96,58 +97,74 @@ export default function Package() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!formData.TenGoi || !formData.MoTa) {
-      alert("Vui lòng điền đầy đủ thông tin!");
-      return;
-    }
+  if (!formData.TenGoi || !formData.MoTa) {
+    alert("Vui lòng điền đầy đủ thông tin!");
+    return;
+  }
 
-    const filteredServices = formData.DichVu.filter(
-      (s) => s.name.trim() !== "" && s.Gia !== ""
-    );
+  const filteredServices = formData.DichVu.filter(
+    (s) => s.name.trim() !== "" && s.Gia !== ""
+  );
 
-    if (filteredServices.length === 0) {
-      alert("Vui lòng thêm ít nhất 1 dịch vụ có giá!");
-      return;
-    }
+  if (filteredServices.length === 0) {
+    alert("Vui lòng thêm ít nhất 1 dịch vụ có giá!");
+    return;
+  }
 
-    const packageData = {
-      ...formData,
-      DichVu: filteredServices.map((s) => ({ name: s.name, Gia: Number(s.Gia) })),
-    };
-
-    try {
-      let resultAction;
-      if (editingPackage) {
-        resultAction = await dispatch(
-          updatePackage({ id: editingPackage._id, data: packageData })
-        );
-      } else {
-        resultAction = await dispatch(createPackage(packageData));
-      }
-
-      const createdPkg = resultAction?.payload;
-      const pkgId =
-        createdPkg?._id || createdPkg?.id || (editingPackage && editingPackage._id);
-
-      if (pkgId && modalImages.length > 0) {
-        for (const imgObj of modalImages) {
-          const fd = new FormData();
-          fd.append("packageImage", imgObj.file);
-          await dispatch(uploadPackageImage({ id: pkgId, formData: fd }));
-        }
-      }
-
-      resetForm();
-      setShowModal(false);
-      setEditingPackage(null);
-      dispatch(getMyPackages());
-    } catch (err) {
-      console.error("❌ Lỗi lưu gói:", err);
-      alert("Lưu gói thất bại. Kiểm tra console.");
-    }
+  const packageData = {
+    ...formData,
+    DichVu: filteredServices.map((s) => ({ 
+      name: s.name, 
+      Gia: Number(s.Gia) 
+    })),
   };
+
+  try {
+    let resultAction;
+    if (editingPackage) {
+      resultAction = await dispatch(
+        updatePackage({ id: editingPackage._id, data: packageData })
+      );
+    } else {
+      resultAction = await dispatch(createPackage(packageData));
+    }
+
+    const createdPkg = resultAction?.payload;
+    const pkgId = createdPkg?._id || 
+                  createdPkg?.id || 
+                  (editingPackage && editingPackage._id);
+
+    // ✅ Upload images nếu có
+    if (pkgId && modalImages.length > 0) {
+      console.log(`📤 Uploading ${modalImages.length} images...`);
+      
+      // Upload ảnh đầu tiên làm ảnh bìa (cover)
+      const coverImageFd = new FormData();
+      coverImageFd.append("packageImage", modalImages[0].file);
+      await dispatch(uploadPackageImage({ id: pkgId, formData: coverImageFd }));
+
+      // Upload các ảnh còn lại vào gallery
+      if (modalImages.length > 1) {
+        const galleryFd = new FormData();
+        for (let i = 1; i < modalImages.length; i++) {
+          galleryFd.append("packageImages", modalImages[i].file);
+        }
+        
+        await dispatch(uploadPackageImages({ id: pkgId, formData: galleryFd }));
+      }
+    }
+
+    resetForm();
+    setShowModal(false);
+    setEditingPackage(null);
+    dispatch(getMyPackages());
+  } catch (err) {
+    console.error("❌ Lỗi lưu gói:", err);
+    alert("Lưu gói thất bại. Kiểm tra console.");
+  }
+};
 
   const handleEdit = (pkg) => {
     setEditingPackage(pkg);

@@ -13,7 +13,6 @@ const ServicePackageSchema = new mongoose.Schema(
       required: [true, 'Mô tả gói dịch vụ là bắt buộc'],
     },
     
-    // ✅ FIX: Mỗi dịch vụ có tên + giá riêng
     DichVu: [{
       name: {
         type: String,
@@ -27,15 +26,17 @@ const ServicePackageSchema = new mongoose.Schema(
       }
     }],
     
-    // ✅ REMOVED: Không cần Gia ở cấp gói nữa
-    // Gia: { ... }
-    
+    // ✅ Ảnh bìa chính
     AnhBia: {
       type: String,
       default: null,
     },
     
-    // ✅ Đánh giá trung bình (tính từ reviews)
+    // ✅ NEW: Thêm mảng ảnh phụ
+    Images: [{
+      type: String
+    }],
+    
     DanhGia: {
       type: Number,
       default: 0,
@@ -43,7 +44,6 @@ const ServicePackageSchema = new mongoose.Schema(
       max: 5,
     },
     
-    // ✅ Số lượt đánh giá
     SoLuotDanhGia: {
       type: Number,
       default: 0,
@@ -62,7 +62,6 @@ const ServicePackageSchema = new mongoose.Schema(
       default: 'active',
     },
     
-    // ✅ Số lượng đã đặt (qua đơn hàng)
     SoLuongDaDat: {
       type: Number,
       default: 0,
@@ -91,29 +90,19 @@ const ServicePackageSchema = new mongoose.Schema(
   }
 );
 
-// ✅ Index để tìm kiếm nhanh
+// Index
 ServicePackageSchema.index({ PhotographerId: 1, TrangThai: 1 });
 ServicePackageSchema.index({ LoaiGoi: 1, TrangThai: 1 });
 ServicePackageSchema.index({ DanhGia: -1 });
 ServicePackageSchema.index({ SoLuongDaDat: -1 });
 
-// ✅ Virtual: Tổng giá gói (sum of all services)
+// Virtual: Tổng giá gói
 ServicePackageSchema.virtual('TongGia').get(function() {
   if (!this.DichVu || this.DichVu.length === 0) return 0;
   return this.DichVu.reduce((total, service) => total + (service.Gia || 0), 0);
 });
 
-// ✅ Virtual: Đánh giá trung bình
-ServicePackageSchema.virtual('avgRating').get(function() {
-  return this.SoLuotDanhGia > 0 
-    ? (this.DanhGia / this.SoLuotDanhGia).toFixed(1) 
-    : 0;
-});
-
-// ✅ Middleware: Ẩn các gói đã xóa (REMOVED - gây conflict)
-// Sẽ filter trong controller thay vì middleware
-
-// ✅ Method: Thêm đánh giá mới
+// Method: Thêm đánh giá
 ServicePackageSchema.methods.addReview = function(rating) {
   if (rating < 1 || rating > 5) {
     throw new Error('Đánh giá phải từ 1 đến 5 sao');
@@ -129,13 +118,28 @@ ServicePackageSchema.methods.addReview = function(rating) {
   return this.save();
 };
 
-// ✅ Method: Tăng số lượt đặt
+// Method: Tăng số lượt đặt
 ServicePackageSchema.methods.incrementBooking = function() {
   this.SoLuongDaDat += 1;
   return this.save();
 };
 
-// ✅ Ensure virtuals are included in JSON
+// ✅ NEW: Method thêm ảnh
+ServicePackageSchema.methods.addImage = function(imageUrl) {
+  if (!this.Images) {
+    this.Images = [];
+  }
+  this.Images.push(imageUrl);
+  return this.save();
+};
+
+// ✅ NEW: Method xóa ảnh
+ServicePackageSchema.methods.removeImage = function(imageUrl) {
+  if (!this.Images) return this.save();
+  this.Images = this.Images.filter(img => img !== imageUrl);
+  return this.save();
+};
+
 ServicePackageSchema.set('toJSON', { virtuals: true });
 ServicePackageSchema.set('toObject', { virtuals: true });
 

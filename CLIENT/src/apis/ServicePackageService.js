@@ -15,9 +15,6 @@ axios.interceptors.request.use((config) => {
 
 const servicePackageApi = {
   
-  /**
-   * 📦 Tạo gói dịch vụ mới
-   */
   createPackage: async (packageData) => {
     try {
       console.log("📤 Creating package:", packageData);
@@ -30,9 +27,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * 📋 Lấy tất cả gói dịch vụ
-   */
   getAllPackages: async (filters = {}) => {
     try {
       const params = new URLSearchParams();
@@ -54,9 +48,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * 🔍 Lấy chi tiết 1 gói
-   */
   getPackageById: async (id) => {
     try {
       console.log("📥 Fetching package:", id);
@@ -69,9 +60,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * 🔍 Lấy gói của photographer theo username
-   */
   getPackagesByPhotographer: async (username) => {
     try {
       console.log("📥 Fetching packages for photographer:", username);
@@ -84,9 +72,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * 🔍 Lấy gói của tôi (photographer hiện tại)
-   */
   getMyPackages: async () => {
     try {
       console.log("📥 Fetching my packages...");
@@ -99,9 +84,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * ✏️ Cập nhật gói
-   */
   updatePackage: async (id, updates) => {
     try {
       console.log("📤 Updating package:", id, updates);
@@ -114,9 +96,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * 🗑️ Xóa gói
-   */
   deletePackage: async (id) => {
     try {
       console.log("🗑️ Deleting package:", id);
@@ -129,9 +108,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * ⭐ Đánh giá gói
-   */
   ratePackage: async (id, rating) => {
     try {
       console.log("⭐ Rating package:", id, "rating:", rating);
@@ -144,9 +120,6 @@ const servicePackageApi = {
     }
   },
 
-  /**
-   * 📸 Upload ảnh gói dịch vụ
-   */
   uploadPackageImage: async (id, formData) => {
     try {
       console.log("📤 Uploading package image for:", id);
@@ -157,6 +130,34 @@ const servicePackageApi = {
       return res.data;
     } catch (error) {
       console.error("❌ Error uploading package image:", error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  uploadPackageImages: async (id, formData) => {
+    try {
+      console.log("📤 Uploading package images for:", id);
+      const res = await axios.post(`${API_URL}/${id}/upload-images`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("✅ Package images uploaded:", res.data);
+      return res.data;
+    } catch (error) {
+      console.error("❌ Error uploading package images:", error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  deletePackageImage: async (id, imageUrl) => {
+    try {
+      console.log("🗑️ Deleting image:", imageUrl);
+      const res = await axios.delete(`${API_URL}/${id}/delete-image`, {
+        data: { imageUrl }
+      });
+      console.log("✅ Image deleted:", res.data);
+      return res.data;
+    } catch (error) {
+      console.error("❌ Error deleting image:", error.response?.data || error.message);
       throw error;
     }
   },

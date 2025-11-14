@@ -30,8 +30,21 @@ const routes = [
     component: lazy(() => import('../components/PhotographerPage/Photographer'))
   },
   {
+    path: '/photographer/:username',
+    component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
+  },
+  {
     path: '/service-package',
     component: lazy(() => import('../components/ServicePakage/ServicePakage'))
+  },
+  // ✅ NEW: Service Package Detail Route
+  {
+    path: '/package/:id',
+    component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
+  },
+  {
+    path: '/my-packages',
+    component: lazy(() => import('../components/PhotographerPage/Package'))
   },
   {
     path: '/activity',
@@ -40,16 +53,6 @@ const routes = [
   {
     path: '/about-web',
     component: lazy(() => import('../components/AboutWeb/AboutWeb'))
-  },
-  // ✅ FIX: Thêm dynamic parameter :username
-  {
-    path: '/photographer/:username',
-    component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
-  },
-  //My Package
-  {
-    path: '/my-packages',
-    component: lazy(() => import('../components/PhotographerPage/Package'))
   }
 ];
 

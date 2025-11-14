@@ -71,6 +71,7 @@ router.delete('/:id', verifyTokenUser, servicePackageController.deletePackage);
 router.post('/:id/rate', verifyTokenUser, servicePackageController.ratePackage);
 
 // ============ UPLOAD PACKAGE IMAGE ============
+// ✅ Upload ảnh bìa (single)
 router.post(
   '/:id/upload-image',
   verifyTokenUser,
@@ -120,6 +121,109 @@ router.post(
     } catch (err) {
       console.error('❌ Upload package image error:', err);
       res.status(500).json({ message: 'Lỗi khi tải ảnh lên máy chủ' });
+    }
+  }
+);
+
+// ✅ NEW: Upload nhiều ảnh (multiple)
+router.post(
+  '/:id/upload-images',
+  verifyTokenUser,
+  (req, res, next) => {
+    upload.array('packageImages', 10)(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ message: `Lỗi upload: ${err.message}` });
+      } else if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const photographerId = req.user._id || req.user.id;
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: 'Không có file được tải lên!' });
+      }
+
+      // Kiểm tra quyền sở hữu
+      const package_data = await ServicePackage.findById(id);
+      if (!package_data) {
+        return res.status(404).json({ message: 'Không tìm thấy gói dịch vụ' });
+      }
+
+      if (package_data.PhotographerId.toString() !== photographerId.toString()) {
+        return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa gói này' });
+      }
+
+      // Tạo URLs cho các file
+      const fileUrls = req.files.map(file => 
+        `${req.protocol}://${req.get('host')}/uploads/packages/${file.filename}`
+      );
+
+      // Cập nhật mảng Images
+      const updated = await ServicePackage.findByIdAndUpdate(
+        id,
+        { $push: { Images: { $each: fileUrls } } },
+        { new: true }
+      );
+
+      res.status(200).json({
+        message: `Tải ${fileUrls.length} ảnh thành công!`,
+        fileUrls,
+        package: updated,
+      });
+    } catch (err) {
+      console.error('❌ Upload package images error:', err);
+      res.status(500).json({ message: 'Lỗi khi tải ảnh lên máy chủ' });
+    }
+  }
+);
+
+// ✅ NEW: Xóa ảnh khỏi gallery
+router.delete(
+  '/:id/delete-image',
+  verifyTokenUser,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { imageUrl } = req.body;
+      const photographerId = req.user._id || req.user.id;
+
+      if (!imageUrl) {
+        return res.status(400).json({ message: 'Vui lòng cung cấp URL ảnh cần xóa' });
+      }
+
+      // Kiểm tra quyền sở hữu
+      const package_data = await ServicePackage.findById(id);
+      if (!package_data) {
+        return res.status(404).json({ message: 'Không tìm thấy gói dịch vụ' });
+      }
+
+      if (package_data.PhotographerId.toString() !== photographerId.toString()) {
+        return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa gói này' });
+      }
+
+      // Xóa ảnh khỏi mảng
+      const updated = await ServicePackage.findByIdAndUpdate(
+        id,
+        { $pull: { Images: imageUrl } },
+        { new: true }
+      );
+
+      // TODO: Xóa file vật lý khỏi server nếu cần
+      // const filename = imageUrl.split('/').pop();
+      // fs.unlinkSync(path.join('uploads/packages', filename));
+
+      res.status(200).json({
+        message: 'Xóa ảnh thành công!',
+        package: updated,
+      });
+    } catch (err) {
+      console.error('❌ Delete package image error:', err);
+      res.status(500).json({ message: 'Lỗi khi xóa ảnh' });
     }
   }
 );
