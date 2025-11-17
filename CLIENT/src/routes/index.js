@@ -37,15 +37,25 @@ const routes = [
     path: '/service-package',
     component: lazy(() => import('../components/ServicePakage/ServicePakage'))
   },
-  // ✅ NEW: Service Package Detail Route
+  // ✅ Service Package Detail Route
   {
     path: '/package/:id',
     component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
+  },
+  // ✅ NEW: Order Service Route
+  {
+  path: '/order-service',
+  component: lazy(() => import('../components/Order/OrderService'))
   },
   {
     path: '/my-packages',
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
+  // ✅ NEW: My Orders Route (để xem đơn hàng đã đặt)
+  /*{
+    path: '/my-orders',
+    component: lazy(() => import('../components/Orders/MyOrders'))
+  }, */
   {
     path: '/activity',
     component: lazy(() => import('../components/Activity/Activity'))

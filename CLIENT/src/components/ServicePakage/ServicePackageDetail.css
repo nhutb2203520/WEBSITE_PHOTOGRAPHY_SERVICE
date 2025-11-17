@@ -785,25 +785,6 @@
 }
 
 /* Booking Modal */
-.booking-modal {
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h3 {
-    font-size: 22px;
-    font-weight: 700;
-    color: #111827;
-}
 
 .btn-close {
     width: 32px;
@@ -823,10 +804,6 @@
 .btn-close:hover {
     background: #e5e7eb;
     color: #111827;
-}
-
-.booking-form {
-    padding: 24px;
 }
 
 .form-row {
@@ -864,19 +841,6 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.booking-summary {
-    padding: 20px;
-    background: #f9fafb;
-    border-radius: 8px;
-    margin-bottom: 24px;
-}
-
-.booking-summary h4 {
-    font-size: 16px;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 12px;
-}
 
 .summary-item {
     display: flex;

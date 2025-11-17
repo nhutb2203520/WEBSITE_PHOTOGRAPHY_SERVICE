@@ -13,8 +13,7 @@ import {
   Share2,
   MessageCircle,
   ChevronLeft,
-  ChevronRight,
-  X
+  ChevronRight
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -35,18 +34,6 @@ export default function ServicePackageDetail() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  
-  // Booking form state
-  const [bookingForm, setBookingForm] = useState({
-    name: user?.HoTen || '',
-    phone: user?.SoDienThoai || '',
-    email: user?.Email || '',
-    date: '',
-    time: '',
-    location: '',
-    note: ''
-  });
 
   useEffect(() => {
     fetchPackageDetail();
@@ -59,11 +46,11 @@ export default function ServicePackageDetail() {
       setPackageData(data);
       console.log('📦 Package detail:', data);
       console.log('📷 AnhBia:', data.AnhBia);
-      console.log('📷 AnhMoTa:', data.AnhMoTa);
+      console.log('📷 Images:', data.Images);
     } catch (error) {
       console.error('❌ Error fetching package detail:', error);
       toast.error('Không thể tải thông tin gói dịch vụ');
-      navigate('/packages');
+      navigate('/service-package');
     } finally {
       setLoading(false);
     }
@@ -75,24 +62,24 @@ export default function ServicePackageDetail() {
     return `http://localhost:5000/${imageUrl.replace(/^\/+/, "")}`;
   };
 
-  // ✅ Hàm lấy tất cả ảnh (AnhBia + AnhMoTa)
+  // ✅ Hàm lấy tất cả ảnh (AnhBia + Images)
   const getAllImages = () => {
-  if (!packageData) return [];
+    if (!packageData) return [];
 
-  const allImages = [];
+    const allImages = [];
 
-  // Thêm ảnh bìa
-  if (packageData.AnhBia) {
-    allImages.push(packageData.AnhBia);
-  }
+    // Thêm ảnh bìa
+    if (packageData.AnhBia) {
+      allImages.push(packageData.AnhBia);
+    }
 
-  // Thêm danh sách ảnh trong Images
-  if (packageData.Images && Array.isArray(packageData.Images)) {
-    allImages.push(...packageData.Images);
-  }
+    // Thêm danh sách ảnh trong Images
+    if (packageData.Images && Array.isArray(packageData.Images)) {
+      allImages.push(...packageData.Images);
+    }
 
-  return allImages;
-};
+    return allImages;
+  };
 
   const getPriceRange = (dichVu) => {
     if (!dichVu || dichVu.length === 0) return { min: 0, max: 0 };
@@ -126,52 +113,20 @@ export default function ServicePackageDetail() {
     }
   };
 
-  const handleBookingFormChange = (e) => {
-    const { name, value } = e.target;
-    setBookingForm(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleBookNow = () => {
     if (!user) {
       toast.info('Vui lòng đăng nhập để đặt hàng');
-      navigate('/login', { state: { from: `/package/${id}` } });
+      navigate('/signin', { state: { from: `/package/${id}` } });
       return;
     }
-    setShowBookingModal(true);
-  };
-
-  const handleSubmitBooking = (e) => {
-    e.preventDefault();
-    
-    if (!bookingForm.date || !bookingForm.time || !bookingForm.location) {
-      toast.error('Vui lòng điền đầy đủ thông tin');
-      return;
-    }
-
-    console.log('📝 Booking data:', {
-      packageId: id,
-      ...bookingForm,
-      selectedService
-    });
-    
-    toast.success('Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm.');
-    setShowBookingModal(false);
-    
-    setBookingForm({
-      name: user?.HoTen || '',
-      phone: user?.SoDienThoai || '',
-      email: user?.Email || '',
-      date: '',
-      time: '',
-      location: '',
-      note: ''
-    });
+    // Chuyển sang trang OrderService với packageId
+    navigate('/order-service', { state: { packageId: id } });
   };
 
   const handleContactPhotographer = () => {
     if (!user) {
       toast.info('Vui lòng đăng nhập để liên hệ');
-      navigate('/login');
+      navigate('/signin');
       return;
     }
     toast.info('Tính năng chat đang được phát triển');
@@ -212,7 +167,7 @@ export default function ServicePackageDetail() {
         <Sidebar />
         <div className="package-detail-error">
           <h2>Không tìm thấy gói dịch vụ</h2>
-          <Link to="/packages" className="btn-back">Quay lại danh sách</Link>
+          <Link to="/service-package" className="btn-back">Quay lại danh sách</Link>
         </div>
         <Footer />
       </>
@@ -350,7 +305,7 @@ export default function ServicePackageDetail() {
                 <section className="package-section photographer-section">
                   <h2>Thông tin Photographer</h2>
                   <div className="photographer-card">
-                  <div className="photographer-avatar-wrapper">
+                    <div className="photographer-avatar-wrapper">
                       <img 
                         src={getImageUrl(packageData.PhotographerId.Avatar)}
                         alt={packageData.PhotographerId.HoTen}
@@ -359,17 +314,17 @@ export default function ServicePackageDetail() {
                           e.target.src = "https://via.placeholder.com/120?text=Avatar";
                         }}
                       />
-                  </div>
+                    </div>
 
-                  <h3 className="photographer-name">
+                    <h3 className="photographer-name">
                       {packageData.PhotographerId.HoTen}
-                  </h3>
+                    </h3>
 
-                  <p className="photographer-username">
+                    <p className="photographer-username">
                       @{packageData.PhotographerId.TenDangNhap}
-                  </p>
+                    </p>
 
-                  <div className="photographer-info-column">
+                    <div className="photographer-info-column">
                       {packageData.PhotographerId.Email && (
                         <div className="contact-item">
                           <Mail size={16} />
@@ -383,17 +338,16 @@ export default function ServicePackageDetail() {
                           {packageData.PhotographerId.DiaChi}
                         </div>
                       )}
+                    </div>
+
+                    <button 
+                      className="btn-contact-photographer"
+                      onClick={handleContactPhotographer}
+                    >
+                      <MessageCircle size={18} />
+                      Nhắn tin
+                    </button>
                   </div>
-
-                  <button 
-                    className="btn-contact-photographer"
-                    onClick={handleContactPhotographer}
-                  >
-                    <MessageCircle size={18} />
-                    Nhắn tin
-                  </button>
-              </div>
-
                 </section>
               )}
             </div>
@@ -503,7 +457,7 @@ export default function ServicePackageDetail() {
         </div>
       </div>
 
-      {/* Image Modal */}
+      {/* Image Modal - Lightbox */}
       {showImageModal && (
         <div className="image-modal-overlay" onClick={() => setShowImageModal(false)}>
           <button 
@@ -544,133 +498,6 @@ export default function ServicePackageDetail() {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Booking Modal */}
-      {showBookingModal && (
-        <div className="modal-overlay" onClick={() => setShowBookingModal(false)}>
-          <div className="modal-content booking-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Đặt hàng gói dịch vụ</h3>
-              <button 
-                className="btn-close"
-                onClick={() => setShowBookingModal(false)}
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitBooking} className="booking-form">
-              <div className="form-group">
-                <label>Họ tên *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={bookingForm.name}
-                  onChange={handleBookingFormChange}
-                  required
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Số điện thoại *</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={bookingForm.phone}
-                    onChange={handleBookingFormChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={bookingForm.email}
-                    onChange={handleBookingFormChange}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Ngày chụp *</label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={bookingForm.date}
-                    onChange={handleBookingFormChange}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Giờ chụp *</label>
-                  <input
-                    type="time"
-                    name="time"
-                    value={bookingForm.time}
-                    onChange={handleBookingFormChange}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Địa điểm *</label>
-                <input
-                  type="text"
-                  name="location"
-                  value={bookingForm.location}
-                  onChange={handleBookingFormChange}
-                  placeholder="Nhập địa điểm chụp"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Ghi chú</label>
-                <textarea
-                  name="note"
-                  value={bookingForm.note}
-                  onChange={handleBookingFormChange}
-                  rows="4"
-                  placeholder="Thêm ghi chú nếu có..."
-                />
-              </div>
-
-              <div className="booking-summary">
-                <h4>Tóm tắt đơn hàng</h4>
-                <div className="summary-item">
-                  <span>Gói dịch vụ:</span>
-                  <strong>{packageData.TenGoi}</strong>
-                </div>
-                <div className="summary-item">
-                  <span>Giá dự kiến:</span>
-                  <strong>{formatPrice(minPrice)} - {formatPrice(maxPrice)} VNĐ</strong>
-                </div>
-              </div>
-
-              <div className="modal-actions">
-                <button 
-                  type="button" 
-                  className="btn-cancel"
-                  onClick={() => setShowBookingModal(false)}
-                >
-                  Hủy
-                </button>
-                <button type="submit" className="btn-submit">
-                  Xác nhận đặt hàng
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
