@@ -350,48 +350,50 @@ export default function ServicePackageDetail() {
                 <section className="package-section photographer-section">
                   <h2>Thông tin Photographer</h2>
                   <div className="photographer-card">
-                    <img 
-                      src={getImageUrl(packageData.PhotographerId.Avatar)}
-                      alt={packageData.PhotographerId.HoTen}
-                      className="photographer-avatar"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/100x100?text=Avatar";
-                      }}
-                    />
-                    <div className="photographer-info">
-                      <h3>{packageData.PhotographerId.HoTen}</h3>
-                      <p className="photographer-username">@{packageData.PhotographerId.TenDangNhap}</p>
-                      
-                      <div className="photographer-contact">
-                        {packageData.PhotographerId.Email && (
-                          <a href={`mailto:${packageData.PhotographerId.Email}`} className="contact-item">
-                            <Mail size={16} />
-                            {packageData.PhotographerId.Email}
-                          </a>
-                        )}
-                        {packageData.PhotographerId.SDT && (
-                          <a href={`tel:${packageData.PhotographerId.SDT}`} className="contact-item">
-                            <Phone size={16} />
-                            {packageData.PhotographerId.SDT}
-                          </a>
-                        )}
-                        {packageData.PhotographerId.DiaChi && (
-                          <div className="contact-item">
-                            <MapPin size={16} />
-                            {packageData.PhotographerId.DiaChi}
-                          </div>
-                        )}
-                      </div>
-
-                      <button 
-                        className="btn-contact-photographer"
-                        onClick={handleContactPhotographer}
-                      >
-                        <MessageCircle size={18} />
-                        Nhắn tin
-                      </button>
-                    </div>
+                  <div className="photographer-avatar-wrapper">
+                      <img 
+                        src={getImageUrl(packageData.PhotographerId.Avatar)}
+                        alt={packageData.PhotographerId.HoTen}
+                        className="photographer-avatar"
+                        onError={(e) => {
+                          e.target.src = "https://via.placeholder.com/120?text=Avatar";
+                        }}
+                      />
                   </div>
+
+                  <h3 className="photographer-name">
+                      {packageData.PhotographerId.HoTen}
+                  </h3>
+
+                  <p className="photographer-username">
+                      @{packageData.PhotographerId.TenDangNhap}
+                  </p>
+
+                  <div className="photographer-info-column">
+                      {packageData.PhotographerId.Email && (
+                        <div className="contact-item">
+                          <Mail size={16} />
+                          {packageData.PhotographerId.Email}
+                        </div>
+                      )}
+
+                      {packageData.PhotographerId.DiaChi && (
+                        <div className="contact-item">
+                          <MapPin size={16} />
+                          {packageData.PhotographerId.DiaChi}
+                        </div>
+                      )}
+                  </div>
+
+                  <button 
+                    className="btn-contact-photographer"
+                    onClick={handleContactPhotographer}
+                  >
+                    <MessageCircle size={18} />
+                    Nhắn tin
+                  </button>
+              </div>
+
                 </section>
               )}
             </div>
