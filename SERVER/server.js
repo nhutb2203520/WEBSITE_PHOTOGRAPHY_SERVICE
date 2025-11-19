@@ -13,6 +13,7 @@ import khachHangRoutes from "./src/routes/khachhang.route.js";
 import uploadRoutes from "./src/routes/upload.route.js";
 import worksProfileRoutes from "./src/routes/worksprofile.route.js";
 import servicePackageRoutes from "./src/routes/servicePackage.route.js";
+import orderRoute from "./src/routes/order.route.js";
 
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
@@ -41,7 +42,7 @@ app.use("/api/khachhang", khachHangRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/worksprofile", worksProfileRoutes);
 app.use('/api/service-packages', servicePackageRoutes);
-
+app.use("/api/orders", orderRoute);
 // ✅ Get current user profile
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 

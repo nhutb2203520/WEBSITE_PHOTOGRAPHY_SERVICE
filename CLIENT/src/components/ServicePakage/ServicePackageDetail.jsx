@@ -306,14 +306,19 @@ export default function ServicePackageDetail() {
                   <h2>Thông tin Photographer</h2>
                   <div className="photographer-card">
                     <div className="photographer-avatar-wrapper">
-                      <img 
-                        src={getImageUrl(packageData.PhotographerId.Avatar)}
+                      <img
+                        src={
+                          packageData.PhotographerId?.Avatar
+                            ? getImageUrl(packageData.PhotographerId.Avatar)
+                            : "https://via.placeholder.com/200?text=Avatar"
+                        }
                         alt={packageData.PhotographerId.HoTen}
                         className="photographer-avatar"
                         onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/120?text=Avatar";
+                          e.target.src = "https://via.placeholder.com/200?text=Avatar";
                         }}
                       />
+
                     </div>
 
                     <h3 className="photographer-name">

@@ -2,12 +2,6 @@
    SERVICE PACKAGE DETAIL PAGE - UPDATED LAYOUT
    =========================== */
 
-.package-detail-page {
-    min-height: 100vh;
-    background: #f8f9fa;
-    padding-bottom: 60px;
-}
-
 /* Loading & Error States */
 .package-detail-loading,
 .package-detail-error {
@@ -430,6 +424,7 @@
 }
 
 /* Photographer Card */
+/* Photographer Card */
 .photographer-card {
     background: #fff;
     border-radius: 16px;
@@ -440,24 +435,46 @@
     align-items: center;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
-.photographer-info-column {
+
+/* Photographer Card - CHỈ cho trang detail */
+.package-detail-page .photographer-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 30px 25px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+.package-detail-page .photographer-info-column {
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin: 10px 0 15px 0;
 }
-.photographer-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.photographer-avatar-wrapper {
-    width: 120px;
-    height: 120px;
+
+.package-detail-page .photographer-avatar-wrapper {
+    width: 160px !important;
+    height: 160px !important;
+    min-width: 160px !important;
+    min-height: 160px !important;
     border-radius: 50%;
     overflow: hidden;
-    margin-bottom: 15px;
+    border: 4px solid #fff;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    margin: 0 auto 12px;
+    flex-shrink: 0;
+}
+
+.package-detail-page .photographer-avatar {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 160px !important;
+    min-height: 160px !important;
+    object-fit: cover;
+    display: block;
 }
 .photographer-info {
     flex: 1;

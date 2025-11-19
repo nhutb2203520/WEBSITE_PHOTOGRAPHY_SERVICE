@@ -1,0 +1,79 @@
+/* Layout */
+.admin-layout {
+    display: flex;
+    height: 100vh;
+    background: #f1f3f9;
+    font-family: "Poppins", sans-serif;
+}
+
+
+/* MAIN CONTENT */
+.admin-main {
+    flex: 1;
+    padding: 35px 40px;
+}
+
+.admin-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    color: #3d3d3d;
+}
+
+/* STAT CARDS */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    margin-bottom: 35px;
+}
+
+.stat-card {
+    padding: 25px;
+    border-radius: 16px;
+    color: white;
+    font-weight: bold;
+    background: #6c5ce7;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.stat-card h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.stat-card p {
+    font-size: 30px;
+    margin: 0;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* COLORS */
+.stat-card.purple {
+    background: #6c5ce7;
+}
+
+.stat-card.blue {
+    background: #0984e3;
+}
+
+.stat-card.teal {
+    background: #00cec9;
+}
+
+.stat-card.yellow {
+    background: #fdcb6e;
+}
+
+/* CHART BOX */
+.chart-box {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}

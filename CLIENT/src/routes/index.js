@@ -52,10 +52,10 @@ const routes = [
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
   // ✅ NEW: My Orders Route (để xem đơn hàng đã đặt)
-  /*{
+  {
     path: '/my-orders',
-    component: lazy(() => import('../components/Orders/MyOrders'))
-  }, */
+    component: lazy(() => import('../components/Order/MyOrder'))
+  },
   {
     path: '/activity',
     component: lazy(() => import('../components/Activity/Activity'))
@@ -63,7 +63,11 @@ const routes = [
   {
     path: '/about-web',
     component: lazy(() => import('../components/AboutWeb/AboutWeb'))
-  }
+  },
+  {
+    path: '/admin-page',
+    component: lazy(() => import('../admin/AdminPage/AdminPage'))
+  },
 ];
 
 export default routes;

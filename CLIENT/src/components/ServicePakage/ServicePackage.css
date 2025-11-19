@@ -1,8 +1,5 @@
 /* PAGE */
-.packages-page {
-    min-height: 100vh;
-    background-color: #f9fafb;
-}
+
 
 .container {
     max-width: 1200px;
@@ -183,7 +180,10 @@
 }
 
 /* Photographer Info in Card */
-.photographer-info {
+
+
+/* Photographer Info in Card - CHỈ cho trang list packages */
+.packages-page .photographer-info {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -194,13 +194,14 @@
     color: #6b7280;
 }
 
-.photographer-avatar {
-    width: 24px;
-    height: 24px;
+.packages-page .photographer-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
     border-radius: 50%;
     object-fit: cover;
 }
-
 /* Package Description */
 .package-description {
     font-size: 0.875rem;
