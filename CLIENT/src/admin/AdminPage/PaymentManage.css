@@ -1,0 +1,265 @@
+/* =========================== LAYOUT =========================== */
+
+.admin-main {
+    flex: 1;
+    padding: 30px 40px;
+    margin-left: 250px;
+    transition: margin-left .25s;
+}
+
+.sidebar.collapsed+.admin-main {
+    margin-left: 80px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.page-header h2 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+/* ================= SEARCH ================= */
+
+.search-input {
+    padding: 10px 14px;
+    width: 300px;
+    border-radius: 14px;
+    border: 1px solid #ccc;
+    transition: .25s;
+}
+
+.search-input:focus {
+    border-color: #6c5ce7;
+    box-shadow: 0 0 6px rgba(108, 92, 231, .5);
+}
+
+/* =================== ADD BUTTON =================== */
+
+.btn.add-method {
+    padding: 10px 16px;
+    background: #6c5ce7;
+    color: white;
+    font-weight: 600;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(108, 92, 231, .35);
+}
+
+.btn.add-method:hover {
+    background: #4a36d9;
+}
+
+/* ===================== PAYMENT METHOD CARDS ===================== */
+
+.section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+}
+
+.payment-card {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    border-radius: 18px;
+    width: 280px;
+    padding: 18px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
+    transition: .25s ease;
+}
+
+.payment-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .35);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.card-icons {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-icon {
+    cursor: pointer;
+    color: #00cec9;
+}
+
+.save-icon {
+    cursor: pointer;
+    color: #55efc4;
+}
+
+.remove-icon {
+    cursor: pointer;
+    color: #ff7675;
+}
+
+.card-body {
+    margin-top: 12px;
+}
+
+.card-body label {
+    font-size: 13px;
+    opacity: .9;
+    margin-top: 6px;
+    display: block;
+}
+
+.card-body input {
+    width: 90%;
+    padding: 8px 12px;
+    margin-top: 4px;
+    border: none;
+    border-radius: 10px;
+    outline: none;
+    transition: .2s;
+}
+
+.card-body input[readonly] {
+    background: #ffffff22;
+    color: #ddd;
+}
+
+.card-body input:not([readonly]) {
+    background: #ffffffdd;
+    color: #222;
+}
+
+.card-body input:not([readonly]):focus {
+    box-shadow: 0 0 8px #6c5ce7;
+}
+
+/* QR IMAGE */
+.qr-preview {
+    margin-top: 12px;
+    width: 100%;
+    border-radius: 12px;
+    border: 2px solid #fff3;
+}
+
+/* ===================== TABLE ===================== */
+
+.table-box {
+    margin-top: 25px;
+    background: #fff;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .15);
+}
+
+.table-box table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-box th,
+.table-box td {
+    padding: 14px 10px;
+    border-top: 1px solid #eee;
+}
+
+.badge {
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    color: white;
+}
+
+.badge.success {
+    background: #00b894;
+}
+
+.badge.warning {
+    background: #fdcb6e;
+}
+
+/* ===================== BUTTON UPDATE ===================== */
+.btn-update {
+    padding: 6px 16px;
+    border-radius: 12px;
+    background: #6c5ce7;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(108, 92, 231, .35);
+}
+
+.btn-update:hover {
+    background: #4a36d9;
+}
+
+/* ===================== MODAL ===================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-box {
+    background: #fff;
+    padding: 35px;
+    border-radius: 20px;
+    text-align: center;
+    width: 420px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .25);
+}
+
+.modal-icon {
+    color: #00b894;
+    margin-bottom: 12px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.btn.confirm {
+    padding: 10px 20px;
+    background: #00b894;
+    border-radius: 12px;
+    color: white;
+}
+
+.btn.cancel {
+    padding: 10px 20px;
+    background: #d63031;
+    border-radius: 12px;
+    color: white;
+}

@@ -1,85 +1,97 @@
 .admin-header {
-    height: 70px;
-    background: #ffffff;
-    border-bottom: 1px solid #e4e4e4;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 28px;
     position: sticky;
     top: 0;
-    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 25px;
+    background: white;
+    border-bottom: 1px solid #e3e3e3;
+    z-index: 100;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
+.header-left .header-title {
+    font-size: 20px;
+    font-weight: 700;
 }
 
-.header-title {
-    font-size: 24px;
-    font-weight: 700;
-    color: #2d3436;
+.header-center .search-box {
+    display: flex;
+    align-items: center;
+    background: #f1f3f9;
+    padding: 6px 12px;
+    border-radius: 12px;
+    gap: 6px;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    background: transparent;
 }
 
 .header-right {
     display: flex;
     align-items: center;
-    gap: 22px;
+    gap: 15px;
 }
 
-/* Notification icon */
-.notif-icon {
-    font-size: 28px;
+.header-icon {
     cursor: pointer;
-    color: #444;
-    transition: 0.2s ease;
+    font-size: 24px;
+    color: #555;
 }
 
-.notif-icon:hover {
-    color: #0984e3;
-}
-
-/* User section */
 .header-user {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 12px;
-    border-radius: 50px;
-    background: #fafafa;
+    gap: 10px;
     cursor: pointer;
-    transition: 0.25s ease;
+    position: relative;
 }
 
-.header-user:hover {
-    background: #f1f1f1;
-}
-
-/* Avatar */
 .user-avatar {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: 2px solid #ddd;
-    object-fit: cover;
 }
 
-/* User info */
 .user-info {
     display: flex;
     flex-direction: column;
-    line-height: 1.1;
-}
-
-.user-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #2d3436;
-}
-
-.user-role {
     font-size: 12px;
-    color: #636e72;
+}
+
+.dropdown-icon {
+    font-size: 20px;
+}
+
+.user-menu {
+    position: absolute;
+    top: 48px;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    width: 160px;
+    overflow: hidden;
+    z-index: 200;
+}
+
+.user-menu .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.user-menu .menu-item:hover {
+    background: #f1f3f9;
+}
+
+.user-menu .logout {
+    color: red;
 }
