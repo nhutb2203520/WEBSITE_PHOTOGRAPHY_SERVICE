@@ -1,0 +1,226 @@
+.admin-login-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e40af 0%, #7e22ce 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Card */
+.admin-login-card {
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    max-width: 480px;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Header */
+.admin-login-header {
+    padding: 40px 40px 30px;
+    text-align: center;
+    background: linear-gradient(135deg, #1e40af 0%, #7e22ce 100%);
+    color: #ffffff;
+}
+
+.admin-login-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.admin-logo-circle {
+    width: 80px;
+    height: 80px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.admin-login-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+
+.admin-login-subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Form */
+.admin-login-form {
+    padding: 40px;
+}
+
+/* Alert Error */
+.admin-alert-error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    color: #dc2626;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* Form Group */
+.admin-form-group {
+    margin-bottom: 20px;
+}
+
+.admin-form-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.admin-required {
+    color: #ef4444;
+}
+
+/* Input Wrapper */
+.admin-input-wrapper {
+    position: relative;
+}
+
+.admin-input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+}
+
+/* Input */
+.admin-form-input {
+    width: 100%;
+    padding: 14px 16px;
+    padding-left: 44px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.admin-form-input:focus {
+    border-color: #7e22ce;
+    box-shadow: 0 0 0 3px rgba(126, 34, 206, 0.1);
+}
+
+.admin-form-input::placeholder {
+    color: #9ca3af;
+}
+
+.admin-input-error {
+    border-color: #ef4444 !important;
+}
+
+.admin-error-text {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 6px;
+    display: block;
+}
+
+/* Password Toggle */
+.admin-password-toggle {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #9ca3af;
+    background: none;
+    border: none;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s;
+}
+
+.admin-password-toggle:hover {
+    color: #6b7280;
+}
+
+/* Submit Button */
+.admin-submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #1e40af 0%, #7e22ce 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.admin-submit-btn:hover:not(.admin-disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(126, 34, 206, 0.4);
+}
+
+.admin-submit-btn.admin-disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Footer */
+.admin-form-footer {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.admin-security-note {
+    color: #6b7280;
+    font-size: 14px;
+    padding: 12px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .admin-login-card {
+        margin: 20px;
+    }
+
+    .admin-login-header {
+        padding: 30px 24px 20px;
+    }
+
+    .admin-login-form {
+        padding: 30px 24px;
+    }
+
+    .admin-login-title {
+        font-size: 26px;
+    }
+
+    .admin-logo-circle {
+        width: 70px;
+        height: 70px;
+    }
+}

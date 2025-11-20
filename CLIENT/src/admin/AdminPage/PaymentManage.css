@@ -1,16 +1,26 @@
-/* =========================== LAYOUT =========================== */
+/* ===========================
+   LAYOUT + SIDEBAR SUPPORT
+   =========================== */
+.admin-layout {
+    display: flex;
+    font-family: "Poppins", sans-serif;
+    background: #f1f3f9;
+}
 
 .admin-main {
     flex: 1;
     padding: 30px 40px;
     margin-left: 250px;
-    transition: margin-left .25s;
+    transition: margin-left 0.25s ease;
 }
 
 .sidebar.collapsed+.admin-main {
     margin-left: 80px;
 }
 
+/* ===========================
+   PAGE HEADER
+   =========================== */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -19,177 +29,263 @@
 }
 
 .page-header h2 {
-    font-size: 26px;
-    font-weight: 700;
-    color: #2c3e50;
+    font-size: 24px;
+    font-weight: 600;
 }
 
-/* ================= SEARCH ================= */
-
 .search-input {
-    padding: 10px 14px;
-    width: 300px;
-    border-radius: 14px;
-    border: 1px solid #ccc;
-    transition: .25s;
+    padding: 10px 16px;
+    border: 1px solid #dcdcdc;
+    border-radius: 12px;
+    background: white;
+    width: 280px;
+    transition: 0.25s;
 }
 
 .search-input:focus {
     border-color: #6c5ce7;
-    box-shadow: 0 0 6px rgba(108, 92, 231, .5);
+    box-shadow: 0 0 6px rgba(108, 92, 231, 0.25);
 }
 
-/* =================== ADD BUTTON =================== */
-
+/* ===========================
+   ADD METHOD BUTTON
+   =========================== */
 .btn.add-method {
-    padding: 10px 16px;
-    background: #6c5ce7;
-    color: white;
-    font-weight: 600;
-    border-radius: 14px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    background: #6c5ce7;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 14px;
+    font-size: 15px;
     border: none;
     cursor: pointer;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 10px rgba(108, 92, 231, .35);
+    margin-bottom: 25px;
+    transition: 0.25s;
 }
 
 .btn.add-method:hover {
-    background: #4a36d9;
+    background: #5843d6;
+    transform: translateY(-2px);
 }
 
-/* ===================== PAYMENT METHOD CARDS ===================== */
+/* ===========================
+   PAYMENT METHODS GRID
+   =========================== */
+.payment-methods-container {
+    margin-bottom: 40px;
+}
 
 .section-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #2c3e50;
+    font-size: 20px;
     margin-bottom: 15px;
+    font-weight: 600;
 }
 
 .cards-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 22px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+    gap: 25px;
 }
 
+/* ===========================
+   PAYMENT CARD
+   =========================== */
 .payment-card {
-    background: linear-gradient(135deg, #2c3e50, #34495e);
-    color: white;
+    background: white;
+    padding: 22px;
     border-radius: 18px;
-    width: 280px;
-    padding: 18px;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
-    transition: .25s ease;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    transition: 0.25s;
+    position: relative;
 }
 
 .payment-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, .35);
+    transform: translateY(-6px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.payment-card.inactive {
+    opacity: 0.6;
+    filter: grayscale(0.3);
 }
 
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 15px;
 }
 
 .card-title {
     font-size: 18px;
-    font-weight: 700;
 }
 
-.card-icons {
-    display: flex;
-    gap: 10px;
-}
-
-.edit-icon {
+.card-icons svg {
+    margin-left: 10px;
     cursor: pointer;
-    color: #00cec9;
+    opacity: 0.8;
+    transition: 0.2s;
 }
 
-.save-icon {
-    cursor: pointer;
-    color: #55efc4;
+.card-icons svg:hover {
+    opacity: 1;
+    transform: scale(1.1);
 }
 
 .remove-icon {
-    cursor: pointer;
-    color: #ff7675;
-}
-
-.card-body {
-    margin-top: 12px;
+    color: #ff5252;
 }
 
 .card-body label {
-    font-size: 13px;
-    opacity: .9;
-    margin-top: 6px;
     display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 12px;
+    margin-bottom: 4px;
 }
 
 .card-body input {
-    width: 90%;
-    padding: 8px 12px;
-    margin-top: 4px;
-    border: none;
-    border-radius: 10px;
-    outline: none;
-    transition: .2s;
-}
-
-.card-body input[readonly] {
-    background: #ffffff22;
-    color: #ddd;
-}
-
-.card-body input:not([readonly]) {
-    background: #ffffffdd;
-    color: #222;
-}
-
-.card-body input:not([readonly]):focus {
-    box-shadow: 0 0 8px #6c5ce7;
-}
-
-/* QR IMAGE */
-.qr-preview {
-    margin-top: 12px;
     width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dcdcdc;
     border-radius: 12px;
-    border: 2px solid #fff3;
+    transition: 0.2s;
 }
 
-/* ===================== TABLE ===================== */
+.card-body input:focus {
+    border-color: #6c5ce7;
+    box-shadow: 0 0 4px rgba(108, 92, 231, 0.3);
+}
+
+/* ===========================
+   UPLOAD QR BUTTON
+   =========================== */
+.btn-upload-qr {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #6c5ce7;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+.btn-upload-qr:hover {
+    background: #5843d6;
+}
+
+/* ===========================
+   QR PREVIEW
+   =========================== */
+.qr-preview-container {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.qr-preview {
+    width: 110px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.25s;
+    border: 1px solid #dcdcdc;
+}
+
+.qr-preview:hover {
+    transform: scale(1.05);
+}
+
+.btn-view-qr {
+    display: inline-flex;
+    gap: 4px;
+    margin-top: 8px;
+    font-size: 13px;
+    background: #eee;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-view-qr:hover {
+    background: #e1e1e1;
+}
+
+.inactive-badge {
+    background: #bbb;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+/* ===========================
+   TABLE SECTION
+   =========================== */
+.table-section {
+    margin-bottom: 60px;
+}
 
 .table-box {
-    margin-top: 25px;
-    background: #fff;
-    border-radius: 18px;
+    background: white;
     padding: 20px;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, .15);
+    border-radius: 18px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
-.table-box table {
+table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.table-box th,
-.table-box td {
+table th {
     padding: 14px 10px;
-    border-top: 1px solid #eee;
+    text-align: left;
+    font-weight: 600;
 }
 
-.badge {
-    padding: 6px 14px;
-    border-radius: 12px;
-    font-size: 13px;
+table td {
+    padding: 14px 10px;
+    border-top: 1px solid #e3e3e3;
+}
+
+.amount {
+    font-weight: 600;
+    color: #6c5ce7;
+}
+
+.btn-update {
+    background: #6c5ce7;
     color: white;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+.btn-update:hover {
+    background: #5843d6;
+}
+
+/* BADGES */
+.badge {
+    padding: 6px 12px;
+    border-radius: 10px;
+    color: white;
+    font-size: 12px;
 }
 
 .badge.success {
@@ -200,66 +296,156 @@
     background: #fdcb6e;
 }
 
-/* ===================== BUTTON UPDATE ===================== */
-.btn-update {
-    padding: 6px 16px;
-    border-radius: 12px;
-    background: #6c5ce7;
-    color: white;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(108, 92, 231, .35);
+.badge.info {
+    background: #0984e3;
 }
 
-.btn-update:hover {
-    background: #4a36d9;
-}
-
-/* ===================== MODAL ===================== */
-
+/* ===========================
+   MODAL OVERLAY
+   =========================== */
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, .5);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    z-index: 50;
+    animation: fadeIn 0.25s ease;
 }
 
+/* ===========================
+   CONFIRM MODAL
+   =========================== */
 .modal-box {
-    background: #fff;
-    padding: 35px;
-    border-radius: 20px;
-    text-align: center;
+    background: white;
     width: 420px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, .25);
+    padding: 28px;
+    border-radius: 16px;
+    text-align: center;
+    animation: popup 0.3s ease;
 }
 
 .modal-icon {
-    color: #00b894;
-    margin-bottom: 12px;
+    color: #6c5ce7;
+    margin-bottom: 10px;
 }
 
 .modal-actions {
     display: flex;
     justify-content: center;
     gap: 12px;
-    margin-top: 10px;
+    margin-top: 20px;
+}
+
+.modal-actions .btn {
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    border: none;
 }
 
 .btn.confirm {
-    padding: 10px 20px;
-    background: #00b894;
-    border-radius: 12px;
+    background: #6c5ce7;
     color: white;
 }
 
 .btn.cancel {
-    padding: 10px 20px;
-    background: #d63031;
-    border-radius: 12px;
-    color: white;
+    background: #ddd;
+}
+
+.btn.cancel:hover {
+    background: #ccc;
+}
+
+/* ===========================
+   QR MODAL
+   =========================== */
+.qr-modal-box {
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+    width: 350px;
+    text-align: center;
+    animation: popup 0.3s ease;
+    position: relative;
+}
+
+.btn-close-modal {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.btn-close-modal:hover {
+    opacity: 1;
+}
+
+.qr-full {
+    width: 240px;
+    height: 240px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin: 10px auto;
+}
+
+.qr-hint {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+/* ===========================
+   LOADING
+   =========================== */
+.loading-screen {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    width: 38px;
+    height: 38px;
+    border: 4px solid #ccc;
+    border-top-color: #6c5ce7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ===========================
+   ANIMATIONS
+   =========================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popup {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

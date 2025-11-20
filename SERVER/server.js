@@ -14,10 +14,10 @@ import uploadRoutes from "./src/routes/upload.route.js";
 import worksProfileRoutes from "./src/routes/worksprofile.route.js";
 import servicePackageRoutes from "./src/routes/servicePackage.route.js";
 import orderRoute from "./src/routes/order.route.js";
-
+import paymentMethodRoutes from "./src/routes/paymentMethod.route.js";
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
-
+import adminRoute from "./src/routes/admin.route.js";
 // ✅ Load environment & connect DB
 dotenv.config();
 connectDB();
@@ -33,7 +33,7 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// ✅ Serve static files (avatar, cover, works, packages...)
+// ✅ Serve static files (avatar, cover, works, packages, qrcodes...)
 app.use("/uploads", express.static("uploads"));
 
 // ============ ROUTES ============
@@ -43,6 +43,8 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/worksprofile", worksProfileRoutes);
 app.use('/api/service-packages', servicePackageRoutes);
 app.use("/api/orders", orderRoute);
+app.use("/api/payment-methods", paymentMethodRoutes); // ✅ Payment methods route
+app.use("/api/admin", adminRoute);
 // ✅ Get current user profile
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 
@@ -58,6 +60,8 @@ app.get("/", (req, res) => {
       upload: '/api/upload',
       worksProfile: '/api/worksprofile',
       servicePackages: '/api/service-packages',
+      orders: '/api/orders',
+      paymentMethods: '/api/payment-methods',
       myProfile: '/api/my-profile'
     }
   });
@@ -66,9 +70,12 @@ app.get("/", (req, res) => {
 // ============ ERROR HANDLERS ============
 // 404 Handler
 app.use((req, res) => {
+  console.log('❌ 404 - Không tìm thấy:', req.method, req.originalUrl);
   res.status(404).json({ 
     success: false,
-    message: "Không tìm thấy endpoint này!" 
+    message: "Không tìm thấy endpoint này!",
+    requestedUrl: req.originalUrl,
+    method: req.method
   });
 });
 
@@ -86,6 +93,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server chạy trên cổng ${PORT}`);
+  console.log(`✅ API endpoint: http://localhost:${PORT}`);
+  console.log(`✅ Đã đăng ký route: /api/payment-methods`);
 });
 
 export default app;
