@@ -1,16 +1,21 @@
 import Admin from "../models/admin.model.js";
 
-const adminService = {
-  getAdminByUsername: async (username) => {
-    return await Admin.findOne({ username });
-  },
-
-  createAdmin: async (username, hashedPassword) => {
-    return await Admin.create({
-      username,
-      password: hashedPassword
-    });
-  }
+const getAdminByUsername = async (username) => {
+  return await Admin.findOne({ username });
 };
 
-export default adminService;
+// Hàm mới: tìm admin theo username / email / phone
+const getAdminByLoginKey = async (loginKey) => {
+  return await Admin.findOne({
+    $or: [
+      { username: loginKey },
+      { email: loginKey },
+      { phone: loginKey }
+    ]
+  });
+};
+
+export default {
+  getAdminByUsername,
+  getAdminByLoginKey,
+};

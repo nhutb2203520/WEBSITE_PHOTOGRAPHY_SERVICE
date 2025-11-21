@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Shield, Lock, AlertCircle } from 'lucide-react';
+import { toast } from 'react-toastify';
+import adminAuthService from '../../apis/adminAuthService';
 import './AdminLogin.css';
 
 function AdminLogin() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    username: '',
+    loginKey: '',
     password: '',
   });
 
@@ -15,68 +17,68 @@ function AdminLogin() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
+  // Kiểm tra nếu đã đăng nhập → redirect
+  useEffect(() => {
+    if (adminAuthService.isAuthenticated()) {
+      console.log('ℹ️ Already authenticated, redirecting to admin page');
+      navigate('/admin-page');
+    }
+  }, [navigate]);
+
+  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
+  // Form validation
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.username.trim()) {
-      newErrors.username = 'Vui lòng nhập tên đăng nhập';
+    if (!formData.loginKey.trim()) {
+      newErrors.loginKey = 'Vui lòng nhập tên đăng nhập, email hoặc số điện thoại';
     }
-
     if (!formData.password) {
       newErrors.password = 'Vui lòng nhập mật khẩu';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+      newErrors.password = 'Mật khẩu phải ít nhất 6 ký tự';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Submit login
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setErrors({});
 
     try {
-      const res = await fetch('http://localhost:5000/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrors({ general: data.message || 'Đăng nhập thất bại' });
-        setIsLoading(false);
-        return;
-      }
-
-      localStorage.setItem('adminToken', data.token);
-      localStorage.setItem('adminInfo', JSON.stringify(data.admin));
-
+      console.log('🔐 Attempting login...');
+      
+      const result = await adminAuthService.login(formData.loginKey, formData.password);
+      
+      console.log('✅ Login successful:', result);
+      
+      toast.success('Đăng nhập thành công!');
+      
+      // ✅ Redirect về trang admin-page (có trong routes)
       setTimeout(() => {
         navigate('/admin-page');
-      }, 700);
-    } catch (err) {
-      setErrors({ general: 'Lỗi kết nối server' });
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      const errorMsg = error.message || 'Đăng nhập thất bại';
+      setErrors({ general: errorMsg });
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -105,24 +107,25 @@ function AdminLogin() {
             </div>
           )}
 
-          {/* Username */}
+          {/* Username / Email / Phone */}
           <div className="admin-form-group">
             <label className="admin-form-label">
-              Tên đăng nhập <span className="admin-required">*</span>
+              Tên đăng nhập / Email / SĐT <span className="admin-required">*</span>
             </label>
             <div className="admin-input-wrapper">
               <Shield size={20} className="admin-input-icon" />
               <input
                 type="text"
-                name="username"
-                placeholder="Nhập tên đăng nhập admin"
-                value={formData.username}
+                name="loginKey"
+                placeholder="Nhập username, email hoặc số điện thoại"
+                value={formData.loginKey}
                 onChange={handleChange}
-                className={`admin-form-input ${errors.username ? 'admin-input-error' : ''}`}
+                className={`admin-form-input ${errors.loginKey ? 'admin-input-error' : ''}`}
                 autoComplete="username"
+                disabled={isLoading}
               />
             </div>
-            {errors.username && <span className="admin-error-text">{errors.username}</span>}
+            {errors.loginKey && <span className="admin-error-text">{errors.loginKey}</span>}
           </div>
 
           {/* Password */}
@@ -140,11 +143,13 @@ function AdminLogin() {
                 onChange={handleChange}
                 className={`admin-form-input ${errors.password ? 'admin-input-error' : ''}`}
                 autoComplete="current-password"
+                disabled={isLoading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="admin-password-toggle"
+                disabled={isLoading}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -163,9 +168,7 @@ function AdminLogin() {
 
           {/* Footer */}
           <div className="admin-form-footer">
-            <p className="admin-security-note">
-              🔒 Trang quản trị dành riêng cho admin
-            </p>
+            <p className="admin-security-note">🔒 Trang quản trị dành riêng cho admin</p>
           </div>
         </form>
       </div>

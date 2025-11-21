@@ -15,31 +15,3 @@ router.post("/reset-password/:token", authController.resetPassword);
 router.post("/refresh-token", authController.refreshToken);
 
 export default router;
-
-
-// --- Google OAuth (nếu dùng) ---
-/*
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
-router.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    session: false,
-    failureRedirect: `${process.env.CLIENT_URL}/signinuser?error=google_auth_failed`,
-  }),
-  async (req, res) => {
-    try {
-      const tokens = await new DocGiaService().generateAndSaveTokens(req.user);
-      const redirectURL = `${process.env.CLIENT_URL}/auth/callback?token=${tokens.token}&refreshToken=${tokens.refreshToken}`;
-      res.redirect(redirectURL);
-    } catch (error) {
-      res.redirect(
-        `${process.env.CLIENT_URL}/signinuser?error=token_generation_failed`
-      );
-    }
-  }
-);
-*/

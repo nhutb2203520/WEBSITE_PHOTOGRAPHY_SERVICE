@@ -1,21 +1,45 @@
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
+import asyncHandler from 'express-async-handler';
 
-const SECRET_KEY = process.env.JWT_SECRET || "MY_SECRET_KEY_DEFAULT";
+export const verifyAdmin = asyncHandler(async (req, res, next) => {
+  let token;
 
-export const verifyAdmin = (req, res, next) => {
-  try {
-    const token = req.headers["authorization"]?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "Không có token" });
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Lấy token từ header
+      token = req.headers.authorization.split(' ')[1];
 
-    const decoded = jwt.verify(token, SECRET_KEY);
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (decoded.role !== "admin") {
-      return res.status(403).json({ message: "Bạn không có quyền truy cập" });
+      // Kiểm tra role admin
+      if (decoded.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Không có quyền truy cập'
+        });
+      }
+
+      // Set user vào request
+      req.user = {
+        _id: decoded.id,
+        role: decoded.role
+      };
+
+      next();
+    } catch (error) {
+      console.error('❌ Token verification failed:', error);
+      return res.status(401).json({
+        success: false,
+        message: 'Token không hợp lệ hoặc đã hết hạn'
+      });
     }
-
-    req.admin = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Token không hợp lệ" });
   }
-};
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Không tìm thấy token xác thực'
+    });
+  }
+});

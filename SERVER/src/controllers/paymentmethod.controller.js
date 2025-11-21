@@ -20,7 +20,7 @@ export const getAllPaymentMethods = asyncHandler(async (req, res) => {
     }
 
     const paymentMethods = await PaymentMethod.find(filter)
-      .populate('createdBy', 'HoTen Email')
+      // .populate('createdBy', 'HoTen Email')  // ❌ Comment dòng này
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -43,8 +43,8 @@ export const getAllPaymentMethods = asyncHandler(async (req, res) => {
 // @access  Public
 export const getPaymentMethodById = asyncHandler(async (req, res) => {
   try {
-    const paymentMethod = await PaymentMethod.findById(req.params.id)
-      .populate('createdBy', 'HoTen Email');
+    const paymentMethod = await PaymentMethod.findById(req.params.id);
+      // .populate('createdBy', 'HoTen Email');  // ❌ Comment dòng này
 
     if (!paymentMethod) {
       return res.status(404).json({
@@ -74,7 +74,6 @@ export const createPaymentMethod = asyncHandler(async (req, res) => {
   try {
     const { fullName, accountNumber, bank, branch, qrCode } = req.body;
 
-    // Validate required fields
     if (!fullName || !accountNumber || !bank) {
       return res.status(400).json({
         success: false,
@@ -82,7 +81,6 @@ export const createPaymentMethod = asyncHandler(async (req, res) => {
       });
     }
 
-    // Kiểm tra xem số tài khoản đã tồn tại chưa
     const existingMethod = await PaymentMethod.findOne({ 
       accountNumber, 
       bank 
@@ -95,13 +93,16 @@ export const createPaymentMethod = asyncHandler(async (req, res) => {
       });
     }
 
+    // ✅ FIX: Lấy user ID đúng cách
+    const createdById = req.user?.id || req.user?._id || req.userId || null;
+
     const paymentMethod = await PaymentMethod.create({
       fullName,
       accountNumber,
       bank,
       branch: branch || '',
       qrCode: qrCode || null,
-      createdBy: req.user._id
+      createdBy: createdById
     });
 
     res.status(201).json({
