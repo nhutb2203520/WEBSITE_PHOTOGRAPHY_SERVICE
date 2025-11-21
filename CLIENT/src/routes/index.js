@@ -42,16 +42,22 @@ const routes = [
     path: '/package/:id',
     component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
   },
-  // ✅ NEW: Order Service Route
+  // ✅ Order Service Route
   {
-  path: '/order-service',
-  component: lazy(() => import('../components/Order/OrderService'))
+    path: '/order-service',
+    component: lazy(() => import('../components/Order/OrderService'))
+  },
+  // ✅ NEW: Payment Route (Trang thanh toán)
+  {
+    path: '/payment',
+    // Lưu ý: Hãy đảm bảo đường dẫn import đúng với nơi bạn lưu file PaymentServicePackage
+    component: lazy(() => import('../components/Payment/PaymentServicePackage'))
   },
   {
     path: '/my-packages',
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
-  // ✅ NEW: My Orders Route (để xem đơn hàng đã đặt)
+  // ✅ My Orders Route (Xem đơn hàng đã đặt)
   {
     path: '/my-orders',
     component: lazy(() => import('../components/Order/MyOrder'))
@@ -72,7 +78,7 @@ const routes = [
     path: '/admin/payment-manage',
     component: lazy(() => import('../admin/AdminPage/PaymentManage'))
   },
-   {
+  {
     path: '/admin/login',
     component: lazy(() => import('../admin/AdminPage/AdminLogin'))
   },

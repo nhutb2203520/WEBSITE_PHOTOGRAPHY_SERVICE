@@ -1,7 +1,9 @@
-// SERVER/server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import connectDB from "./src/config/mongoDb.js";
 
 // ✅ CRITICAL: Import models index TRƯỚC routes để đăng ký tất cả schemas
@@ -15,11 +17,18 @@ import worksProfileRoutes from "./src/routes/worksprofile.route.js";
 import servicePackageRoutes from "./src/routes/servicePackage.route.js";
 import orderRoute from "./src/routes/order.route.js";
 import paymentMethodRoutes from "./src/routes/paymentMethod.route.js";
+import adminRoute from "./src/routes/admin.route.js";
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
-import adminRoute from "./src/routes/admin.route.js";
-// ✅ Load environment & connect DB
+
+// ✅ Load environment
 dotenv.config();
+
+// ✅ Config __dirname cho ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ✅ Connect Database
 connectDB();
 
 const app = express();
@@ -30,11 +39,21 @@ app.use(cors({
   credentials: true
 }));
 
+// Tăng giới hạn body size để upload ảnh base64 nếu cần
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// ✅ Serve static files (avatar, cover, works, packages, qrcodes...)
-app.use("/uploads", express.static("uploads"));
+// ============ STATIC FILES CONFIG ============
+// Đảm bảo thư mục uploads tồn tại
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('📂 Đã tạo thư mục uploads');
+}
+
+// Serve static files (avatar, cover, works, packages, qrcodes, orders...)
+// Sử dụng path.join để đường dẫn chính xác trên mọi hệ điều hành
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ============ ROUTES ============
 app.use("/api/auth", authRoutes);
@@ -43,8 +62,9 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/worksprofile", worksProfileRoutes);
 app.use('/api/service-packages', servicePackageRoutes);
 app.use("/api/orders", orderRoute);
-app.use("/api/payment-methods", paymentMethodRoutes); // ✅ Payment methods route
+app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/admin", adminRoute);
+
 // ✅ Get current user profile
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 
@@ -54,6 +74,7 @@ app.get("/", (req, res) => {
     message: '🎨 Photography Service API đang hoạt động!',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
+    server_path: __dirname,
     endpoints: {
       auth: '/api/auth',
       customers: '/api/khachhang',
@@ -94,7 +115,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server chạy trên cổng ${PORT}`);
   console.log(`✅ API endpoint: http://localhost:${PORT}`);
-  console.log(`✅ Đã đăng ký route: /api/payment-methods`);
+  console.log(`✅ Static files: http://localhost:${PORT}/uploads`);
 });
 
 export default app;

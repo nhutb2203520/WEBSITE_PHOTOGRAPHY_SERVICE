@@ -1,427 +1,506 @@
-/* ===========================
-   LAYOUT + SIDEBAR SUPPORT
-   =========================== */
+/* --- BASE LAYOUT --- */
 .admin-layout {
     display: flex;
-    font-family: "Poppins", sans-serif;
-    background: #f1f3f9;
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
 }
 
 .admin-main {
     flex: 1;
-    padding: 30px 40px;
-    margin-left: 250px;
-    transition: margin-left 0.25s ease;
+    margin-left: 260px;
+    /* Width của Sidebar */
+    padding: 30px;
+    transition: all 0.3s ease;
 }
 
-.sidebar.collapsed+.admin-main {
-    margin-left: 80px;
+@media (max-width: 768px) {
+    .admin-main {
+        margin-left: 0;
+        padding: 15px;
+    }
 }
 
-/* ===========================
-   PAGE HEADER
-   =========================== */
+/* --- HEADER SECTION --- */
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 30px;
 }
 
 .page-header h2 {
     font-size: 24px;
-    font-weight: 600;
+    color: #1f2937;
+    font-weight: 700;
 }
 
 .search-input {
     padding: 10px 16px;
-    border: 1px solid #dcdcdc;
-    border-radius: 12px;
-    background: white;
-    width: 280px;
-    transition: 0.25s;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    width: 300px;
+    outline: none;
+    transition: border-color 0.2s;
 }
 
 .search-input:focus {
-    border-color: #6c5ce7;
-    box-shadow: 0 0 6px rgba(108, 92, 231, 0.25);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
-/* ===========================
-   ADD METHOD BUTTON
-   =========================== */
+/* --- BUTTONS --- */
 .btn.add-method {
+    background-color: #6366f1;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #6c5ce7;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 14px;
-    font-size: 15px;
-    border: none;
+    font-weight: 500;
     cursor: pointer;
+    transition: background 0.2s;
     margin-bottom: 25px;
-    transition: 0.25s;
 }
 
 .btn.add-method:hover {
-    background: #5843d6;
-    transform: translateY(-2px);
+    background-color: #4f46e5;
 }
 
-/* ===========================
-   PAYMENT METHODS GRID
-   =========================== */
-.payment-methods-container {
-    margin-bottom: 40px;
-}
-
-.section-title {
-    font-size: 20px;
-    margin-bottom: 15px;
-    font-weight: 600;
+/* --- PAYMENT CARDS GRID --- */
+.payment-methods-section {
+    margin-bottom: 50px;
 }
 
 .cards-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 25px;
 }
 
-/* ===========================
-   PAYMENT CARD
-   =========================== */
 .payment-card {
     background: white;
-    padding: 22px;
-    border-radius: 18px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-    transition: 0.25s;
-    position: relative;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .payment-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.payment-card.inactive {
-    opacity: 0.6;
-    filter: grayscale(0.3);
+.payment-card.inactive-mode {
+    opacity: 0.75;
+    background-color: #f9fafb;
 }
 
+/* Card Header */
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f3f4f6;
 }
 
 .card-title {
     font-size: 18px;
+    color: #111827;
+    display: flex;
+    flex-direction: column;
+}
+
+.inactive-tag {
+    font-size: 12px;
+    color: #ef4444;
+    font-weight: normal;
 }
 
 .card-icons svg {
-    margin-left: 10px;
     cursor: pointer;
-    opacity: 0.8;
-    transition: 0.2s;
+    margin-left: 10px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.icon-save {
+    color: #10b981;
+}
+
+.icon-edit {
+    color: #6366f1;
+}
+
+.icon-trash {
+    color: #ef4444;
 }
 
 .card-icons svg:hover {
-    opacity: 1;
-    transform: scale(1.1);
+    background-color: #f3f4f6;
 }
 
-.remove-icon {
-    color: #ff5252;
+/* Card Form */
+.form-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    background: #f8fafc;
+    padding: 8px 12px;
+    border-radius: 8px;
+}
+
+.form-toggle label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-group-row {
+    display: flex;
+    gap: 10px;
+}
+
+.form-group-row .form-group {
+    flex: 1;
 }
 
 .card-body label {
     display: block;
     font-size: 13px;
-    font-weight: 500;
-    margin-top: 12px;
+    color: #6b7280;
     margin-bottom: 4px;
 }
 
 .card-body input {
-    width: 90%;
-    padding: 10px 12px;
-    border: 1px solid #dcdcdc;
-    border-radius: 12px;
-    transition: 0.2s;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
 }
 
-.card-body input:focus {
-    border-color: #6c5ce7;
-    box-shadow: 0 0 4px rgba(108, 92, 231, 0.3);
+.card-body input[readonly] {
+    background-color: #f9fafb;
+    border-color: transparent;
+    padding-left: 0;
+    color: #111827;
+    font-weight: 500;
 }
 
-/* ===========================
-   UPLOAD QR BUTTON
-   =========================== */
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #10b981;
+}
+
+input:disabled+.slider {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+input:checked+.slider:before {
+    transform: translateX(20px);
+}
+
+/* QR Section */
+.qr-section {
+    margin-top: 15px;
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 15px;
+}
+
 .btn-upload-qr {
-    margin-top: 8px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #6c5ce7;
-    color: white;
-    padding: 8px 14px;
-    border-radius: 12px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: 0.25s;
-}
-
-.btn-upload-qr:hover {
-    background: #5843d6;
-}
-
-/* ===========================
-   QR PREVIEW
-   =========================== */
-.qr-preview-container {
-    margin-top: 10px;
-    text-align: center;
-}
-
-.qr-preview {
-    width: 110px;
-    height: 110px;
-    object-fit: cover;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: 0.25s;
-    border: 1px solid #dcdcdc;
-}
-
-.qr-preview:hover {
-    transform: scale(1.05);
-}
-
-.btn-view-qr {
-    display: inline-flex;
-    gap: 4px;
-    margin-top: 8px;
-    font-size: 13px;
-    background: #eee;
-    padding: 6px 10px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.btn-view-qr:hover {
-    background: #e1e1e1;
-}
-
-.inactive-badge {
-    background: #bbb;
-    padding: 5px 10px;
-    border-radius: 10px;
+    background: #e0e7ff;
+    color: #4f46e5;
+    padding: 6px 12px;
+    border-radius: 6px;
     font-size: 12px;
-    display: inline-flex;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.qr-preview-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qr-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+}
+
+.view-text {
+    font-size: 12px;
+    color: #6366f1;
+    cursor: pointer;
+    display: flex;
     align-items: center;
     gap: 4px;
-    margin-top: 10px;
 }
 
-/* ===========================
-   TABLE SECTION
-   =========================== */
-.table-section {
-    margin-bottom: 60px;
+.qr-placeholder {
+    font-size: 12px;
+    color: #9ca3af;
+    font-style: italic;
 }
 
-.table-box {
+/* --- ORDERS TABLE --- */
+.table-wrapper {
     background: white;
+    border-radius: 16px;
     padding: 20px;
-    border-radius: 18px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
 }
 
-table {
+.admin-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-table th {
-    padding: 14px 10px;
+.admin-table th {
     text-align: left;
+    padding: 12px 16px;
+    color: #6b7280;
     font-weight: 600;
+    font-size: 14px;
+    border-bottom: 2px solid #f3f4f6;
 }
 
-table td {
-    padding: 14px 10px;
-    border-top: 1px solid #e3e3e3;
+.admin-table td {
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #1f2937;
+    font-size: 14px;
 }
 
-.amount {
+.price-text {
     font-weight: 600;
-    color: #6c5ce7;
+    color: #059669;
 }
 
-.btn-update {
-    background: #6c5ce7;
-    color: white;
-    padding: 8px 14px;
-    border-radius: 12px;
-    border: none;
-    font-size: 13px;
-    cursor: pointer;
-    transition: 0.25s;
-}
-
-.btn-update:hover {
-    background: #5843d6;
-}
-
-/* BADGES */
-.badge {
-    padding: 6px 12px;
-    border-radius: 10px;
-    color: white;
+/* Status Badges */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 99px;
     font-size: 12px;
+    font-weight: 600;
 }
 
-.badge.success {
-    background: #00b894;
+.status-badge.warning {
+    background: #fef3c7;
+    color: #d97706;
 }
 
-.badge.warning {
-    background: #fdcb6e;
+/* Pending Payment */
+.status-badge.info {
+    background: #dbeafe;
+    color: #2563eb;
 }
 
-.badge.info {
-    background: #0984e3;
+/* Pending (Cho xac nhan) */
+.status-badge.success {
+    background: #d1fae5;
+    color: #059669;
 }
 
-/* ===========================
-   MODAL OVERLAY
-   =========================== */
+/* Confirmed */
+.status-badge.danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Cancelled */
+.status-badge.default {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.text-muted {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.text-success {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.btn-verify {
+    background: #4f46e5;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-verify:hover {
+    background: #4338ca;
+}
+
+/* --- MODALS --- */
 .modal-overlay {
     position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
+    justify-content: center;
     align-items: center;
-    justify-content: center;
-    z-index: 50;
-    animation: fadeIn 0.25s ease;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
 }
 
-/* ===========================
-   CONFIRM MODAL
-   =========================== */
-.modal-box {
+.modal-content {
     background: white;
-    width: 420px;
-    padding: 28px;
+    padding: 30px;
     border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
     text-align: center;
-    animation: popup 0.3s ease;
-}
-
-.modal-icon {
-    color: #6c5ce7;
-    margin-bottom: 10px;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.modal-actions .btn {
-    padding: 10px 18px;
-    border-radius: 12px;
-    cursor: pointer;
-    border: none;
-}
-
-.btn.confirm {
-    background: #6c5ce7;
-    color: white;
-}
-
-.btn.cancel {
-    background: #ddd;
-}
-
-.btn.cancel:hover {
-    background: #ccc;
-}
-
-/* ===========================
-   QR MODAL
-   =========================== */
-.qr-modal-box {
-    background: white;
-    padding: 25px;
-    border-radius: 18px;
-    width: 350px;
-    text-align: center;
-    animation: popup 0.3s ease;
     position: relative;
+    animation: slideUp 0.3s ease;
 }
 
-.btn-close-modal {
+.modal-header.confirm {
+    color: #4f46e5;
+    margin-bottom: 15px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.btn-confirm {
+    background: #4f46e5;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-cancel {
+    background: #e5e7eb;
+    color: #374151;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.qr-view {
+    max-width: 400px;
+    padding: 20px;
+}
+
+.qr-full-img {
+    width: 100%;
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+.close-btn {
     position: absolute;
-    right: 12px;
-    top: 12px;
-    background: transparent;
+    top: 15px;
+    right: 15px;
+    background: none;
     border: none;
     cursor: pointer;
-    opacity: 0.6;
 }
 
-.btn-close-modal:hover {
-    opacity: 1;
-}
-
-.qr-full {
-    width: 240px;
-    height: 240px;
-    object-fit: cover;
-    border-radius: 16px;
-    margin: 10px auto;
-}
-
-.qr-hint {
-    font-size: 13px;
-    opacity: 0.7;
-}
-
-/* ===========================
-   LOADING
-   =========================== */
-.loading-screen {
-    height: 100vh;
+/* --- ERROR BANNER --- */
+.error-banner {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 12px 20px;
+    border-radius: 8px;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    margin-bottom: 20px;
 }
 
-.spinner {
-    width: 38px;
-    height: 38px;
-    border: 4px solid #ccc;
-    border-top-color: #6c5ce7;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+.error-banner button {
+    background: white;
+    border: 1px solid #b91c1c;
+    color: #b91c1c;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-/* ===========================
-   ANIMATIONS
-   =========================== */
+/* --- ANIMATIONS --- */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -432,7 +511,7 @@ table td {
     }
 }
 
-@keyframes popup {
+@keyframes slideUp {
     from {
         transform: translateY(20px);
         opacity: 0;
@@ -442,6 +521,22 @@ table td {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+.loading-screen {
+    display: flex;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e5e7eb;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin {

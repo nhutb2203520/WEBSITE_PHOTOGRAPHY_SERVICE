@@ -18,7 +18,8 @@ import {
   Search,
   Filter,
   Download,
-  ChevronRight
+  ChevronRight,
+  CreditCard // ✅ Thêm icon CreditCard
 } from 'lucide-react';
 import './MyOrder.css';
 import { useSelector } from 'react-redux';
@@ -59,6 +60,7 @@ export default function MyOrder() {
       setLoading(true);
       const response = await orderApi.getMyOrders();
       const ordersList = response?.data || response || [];
+      console.log('📦 Orders fetched:', ordersList);
       setOrders(ordersList);
       setFilteredOrders(ordersList);
     } catch (error) {
@@ -91,6 +93,12 @@ export default function MyOrder() {
 
   const getStatusInfo = (status) => {
     const statusMap = {
+      pending_payment: { // Thêm trạng thái chờ thanh toán
+        label: 'Chờ đặt cọc',
+        icon: <CreditCard size={16} />,
+        className: 'status-pending-payment',
+        color: '#f59e0b'
+      },
       pending: {
         label: 'Chờ xác nhận',
         icon: <Clock size={16} />,
@@ -135,7 +143,9 @@ export default function MyOrder() {
     return date.toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -189,23 +199,7 @@ export default function MyOrder() {
               <Calendar size={16} />
               <div>
                 <span className="info-label">Ngày đặt:</span>
-                <span className="info-value">{formatDate(order.booking_date)}</span>
-              </div>
-            </div>
-
-            <div className="info-item">
-              <Clock size={16} />
-              <div>
-                <span className="info-label">Giờ bắt đầu:</span>
-                <span className="info-value">{order.start_time}</span>
-              </div>
-            </div>
-
-            <div className="info-item">
-              <MapPin size={16} />
-              <div>
-                <span className="info-label">Địa điểm:</span>
-                <span className="info-value">{order.location?.address || 'N/A'}</span>
+                <span className="info-value">{formatDate(order.booking_date).split(',')[0]}</span>
               </div>
             </div>
 
@@ -217,13 +211,6 @@ export default function MyOrder() {
               </div>
             </div>
           </div>
-
-          {order.photographer_id && (
-            <div className="photographer-info">
-              <User size={16} />
-              <span>Photographer: {order.photographer_id.HoTen || 'Chưa phân công'}</span>
-            </div>
-          )}
         </div>
 
         <div className="order-card-footer">
@@ -258,15 +245,16 @@ export default function MyOrder() {
           </div>
 
           <div className="modal-body">
+            {/* THÔNG TIN CHUNG */}
             <div className="detail-section">
               <div className="section-title">
                 <Package size={20} />
-                <h3>Thông tin đơn hàng</h3>
+                <h3>Thông tin chung</h3>
               </div>
               <div className="detail-grid">
                 <div className="detail-item">
                   <span className="label">Mã đơn hàng:</span>
-                  <span className="value">{selectedOrder.order_id}</span>
+                  <span className="value font-bold">{selectedOrder.order_id}</span>
                 </div>
                 <div className="detail-item">
                   <span className="label">Trạng thái:</span>
@@ -275,124 +263,107 @@ export default function MyOrder() {
                   </span>
                 </div>
                 <div className="detail-item">
-                  <span className="label">Ngày đặt:</span>
+                  <span className="label">Ngày book lịch:</span>
                   <span className="value">{formatDate(selectedOrder.booking_date)}</span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Giờ bắt đầu:</span>
-                  <span className="value">{selectedOrder.start_time}</span>
-                </div>
-                {selectedOrder.completion_date && (
-                  <div className="detail-item">
-                    <span className="label">Ngày hoàn thành dự kiến:</span>
-                    <span className="value">{formatDate(selectedOrder.completion_date)}</span>
-                  </div>
-                )}
               </div>
             </div>
 
+            {/* GÓI DỊCH VỤ */}
             <div className="detail-section">
               <div className="section-title">
                 <Package size={20} />
-                <h3>Gói dịch vụ</h3>
+                <h3>Dịch vụ sử dụng</h3>
               </div>
               <div className="package-detail-card">
                 {selectedOrder.service_package_id?.AnhBia && (
                   <img
                     src={getImageUrl(selectedOrder.service_package_id.AnhBia)}
                     alt={selectedOrder.service_package_id?.TenGoi}
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
-                    }}
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'; }}
                   />
                 )}
-                <h4>{selectedOrder.service_package_id?.TenGoi}</h4>
-                <p>{selectedOrder.service_package_id?.MoTa}</p>
+                <div className="package-detail-content">
+                    <h4>{selectedOrder.service_package_id?.TenGoi}</h4>
+                    <p>{selectedOrder.service_package_id?.MoTa}</p>
+                </div>
               </div>
             </div>
 
-            {selectedOrder.guest_times?.length > 0 && (
-              <div className="detail-section">
-                <div className="section-title">
-                  <Clock size={20} />
-                  <h3>Khung giờ tiếp khách</h3>
-                </div>
-                <div className="guest-times-list">
-                  {selectedOrder.guest_times.map((time, idx) => (
-                    <span key={idx} className="guest-time-badge">
-                      <Clock size={14} /> {time}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
+            {/* ĐỊA ĐIỂM */}
             <div className="detail-section">
               <div className="section-title">
                 <MapPin size={20} />
-                <h3>Địa điểm</h3>
+                <h3>Địa điểm chụp</h3>
               </div>
               <div className="location-detail">
-                <p><strong>Tên địa điểm:</strong> {selectedOrder.location?.name || 'N/A'}</p>
                 <p><strong>Địa chỉ:</strong> {selectedOrder.location?.address || 'N/A'}</p>
-                <p><strong>Quận/Huyện:</strong> {selectedOrder.location?.district || 'N/A'}</p>
-                <p><strong>Thành phố:</strong> {selectedOrder.location?.city || 'N/A'}</p>
+                <p><strong>Khu vực:</strong> {selectedOrder.location?.district} - {selectedOrder.location?.city}</p>
                 {selectedOrder.location?.map_link && (
-                  <a
-                    href={selectedOrder.location.map_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-map-link"
-                  >
-                    <MapPin size={16} /> Xem trên bản đồ
+                  <a href={selectedOrder.location.map_link} target="_blank" rel="noopener noreferrer" className="btn-map-link">
+                    <MapPin size={14} /> Xem trên bản đồ
                   </a>
                 )}
               </div>
             </div>
 
-            {(selectedOrder.notes || selectedOrder.special_requests) && (
-              <div className="detail-section">
-                <div className="section-title">
-                  <FileText size={20} />
-                  <h3>Ghi chú</h3>
-                </div>
-                {selectedOrder.notes && (
-                  <div className="note-box">
-                    <strong>Ghi chú:</strong>
-                    <p>{selectedOrder.notes}</p>
-                  </div>
-                )}
-                {selectedOrder.special_requests && (
-                  <div className="note-box">
-                    <strong>Yêu cầu đặc biệt:</strong>
-                    <p>{selectedOrder.special_requests}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
+            {/* ✅ MỚI: THÔNG TIN THANH TOÁN & CỌC */}
             <div className="detail-section">
               <div className="section-title">
-                <DollarSign size={20} />
-                <h3>Thông tin thanh toán</h3>
+                <CreditCard size={20} />
+                <h3>Thanh toán & Đặt cọc</h3>
               </div>
               <div className="payment-detail">
+                {/* Dòng Tổng tiền */}
                 <div className="payment-row">
-                  <span>Tổng tiền:</span>
-                  <span>{formatPrice(selectedOrder.total_amount)}</span>
+                  <span>Tổng giá trị đơn hàng:</span>
+                  <span className="font-bold text-lg">{formatPrice(selectedOrder.final_amount)}</span>
                 </div>
-                {selectedOrder.discount_amount > 0 && (
-                  <div className="payment-row discount">
-                    <span>Giảm giá:</span>
-                    <span>-{formatPrice(selectedOrder.discount_amount)}</span>
-                  </div>
-                )}
-                <div className="payment-row total">
-                  <span>Thành tiền:</span>
-                  <span>{formatPrice(selectedOrder.final_amount)}</span>
+
+                <div className="divider"></div>
+
+                {/* Thông tin Cọc */}
+                <div className="deposit-info-box">
+                    <div className="payment-row">
+                        <span>Số tiền cọc yêu cầu (30%):</span>
+                        <span className="font-bold text-orange-600">{formatPrice(selectedOrder.deposit_required)}</span>
+                    </div>
+                    
+                    {selectedOrder.payment_info?.transaction_code && (
+                        <div className="payment-row">
+                            <span>Mã giao dịch / Nội dung CK:</span>
+                            <span className="font-mono bg-gray-100 px-2 py-1 rounded">{selectedOrder.payment_info.transaction_code}</span>
+                        </div>
+                    )}
+
+                    <div className="payment-row">
+                        <span>Trạng thái cọc:</span>
+                        {selectedOrder.status === 'pending_payment' ? (
+                            <span className="status-badge pending">Chưa thanh toán</span>
+                        ) : (
+                            <span className="status-badge paid">Đã gửi minh chứng</span>
+                        )}
+                    </div>
+
+                    {/* ✅ Hiển thị ảnh minh chứng nếu có */}
+                    {selectedOrder.payment_info?.transfer_image && (
+                        <div className="proof-image-section">
+                            <p className="label">Ảnh minh chứng chuyển khoản:</p>
+                            <div className="proof-image-wrapper" onClick={() => window.open(getImageUrl(selectedOrder.payment_info.transfer_image), '_blank')}>
+                                <img 
+                                    src={getImageUrl(selectedOrder.payment_info.transfer_image)} 
+                                    alt="Minh chứng thanh toán" 
+                                />
+                                <div className="overlay">
+                                    <Eye size={20} color="white"/>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -429,36 +400,11 @@ export default function MyOrder() {
             </div>
 
             <div className="status-filters">
-              <button
-                className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('all')}
-              >
-                Tất cả
-              </button>
-              <button
-                className={`filter-btn ${statusFilter === 'pending' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('pending')}
-              >
-                Chờ xác nhận
-              </button>
-              <button
-                className={`filter-btn ${statusFilter === 'confirmed' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('confirmed')}
-              >
-                Đã xác nhận
-              </button>
-              <button
-                className={`filter-btn ${statusFilter === 'in_progress' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('in_progress')}
-              >
-                Đang thực hiện
-              </button>
-              <button
-                className={`filter-btn ${statusFilter === 'completed' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('completed')}
-              >
-                Hoàn thành
-              </button>
+              <button className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => setStatusFilter('all')}>Tất cả</button>
+              <button className={`filter-btn ${statusFilter === 'pending_payment' ? 'active' : ''}`} onClick={() => setStatusFilter('pending_payment')}>Chờ cọc</button>
+              <button className={`filter-btn ${statusFilter === 'pending' ? 'active' : ''}`} onClick={() => setStatusFilter('pending')}>Chờ xác nhận</button>
+              <button className={`filter-btn ${statusFilter === 'confirmed' ? 'active' : ''}`} onClick={() => setStatusFilter('confirmed')}>Đã xác nhận</button>
+              <button className={`filter-btn ${statusFilter === 'completed' ? 'active' : ''}`} onClick={() => setStatusFilter('completed')}>Hoàn thành</button>
             </div>
           </div>
 

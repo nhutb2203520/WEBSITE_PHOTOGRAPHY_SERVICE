@@ -1,15 +1,15 @@
-// SERVER/src/controllers/servicePackage.controller.js
-import { ServicePackage, KhachHang } from '../models/index.js';
+import { ServicePackage } from '../models/index.js'; // Đảm bảo đường dẫn import đúng
 import mongoose from 'mongoose';
 
 const servicePackageController = {
   
-  // 📦 Tạo gói dịch vụ mới (Chỉ photographer)
+  // 📦 Tạo gói dịch vụ mới
   createPackage: async (req, res) => {
     try {
       const photographerId = req.user._id || req.user.id;
       
-      const { TenGoi, MoTa, DichVu, LoaiGoi, ThoiGianThucHien } = req.body;
+      // Lấy thêm baseLocation và travelFeeConfig từ req.body
+      const { TenGoi, MoTa, DichVu, LoaiGoi, ThoiGianThucHien, baseLocation, travelFeeConfig } = req.body;
 
       if (!TenGoi || !MoTa || !DichVu || !Array.isArray(DichVu) || DichVu.length === 0) {
         return res.status(400).json({
@@ -24,6 +24,31 @@ const servicePackageController = {
         });
       }
 
+      // === XỬ LÝ VỊ TRÍ (FIX LỖI GEOJSON) ===
+      let formattedLocation = {
+        type: 'Point',
+        coordinates: [0, 0], // Mặc định an toàn
+        address: '',
+        city: '',
+        district: '',
+        mapLink: ''
+      };
+
+      if (baseLocation) {
+        // Nếu có tọa độ từ frontend gửi lên (thường là lat, lng)
+        if (baseLocation.coordinates?.lat && baseLocation.coordinates?.lng) {
+          formattedLocation.coordinates = [
+            parseFloat(baseLocation.coordinates.lng), 
+            parseFloat(baseLocation.coordinates.lat)
+          ];
+        }
+        formattedLocation.address = baseLocation.address || '';
+        formattedLocation.city = baseLocation.city || '';
+        formattedLocation.district = baseLocation.district || '';
+        formattedLocation.mapLink = baseLocation.mapLink || '';
+      }
+      // ======================================
+
       const newPackage = await ServicePackage.create({
         TenGoi,
         MoTa,
@@ -33,6 +58,8 @@ const servicePackageController = {
         })),
         LoaiGoi: LoaiGoi || 'Other',
         ThoiGianThucHien,
+        baseLocation: formattedLocation, // Lưu vị trí đã format
+        travelFeeConfig: travelFeeConfig || {}, // Lưu cấu hình phí di chuyển
         PhotographerId: photographerId,
         TrangThai: 'active'
       });
@@ -51,24 +78,16 @@ const servicePackageController = {
     }
   },
 
-  // 📋 Lấy tất cả gói dịch vụ (Công khai - không cần đăng nhập)
+  // 📋 Lấy tất cả gói dịch vụ
   getAllPackages: async (req, res) => {
     try {
       const { loaiGoi, minPrice, maxPrice, photographerId, sort, search } = req.query;
 
       let query = { TrangThai: 'active', isDeleted: false };
 
-      // Filter theo loại gói
-      if (loaiGoi) {
-        query.LoaiGoi = loaiGoi;
-      }
+      if (loaiGoi) query.LoaiGoi = loaiGoi;
+      if (photographerId) query.PhotographerId = photographerId;
 
-      // Filter theo photographer
-      if (photographerId) {
-        query.PhotographerId = photographerId;
-      }
-
-      // Search theo tên hoặc mô tả
       if (search) {
         query.$or = [
           { TenGoi: { $regex: search, $options: 'i' } },
@@ -78,7 +97,6 @@ const servicePackageController = {
 
       let packages;
       
-      // ✅ Filter theo khoảng giá
       if (minPrice || maxPrice) {
         const matchStage = { ...query };
         const pipeline = [
@@ -99,7 +117,7 @@ const servicePackageController = {
 
         packages = await ServicePackage.aggregate(pipeline);
         
-        // ✅ FIX: Populate sau aggregate - tìm trong KHACHHANG collection
+        // Populate thủ công sau khi aggregate
         for (let i = 0; i < packages.length; i++) {
           const photographer = await mongoose.connection.db.collection('KHACHHANG')
             .findOne(
@@ -109,18 +127,16 @@ const servicePackageController = {
           packages[i].PhotographerId = photographer;
         }
       } else {
-        // Sorting
         let sortOption = {};
         if (sort === 'rating') sortOption.DanhGia = -1;
         else if (sort === 'popular') sortOption.SoLuongDaDat = -1;
-        else if (sort === 'newest') sortOption.createdAt = -1;
         else sortOption.createdAt = -1;
 
         packages = await ServicePackage.find(query)
           .populate({
             path: 'PhotographerId',
             select: 'HoTen Avatar TenDangNhap',
-            model: 'bangKhachHang'
+            model: 'bangKhachHang' // Đảm bảo model name đúng
           })
           .sort(sortOption)
           .lean();
@@ -252,18 +268,18 @@ const servicePackageController = {
         return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa gói này' });
       }
 
+      // Validate Dịch vụ nếu có update
       if (req.body.DichVu) {
         if (!Array.isArray(req.body.DichVu) || req.body.DichVu.length === 0) {
           return res.status(400).json({ message: 'Dịch vụ phải là mảng và không được rỗng' });
         }
-
         const invalidServices = req.body.DichVu.filter(s => !s.name || !s.Gia || s.Gia <= 0);
         if (invalidServices.length > 0) {
           return res.status(400).json({ message: 'Mỗi dịch vụ phải có tên và giá hợp lệ' });
         }
       }
 
-      const allowedUpdates = ['TenGoi', 'MoTa', 'DichVu', 'LoaiGoi', 'ThoiGianThucHien', 'TrangThai'];
+      const allowedUpdates = ['TenGoi', 'MoTa', 'DichVu', 'LoaiGoi', 'ThoiGianThucHien', 'TrangThai', 'travelFeeConfig'];
       const updates = {};
       
       allowedUpdates.forEach(field => {
@@ -271,6 +287,27 @@ const servicePackageController = {
           updates[field] = req.body[field];
         }
       });
+
+      // === XỬ LÝ UPDATE VỊ TRÍ ===
+      if (req.body.baseLocation) {
+        const rawLoc = req.body.baseLocation;
+        // Giữ lại data cũ nếu không có data mới, hoặc tạo mới
+        let newLoc = { 
+           ...package_data.baseLocation.toObject(), 
+           ...rawLoc,
+           type: 'Point' // Đảm bảo luôn là Point
+        };
+
+        // Nếu update tọa độ
+        if (rawLoc.coordinates?.lat && rawLoc.coordinates?.lng) {
+            newLoc.coordinates = [
+                parseFloat(rawLoc.coordinates.lng),
+                parseFloat(rawLoc.coordinates.lat)
+            ];
+        }
+        updates.baseLocation = newLoc;
+      }
+      // ==========================
 
       const updatedPackage = await ServicePackage.findByIdAndUpdate(
         id,

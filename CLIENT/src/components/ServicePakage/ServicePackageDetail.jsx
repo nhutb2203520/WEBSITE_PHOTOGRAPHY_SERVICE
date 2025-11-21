@@ -13,7 +13,10 @@ import {
   Share2,
   MessageCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Truck, // Icon cho phí di chuyển
+  Info,
+  CalendarDays
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -44,9 +47,6 @@ export default function ServicePackageDetail() {
       setLoading(true);
       const data = await servicePackageApi.getPackageById(id);
       setPackageData(data);
-      console.log('📦 Package detail:', data);
-      console.log('📷 AnhBia:', data.AnhBia);
-      console.log('📷 Images:', data.Images);
     } catch (error) {
       console.error('❌ Error fetching package detail:', error);
       toast.error('Không thể tải thông tin gói dịch vụ');
@@ -62,22 +62,13 @@ export default function ServicePackageDetail() {
     return `http://localhost:5000/${imageUrl.replace(/^\/+/, "")}`;
   };
 
-  // ✅ Hàm lấy tất cả ảnh (AnhBia + Images)
   const getAllImages = () => {
     if (!packageData) return [];
-
     const allImages = [];
-
-    // Thêm ảnh bìa
-    if (packageData.AnhBia) {
-      allImages.push(packageData.AnhBia);
-    }
-
-    // Thêm danh sách ảnh trong Images
+    if (packageData.AnhBia) allImages.push(packageData.AnhBia);
     if (packageData.Images && Array.isArray(packageData.Images)) {
       allImages.push(...packageData.Images);
     }
-
     return allImages;
   };
 
@@ -119,7 +110,6 @@ export default function ServicePackageDetail() {
       navigate('/signin', { state: { from: `/package/${id}` } });
       return;
     }
-    // Chuyển sang trang OrderService với packageId
     navigate('/order-service', { state: { packageId: id } });
   };
 
@@ -183,7 +173,6 @@ export default function ServicePackageDetail() {
       <Sidebar />
 
       <div className="package-detail-page">
-        {/* Back Button */}
         <div className="container">
           <button onClick={() => navigate(-1)} className="btn-back-nav">
             <ArrowLeft size={20} />
@@ -192,42 +181,29 @@ export default function ServicePackageDetail() {
         </div>
 
         <div className="container">
-          {/* Two Column Layout */}
           <div className="package-detail-content">
             
-            {/* LEFT SIDE - IMAGES */}
+            {/* LEFT SIDE - IMAGES & DETAILS */}
             <div className="package-images-section">
               
-              {/* Main Image */}
+              {/* Main Image Gallery */}
               <div className="package-main-image">
                 {images.length > 0 ? (
                   <img 
                     src={getImageUrl(images[currentImageIndex])}
                     alt={packageData.TenGoi}
                     onClick={() => setShowImageModal(true)}
-                    onError={(e) => {
-                      e.target.src = "https://via.placeholder.com/1200x600?text=No+Image";
-                    }}
+                    onError={(e) => { e.target.src = "https://via.placeholder.com/1200x600?text=No+Image"; }}
                   />
                 ) : (
-                  <img 
-                    src="https://via.placeholder.com/1200x600?text=Chưa+có+ảnh"
-                    alt="No images"
-                  />
+                  <img src="https://via.placeholder.com/1200x600?text=Chưa+có+ảnh" alt="No images" />
                 )}
                 
-                {/* Navigation Buttons */}
                 {images.length > 1 && (
                   <>
-                    <button onClick={prevImage} className="image-nav-btn prev">
-                      <ChevronLeft size={24} />
-                    </button>
-                    <button onClick={nextImage} className="image-nav-btn next">
-                      <ChevronRight size={24} />
-                    </button>
-                    <div className="image-counter">
-                      {currentImageIndex + 1} / {images.length}
-                    </div>
+                    <button onClick={prevImage} className="image-nav-btn prev"><ChevronLeft size={24} /></button>
+                    <button onClick={nextImage} className="image-nav-btn next"><ChevronRight size={24} /></button>
+                    <div className="image-counter">{currentImageIndex + 1} / {images.length}</div>
                   </>
                 )}
               </div>
@@ -244,27 +220,21 @@ export default function ServicePackageDetail() {
                       <img 
                         src={getImageUrl(img)}
                         alt={`Thumbnail ${index + 1}`}
-                        onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/120x80?text=No+Image";
-                        }}
+                        onError={(e) => { e.target.src = "https://via.placeholder.com/120x80?text=No+Image"; }}
                       />
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Image Count Info */}
-              {images.length > 0 && (
-                <div className="image-info-banner">
-                  <Camera size={18} />
-                  <span>Gói này có <strong>{images.length}</strong> ảnh</span>
-                </div>
-              )}
-
               {/* Description Section */}
               <section className="package-section">
-                <h2>Mô tả</h2>
+                <h2>Mô tả chi tiết</h2>
                 <p className="package-description">{packageData.MoTa}</p>
+                <div className="created-date">
+                  <CalendarDays size={16} />
+                  <span>Đăng ngày: {new Date(packageData.createdAt).toLocaleDateString('vi-VN')}</span>
+                </div>
               </section>
 
               {/* Services Included */}
@@ -277,9 +247,7 @@ export default function ServicePackageDetail() {
                       className={`service-card ${selectedService === index ? 'selected' : ''}`}
                       onClick={() => setSelectedService(index)}
                     >
-                      <div className="service-icon">
-                        <Check size={20} />
-                      </div>
+                      <div className="service-icon"><Check size={20} /></div>
                       <div className="service-info">
                         <h3>{service.name}</h3>
                         <p className="service-price">{formatPrice(service.Gia)} VNĐ</p>
@@ -288,6 +256,73 @@ export default function ServicePackageDetail() {
                   ))}
                 </div>
               </section>
+
+              {/* ✅ NEW: Base Location Section */}
+              {packageData.baseLocation && (packageData.baseLocation.address || packageData.baseLocation.city) && (
+                <section className="package-section">
+                  <h2>Khu vực hoạt động</h2>
+                  <div className="info-box-styled">
+                    <div className="info-row">
+                      <MapPin size={20} className="text-red-500" />
+                      <div>
+                        <strong>Địa điểm cơ sở: </strong>
+                        <span>
+                          {[
+                            packageData.baseLocation.address, 
+                            packageData.baseLocation.district, 
+                            packageData.baseLocation.city
+                          ].filter(Boolean).join(', ')}
+                        </span>
+                        {packageData.baseLocation.mapLink && (
+                          <a 
+                            href={packageData.baseLocation.mapLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="map-link-text"
+                          >
+                            (Xem bản đồ)
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* ✅ NEW: Travel Fee Policy Section */}
+              {packageData.travelFeeConfig && packageData.travelFeeConfig.enabled && (
+                <section className="package-section">
+                  <h2>Chính sách phí di chuyển</h2>
+                  <div className="travel-fee-card">
+                    <div className="tf-header">
+                      <Truck size={24} />
+                      <span>Có tính phí di chuyển ngoại thành/xa</span>
+                    </div>
+                    <div className="tf-body">
+                      <div className="tf-item">
+                        <span className="tf-label">Miễn phí trong bán kính:</span>
+                        <span className="tf-value">{packageData.travelFeeConfig.freeDistanceKm} km</span>
+                      </div>
+                      <div className="tf-item">
+                        <span className="tf-label">Phí vượt trội:</span>
+                        <span className="tf-value">{formatPrice(packageData.travelFeeConfig.feePerKm)} đ/km</span>
+                      </div>
+                      {packageData.travelFeeConfig.maxFee && (
+                        <div className="tf-item">
+                          <span className="tf-label">Phí tối đa:</span>
+                          <span className="tf-value">{formatPrice(packageData.travelFeeConfig.maxFee)} đ</span>
+                        </div>
+                      )}
+                      {packageData.travelFeeConfig.note && (
+                        <div className="tf-note">
+                          <Info size={16} />
+                          <span>{packageData.travelFeeConfig.note}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
 
               {/* Time Info */}
               {packageData.ThoiGianThucHien && (
@@ -307,50 +342,28 @@ export default function ServicePackageDetail() {
                   <div className="photographer-card">
                     <div className="photographer-avatar-wrapper">
                       <img
-                        src={
-                          packageData.PhotographerId?.Avatar
-                            ? getImageUrl(packageData.PhotographerId.Avatar)
-                            : "https://via.placeholder.com/200?text=Avatar"
-                        }
+                        src={getImageUrl(packageData.PhotographerId?.Avatar)}
                         alt={packageData.PhotographerId.HoTen}
                         className="photographer-avatar"
-                        onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/200?text=Avatar";
-                        }}
+                        onError={(e) => { e.target.src = "https://via.placeholder.com/200?text=Avatar"; }}
                       />
-
                     </div>
-
-                    <h3 className="photographer-name">
-                      {packageData.PhotographerId.HoTen}
-                    </h3>
-
-                    <p className="photographer-username">
-                      @{packageData.PhotographerId.TenDangNhap}
-                    </p>
-
+                    <h3 className="photographer-name">{packageData.PhotographerId.HoTen}</h3>
+                    <p className="photographer-username">@{packageData.PhotographerId.TenDangNhap}</p>
                     <div className="photographer-info-column">
                       {packageData.PhotographerId.Email && (
                         <div className="contact-item">
-                          <Mail size={16} />
-                          {packageData.PhotographerId.Email}
+                          <Mail size={16} /> {packageData.PhotographerId.Email}
                         </div>
                       )}
-
                       {packageData.PhotographerId.DiaChi && (
                         <div className="contact-item">
-                          <MapPin size={16} />
-                          {packageData.PhotographerId.DiaChi}
+                          <MapPin size={16} /> {packageData.PhotographerId.DiaChi}
                         </div>
                       )}
                     </div>
-
-                    <button 
-                      className="btn-contact-photographer"
-                      onClick={handleContactPhotographer}
-                    >
-                      <MessageCircle size={18} />
-                      Nhắn tin
+                    <button className="btn-contact-photographer" onClick={handleContactPhotographer}>
+                      <MessageCircle size={18} /> Nhắn tin
                     </button>
                   </div>
                 </section>
@@ -389,17 +402,9 @@ export default function ServicePackageDetail() {
                         onClick={handleToggleFavorite}
                         title="Yêu thích"
                       >
-                        <Heart 
-                          size={20} 
-                          fill={isFavorite ? '#ef4444' : 'none'}
-                          color={isFavorite ? '#ef4444' : 'currentColor'}
-                        />
+                        <Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : 'currentColor'} />
                       </button>
-                      <button 
-                        className="btn-icon"
-                        onClick={handleShare}
-                        title="Chia sẻ"
-                      >
+                      <button className="btn-icon" onClick={handleShare} title="Chia sẻ">
                         <Share2 size={20} />
                       </button>
                     </div>
@@ -425,23 +430,18 @@ export default function ServicePackageDetail() {
                     <ul>
                       {packageData.DichVu?.slice(0, 3).map((service, index) => (
                         <li key={index}>
-                          <Check size={16} />
-                          {service.name}
+                          <Check size={16} /> {service.name}
                         </li>
                       ))}
                       {packageData.DichVu?.length > 3 && (
                         <li className="more">
-                          <Check size={16} />
-                          Và {packageData.DichVu.length - 3} dịch vụ khác
+                          <Check size={16} /> Và {packageData.DichVu.length - 3} dịch vụ khác
                         </li>
                       )}
                     </ul>
                   </div>
 
-                  <button 
-                    className="btn-book-now"
-                    onClick={handleBookNow}
-                  >
+                  <button className="btn-book-now" onClick={handleBookNow}>
                     Đặt hàng ngay
                   </button>
                 </div>
@@ -450,9 +450,8 @@ export default function ServicePackageDetail() {
                 <div className="contact-card">
                   <h4>Cần tư vấn?</h4>
                   <p>Liên hệ với chúng tôi để được hỗ trợ tốt nhất</p>
-                  <a href="tel:0123456789" className="btn-contact">
-                    <Phone size={18} />
-                    Gọi ngay
+                  <a href="tel:0776560735" className="btn-contact">
+                    <Phone size={18} /> Gọi ngay
                   </a>
                 </div>
               </div>
@@ -462,45 +461,17 @@ export default function ServicePackageDetail() {
         </div>
       </div>
 
-      {/* Image Modal - Lightbox */}
+      {/* Image Modal */}
       {showImageModal && (
         <div className="image-modal-overlay" onClick={() => setShowImageModal(false)}>
-          <button 
-            onClick={() => setShowImageModal(false)}
-            className="modal-close-btn"
-          >
-            ×
-          </button>
-
+          <button onClick={() => setShowImageModal(false)} className="modal-close-btn">×</button>
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
-            {images.length > 0 ? (
-              <img 
-                src={getImageUrl(images[currentImageIndex])}
-                alt="Full view"
-                onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/1200x600?text=No+Image";
-                }}
-              />
-            ) : (
-              <img 
-                src="https://via.placeholder.com/1200x600?text=Chưa+có+ảnh"
-                alt="No images"
-              />
-            )}
-            
+            {images.length > 0 && <img src={getImageUrl(images[currentImageIndex])} alt="Full view" />}
             {images.length > 1 && (
               <>
-                <button onClick={prevImage} className="modal-nav-btn prev">
-                  <ChevronLeft size={28} />
-                </button>
-                
-                <button onClick={nextImage} className="modal-nav-btn next">
-                  <ChevronRight size={28} />
-                </button>
-
-                <div className="modal-image-counter">
-                  {currentImageIndex + 1} / {images.length}
-                </div>
+                <button onClick={prevImage} className="modal-nav-btn prev"><ChevronLeft size={28} /></button>
+                <button onClick={nextImage} className="modal-nav-btn next"><ChevronRight size={28} /></button>
+                <div className="modal-image-counter">{currentImageIndex + 1} / {images.length}</div>
               </>
             )}
           </div>

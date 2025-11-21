@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Heart } from 'lucide-react';
+import { Star, Heart, Camera, CheckCircle2, ClipboardList } from 'lucide-react'; // ✅ Thêm ClipboardList
 import './ServicePackage.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
@@ -21,7 +21,6 @@ export default function PackagePage() {
   const isPhotographer = user?.isPhotographer;
 
   useEffect(() => {
-    // Fetch tất cả gói dịch vụ khi component mount
     dispatch(getAllPackages());
   }, [dispatch]);
 
@@ -52,14 +51,14 @@ export default function PackagePage() {
   const formatPriceRange = (dichVu) => {
     const { min, max } = getPriceRange(dichVu);
     if (min === 0 && max === 0) return "Liên hệ";
-    if (min === max) return `${min.toLocaleString("vi-VN")} VNĐ`;
-    return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} VNĐ`;
+    if (min === max) return `${min.toLocaleString("vi-VN")} đ`;
+    return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} đ`;
   };
 
   // Filter packages
   let filtered = packages.filter(pkg => {
     const matchSearch = pkg.TenGoi?.toLowerCase().includes(search.toLowerCase()) ||
-                       pkg.MoTa?.toLowerCase().includes(search.toLowerCase());
+                        pkg.MoTa?.toLowerCase().includes(search.toLowerCase());
     const matchLoaiGoi = !loaiGoi || pkg.LoaiGoi === loaiGoi;
     return matchSearch && matchLoaiGoi;
   });
@@ -71,19 +70,22 @@ export default function PackagePage() {
     filtered.sort((a, b) => (b.SoLuongDaDat || 0) - (a.SoLuongDaDat || 0));
   } else if (sortBy === 'newest') {
     filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } else if (sortBy === 'priceAsc') {
+    filtered.sort((a, b) => getPriceRange(a.DichVu).min - getPriceRange(b.DichVu).min);
+  } else if (sortBy === 'priceDesc') {
+    filtered.sort((a, b) => getPriceRange(b.DichVu).min - getPriceRange(a.DichVu).min);
   }
 
   const handleFilterChange = () => {
     const filters = {};
     if (loaiGoi) filters.loaiGoi = loaiGoi;
     if (search) filters.search = search;
-    if (sortBy) filters.sort = sortBy;
     dispatch(getAllPackages(filters));
   };
 
   useEffect(() => {
     handleFilterChange();
-  }, [loaiGoi, sortBy]);
+  }, [loaiGoi]); 
 
   return (
     <>
@@ -99,7 +101,7 @@ export default function PackagePage() {
               <p>Khám phá các gói dịch vụ chất lượng từ các photographer chuyên nghiệp</p>
             </div>
 
-            {/* Search & Filter */}
+            {/* Search & Filter & My Orders Button */}
             <div className="search-filter">
               <input
                 type="text"
@@ -111,13 +113,13 @@ export default function PackagePage() {
 
               <select value={loaiGoi} onChange={(e) => setLoaiGoi(e.target.value)}>
                 <option value="">Tất cả loại gói</option>
-                <option value="Wedding">Wedding</option>
-                <option value="Event">Event</option>
-                <option value="Family">Family</option>
-                <option value="Portrait">Portrait</option>
-                <option value="Product">Product</option>
-                <option value="Fashion">Fashion</option>
-                <option value="Other">Other</option>
+                <option value="Wedding">Wedding (Cưới)</option>
+                <option value="Event">Event (Sự kiện)</option>
+                <option value="Family">Family (Gia đình)</option>
+                <option value="Portrait">Portrait (Chân dung)</option>
+                <option value="Product">Product (Sản phẩm)</option>
+                <option value="Fashion">Fashion (Thời trang)</option>
+                <option value="Other">Khác</option>
               </select>
 
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
@@ -125,7 +127,17 @@ export default function PackagePage() {
                 <option value="newest">Mới nhất</option>
                 <option value="rating">Đánh giá cao</option>
                 <option value="popular">Phổ biến nhất</option>
+                <option value="priceAsc">Giá: Thấp đến Cao</option>
+                <option value="priceDesc">Giá: Cao đến Thấp</option>
               </select>
+
+              {/* ✅ NÚT ĐƠN HÀNG CỦA TÔI (Chỉ hiện khi đã đăng nhập) */}
+              {user && (
+                <Link to="/my-orders" className="btn-my-orders">
+                  <ClipboardList size={20} />
+                  Đơn hàng của tôi
+                </Link>
+              )}
             </div>
 
             {/* Photographer Section */}
@@ -147,7 +159,8 @@ export default function PackagePage() {
 
             {!loading && filtered.length === 0 && (
               <div className="no-packages">
-                <p>Không tìm thấy gói dịch vụ nào.</p>
+                <Camera size={48} color="#9ca3af" />
+                <p>Không tìm thấy gói dịch vụ nào phù hợp.</p>
               </div>
             )}
 
@@ -169,39 +182,56 @@ export default function PackagePage() {
                       <Heart
                         className={favorites.includes(pkg._id) ? 'favorited' : ''}
                         fill={favorites.includes(pkg._id) ? '#ef4444' : 'none'}
-                        color={favorites.includes(pkg._id) ? '#ef4444' : '#6b7280'}
+                        color={favorites.includes(pkg._id) ? '#ef4444' : '#ffffff'}
                       />
                     </button>
                     <div className="package-badge">{pkg.LoaiGoi}</div>
                   </div>
 
                   <div className="package-content">
-                    <h3 className="package-name">{pkg.TenGoi}</h3>
+                    <div className="package-header-row">
+                      <h3 className="package-name">{pkg.TenGoi}</h3>
+                      <div className="package-rating">
+                        <Star className="star-icon" fill="#fbbf24" color="#fbbf24" size={14} />
+                        <span>{(pkg.DanhGia || 0).toFixed(1)}</span>
+                      </div>
+                    </div>
+                    
                     <p className="package-description">{pkg.MoTa}</p>
 
-                    <div className="package-rating">
-                      <Star className="star-icon" fill="#fbbf24" color="#fbbf24" />
-                      <span>{(pkg.DanhGia || 0).toFixed(1)}</span>
-                      <span className="reviews-count">({pkg.SoLuotDanhGia || 0})</span>
+                    <div className="package-services-list">
+                      {pkg.DichVu?.slice(0, 3).map((s, idx) => (
+                        <span key={idx} className="service-tag">
+                          <CheckCircle2 size={10} /> {s.name}
+                        </span>
+                      ))}
+                      {pkg.DichVu?.length > 3 && (
+                        <span className="service-tag more">+{pkg.DichVu.length - 3} khác</span>
+                      )}
                     </div>
 
-                    <div className="package-info">
+                    <div className="package-footer-info">
                       <span className="package-price">
                         {formatPriceRange(pkg.DichVu)}
                       </span>
-                      <span className="package-services">
-                        {pkg.DichVu?.length || 0} dịch vụ
+                      <span className="booking-count-text">
+                        {pkg.SoLuongDaDat || 0} lượt đặt
                       </span>
                     </div>
 
+                    <div className="card-divider"></div>
+
                     {pkg.PhotographerId && (
                       <div className="photographer-info">
-                        <img 
-                          src={getImageUrl(pkg.PhotographerId.Avatar)} 
-                          alt={pkg.PhotographerId.HoTen}
-                          className="photographer-avatar"
-                        />
-                        <span>{pkg.PhotographerId.HoTen}</span>
+                        <div className="photographer-profile">
+                          <img 
+                            src={getImageUrl(pkg.PhotographerId.Avatar)} 
+                            alt={pkg.PhotographerId.HoTen}
+                            className="photographer-avatar"
+                            onError={(e) => e.target.src="https://via.placeholder.com/30?text=U"}
+                          />
+                          <span className="photographer-name-text">{pkg.PhotographerId.HoTen}</span>
+                        </div>
                       </div>
                     )}
 

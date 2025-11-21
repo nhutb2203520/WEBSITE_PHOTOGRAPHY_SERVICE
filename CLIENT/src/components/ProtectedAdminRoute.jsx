@@ -1,74 +1,55 @@
-import { Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
-export default function ProtectedRoute({ children, requiredRole = 'admin' }) {
-  // ✅ Đọc từ sessionStorage (đóng tab = mất token)
-  const refreshToken = sessionStorage.getItem('adminRefreshToken');
-  const adminInfo = JSON.parse(sessionStorage.getItem('adminInfo') || '{}');
+export default function ProtectedRoute({ children, requiredRole = "admin" }) {
+  const [shouldRedirect, setShouldRedirect] = useState(null);
 
-  // 1. Kiểm tra refresh token có tồn tại không
-  if (!refreshToken) {
-    console.warn('⚠️ No refresh token found, redirecting to login');
-    
-    // ✅ FIX: Dùng useEffect để tránh setState trong render
-    useEffect(() => {
-      toast.warning('Vui lòng đăng nhập để tiếp tục');
-    }, []);
-    
-    return <Navigate to="/admin/login" replace />;
-  }
+  const refreshToken = sessionStorage.getItem("adminRefreshToken");
 
-  // 2. Kiểm tra refresh token có hợp lệ và còn hạn không
-  try {
-    const payload = JSON.parse(atob(refreshToken.split('.')[1]));
-    const isExpired = Date.now() >= payload.exp * 1000;
-    
-    if (isExpired) {
-      console.warn('⚠️ Refresh token expired, redirecting to login');
-      
-      // Xóa tất cả tokens
+  useEffect(() => {
+    // 1. Không có refresh token → bắt đăng nhập
+    if (!refreshToken) {
+      toast.warning("Vui lòng đăng nhập để tiếp tục");
+      setShouldRedirect("/admin/login");
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(refreshToken.split(".")[1]));
+      const isExpired = Date.now() >= payload.exp * 1000;
+
+      // 2. Refresh token hết hạn
+      if (isExpired) {
+        sessionStorage.clear();
+        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        setShouldRedirect("/admin/login");
+        return;
+      }
+
+      // 3. Không đúng quyền
+      if (requiredRole && payload.role !== requiredRole) {
+        toast.error("Bạn không có quyền truy cập trang này");
+        setShouldRedirect("/");
+        return;
+      }
+
+      // (Option) log kiểm tra
+      console.log("Admin token payload:", payload);
+
+    } catch (error) {
+      console.error("Token error:", error);
       sessionStorage.clear();
-      
-      // ✅ FIX: Dùng useEffect để tránh setState trong render
-      useEffect(() => {
-        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-      }, []);
-      
-      return <Navigate to="/admin/login" replace />;
+      toast.error("Token không hợp lệ. Vui lòng đăng nhập lại.");
+      setShouldRedirect("/admin/login");
     }
+  }, [refreshToken, requiredRole]);
 
-    // 3. Kiểm tra role nếu cần
-    if (requiredRole && payload.role !== requiredRole) {
-      console.warn(`⚠️ Access denied. Required role: ${requiredRole}, User role: ${payload.role}`);
-      
-      // ✅ FIX: Dùng useEffect để tránh setState trong render
-      useEffect(() => {
-        toast.error('Bạn không có quyền truy cập trang này');
-      }, []);
-      
-      return <Navigate to="/" replace />;
-    }
-
-    console.log('✅ Access granted:', {
-      userId: payload.id,
-      role: payload.role,
-      refreshTokenExpiresAt: new Date(payload.exp * 1000).toLocaleString()
-    });
-
-  } catch (error) {
-    console.error('❌ Invalid token format:', error);
-    
-    sessionStorage.clear();
-    
-    // ✅ FIX: Dùng useEffect để tránh setState trong render
-    useEffect(() => {
-      toast.error('Token không hợp lệ. Vui lòng đăng nhập lại.');
-    }, []);
-    
-    return <Navigate to="/admin/login" replace />;
+  // 4. Thực hiện redirect nếu cần
+  if (shouldRedirect) {
+    return <Navigate to={shouldRedirect} replace />;
   }
 
-  // 4. Token hợp lệ → cho phép truy cập
+  // 5. Truy cập hợp lệ
   return children;
 }

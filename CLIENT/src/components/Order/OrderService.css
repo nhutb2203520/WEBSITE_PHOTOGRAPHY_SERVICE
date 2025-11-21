@@ -885,3 +885,212 @@ select {
         padding: 12px 14px;
     }
 }
+/* ===========================
+   PHÍ DI CHUYỂN - TRAVEL FEE
+   =========================== */
+
+.travel-fee-box {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 16px;
+}
+
+.travel-fee-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px dashed #f59e0b;
+}
+
+.travel-fee-header svg {
+    color: #d97706;
+}
+
+.travel-fee-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.travel-fee-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #78350f;
+}
+
+.fee-row span:first-child {
+    font-weight: 500;
+}
+
+.fee-row strong {
+    font-weight: 700;
+}
+
+.fee-row.total {
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 2px solid #fbbf24;
+    font-size: 16px;
+}
+
+.fee-row.total .has-fee {
+    color: #dc2626;
+    font-size: 18px;
+}
+
+.fee-row.total .no-fee {
+    color: #059669;
+    font-size: 18px;
+}
+
+.fee-breakdown {
+    font-size: 13px;
+    color: #92400e;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+.fee-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #b45309;
+    margin-top: 8px;
+}
+
+/* Spinner animation */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===========================
+   PRICE BREAKDOWN IN SUMMARY
+   =========================== */
+
+.price-breakdown {
+    padding-top: 16px;
+    border-top: 2px solid #e5e7eb;
+    margin-top: 16px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #374151;
+    padding: 8px 0;
+}
+
+.price-row.travel {
+    color: #d97706;
+    background: #fffbeb;
+    padding: 8px 12px;
+    margin: 4px -12px;
+    border-radius: 8px;
+}
+
+.price-row.travel svg {
+    margin-right: 4px;
+}
+
+.deposit-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-top: 12px;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid #fca5a5;
+    border-radius: 12px;
+}
+
+.deposit-info span:first-child {
+    font-size: 14px;
+    font-weight: 600;
+    color: #991b1b;
+}
+
+.deposit-amount {
+    font-size: 18px;
+    font-weight: 800;
+    color: #dc2626;
+}
+
+/* ===========================
+   PHOTOGRAPHER LOCATION INFO
+   =========================== */
+
+.photographer-location {
+    background: #f0f9ff;
+    border: 2px solid #0ea5e9;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.photographer-location h5 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.photographer-location p {
+    margin: 0;
+    font-size: 13px;
+    color: #0c4a6e;
+}
+
+/* ===========================
+   RESPONSIVE ADJUSTMENTS
+   =========================== */
+
+@media (max-width: 768px) {
+    .travel-fee-box {
+        padding: 16px;
+    }
+
+    .fee-row.total {
+        font-size: 14px;
+    }
+
+    .fee-row.total .has-fee,
+    .fee-row.total .no-fee {
+        font-size: 16px;
+    }
+
+    .deposit-amount {
+        font-size: 16px;
+    }
+}

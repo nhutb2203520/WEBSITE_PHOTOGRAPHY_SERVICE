@@ -1,26 +1,42 @@
 import Orders from "../models/order.model.js";
+import { ServicePackage } from "../models/index.js";
 import crypto from "crypto";
 
-/**
- * Tạo mã order ngẫu nhiên kiểu "ORD-XXXXXXX"
- */
 const generateOrderId = () => {
   return "ORD-" + crypto.randomBytes(4).toString("hex").toUpperCase();
 };
 
-const VALID_STATUSES = ["pending", "confirmed", "in_progress", "completed", "cancelled"];
+// Các trạng thái được coi là "đã kín lịch"
+const BUSY_STATUSES = ["pending_payment", "pending", "confirmed", "in_progress"];
+
+const VALID_STATUSES = [...BUSY_STATUSES, "completed", "cancelled"];
 
 /**
- * Tạo đơn hàng mới - UPDATED VERSION
+ * Tính khoảng cách Haversine (km)
+ */
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 100) / 100;
+};
+
+/**
+ * Tạo đơn hàng mới - CÓ TÍNH PHÍ DI CHUYỂN & CHECK TRÙNG LỊCH
  */
 export const createOrder = async (params) => {
-  // 🔥 DEBUG: Log toàn bộ params nhận được
   console.log("🔥 PARAMS RECEIVED:", JSON.stringify(params, null, 2));
 
-  // Destructure sau khi log
   const {
     customer_id,
-    photographer_id,
+    photographer_id, // Có thể null nếu lấy từ package
     service_package_id,
     booking_date,
     start_time,
@@ -31,17 +47,11 @@ export const createOrder = async (params) => {
     notes = "",
     special_requests = "",
     selected_services = [],
-    total_amount,
+    service_amount = 0,
     discount_amount = 0,
   } = params;
 
-  // 🔍 Validation chi tiết
-  console.log("🔍 Validating order data:");
-  console.log("  customer_id:", customer_id);
-  console.log("  service_package_id:", service_package_id);
-  console.log("  booking_date:", booking_date);
-  console.log("  start_time:", start_time);
-
+  // 1. Validation cơ bản
   const missingFields = [];
   if (!customer_id) missingFields.push("customer_id");
   if (!service_package_id) missingFields.push("service_package_id");
@@ -51,50 +61,240 @@ export const createOrder = async (params) => {
   if (missingFields.length > 0) {
     const err = new Error(`Thiếu thông tin bắt buộc: ${missingFields.join(", ")}`);
     err.status = 400;
-    console.error("❌ Validation failed. Missing fields:", missingFields);
     throw err;
   }
 
-  console.log("✅ Validation passed!");
+  // 2. 🔥 LẤY THÔNG TIN GÓI ĐỂ XÁC ĐỊNH PHOTOGRAPHER
+  const servicePackage = await ServicePackage.findById(service_package_id);
+  if (!servicePackage) {
+    const err = new Error("Không tìm thấy gói dịch vụ");
+    err.status = 404;
+    throw err;
+  }
 
-  // Tính toán giá trị
-  const calculatedTotal = total_amount || 0;
-  const final_amount = Number(calculatedTotal) - Number(discount_amount || 0);
+  const finalPhotographerId = photographer_id || servicePackage.PhotographerId;
 
-  // Chuẩn bị dữ liệu để lưu vào DB
+  // ==================================================================
+  // 🔥 BẮT ĐẦU LOGIC CHECK TRÙNG LỊCH (QUAN TRỌNG)
+  // ==================================================================
+  
+  // B1: Xác định thời gian Bắt đầu (Date Object)
+  const startDateTime = new Date(booking_date);
+  const [hours, minutes] = start_time.split(':').map(Number);
+  startDateTime.setHours(hours, minutes, 0, 0);
+
+  // B2: Xác định thời gian Kết thúc (Date Object)
+  // Mặc định chụp 4 tiếng nếu không có estimated_duration_days
+  let durationMs = 4 * 60 * 60 * 1000; 
+  
+  if (estimated_duration_days && Number(estimated_duration_days) > 0) {
+    // Nếu là gói chụp dài ngày
+    durationMs = Number(estimated_duration_days) * 24 * 60 * 60 * 1000;
+  } else if (servicePackage.ThoiGianThucHien) {
+    // Nếu gói có ghi "2-3 giờ", ta parse lấy số lớn nhất để an toàn, hoặc mặc định
+    // Ở đây tạm thời fallback về 4 tiếng cho an toàn
+  }
+
+  const endDateTime = new Date(startDateTime.getTime() + durationMs);
+
+  console.log(`Checking schedule for Photographer: ${finalPhotographerId}`);
+  console.log(`Time slot: ${startDateTime.toISOString()} - ${endDateTime.toISOString()}`);
+
+  // B3: Query Database xem có đơn nào chèn vào khung giờ này không
+  // Điều kiện trùng: (StartA < EndB) và (EndA > StartB)
+  const conflictOrder = await Orders.findOne({
+    photographer_id: finalPhotographerId,
+    status: { $in: BUSY_STATUSES }, // Chỉ check các đơn đang hoạt động
+    $or: [
+      {
+        // Đơn mới bắt đầu nằm trong khoảng thời gian đơn cũ
+        booking_start: { $lt: endDateTime }, 
+        booking_end: { $gt: startDateTime }
+      }
+    ]
+  });
+
+  if (conflictOrder) {
+    const err = new Error(`Rất tiếc, Photographer đã có lịch bận trong khung giờ này (${startDateTime.toLocaleString('vi-VN')}). Vui lòng chọn giờ khác!`);
+    err.status = 409; // Conflict
+    throw err;
+  }
+  // ==================================================================
+  // 🔥 KẾT THÚC CHECK TRÙNG LỊCH
+  // ==================================================================
+
+
+  // 3. 🔥 TÍNH PHÍ DI CHUYỂN
+  let travelFeeData = {
+    enabled: false,
+    distance_km: 0,
+    extra_km: 0,
+    free_distance_km: 0,
+    fee: 0,
+    breakdown: "",
+    note: ""
+  };
+
+  const config = servicePackage.travelFeeConfig;
+  const baseCoords = servicePackage.baseLocation?.coordinates;
+  const customerCoords = location?.coordinates;
+
+  if (
+    config?.enabled &&
+    baseCoords?.lat && baseCoords?.lng &&
+    customerCoords?.lat && customerCoords?.lng
+  ) {
+    const distance = calculateDistance(
+      baseCoords.lat,
+      baseCoords.lng,
+      customerCoords.lat,
+      customerCoords.lng
+    );
+
+    console.log(`📍 Distance calculated: ${distance}km`);
+
+    const feeResult = servicePackage.calculateTravelFee(distance);
+    
+    travelFeeData = {
+      enabled: true,
+      distance_km: distance,
+      extra_km: feeResult.extraKm || 0,
+      free_distance_km: feeResult.freeDistanceKm || config.freeDistanceKm || 0,
+      fee: feeResult.fee,
+      breakdown: feeResult.breakdown,
+      note: feeResult.note || config.note || ""
+    };
+
+    console.log("💰 Travel fee calculated:", travelFeeData);
+  }
+
+  // 4. 🔥 TÍNH TOÁN TỔNG TIỀN
+  const calculatedServiceAmount = service_amount || 0;
+  const travelFeeAmount = travelFeeData.fee || 0;
+  const totalAmount = calculatedServiceAmount + travelFeeAmount;
+  const finalAmount = totalAmount - (discount_amount || 0);
+
+  // Tạo mã chuyển khoản
+  const transferCode = 'CK' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
   const orderData = {
     order_id: generateOrderId(),
     customer_id,
-    photographer_id: photographer_id || null,
+    photographer_id: finalPhotographerId,
     service_package_id,
     booking_date,
-    booking_time: start_time, // ✅ Map start_time -> booking_time
+    booking_time: start_time,
     start_time,
     completion_date,
     estimated_duration_days,
-    guest_times: guest_times.filter(t => t), // Lọc bỏ giá trị rỗng
+    
+    // ✅ LƯU THÊM START/END ĐỂ DỄ QUERY LẦN SAU
+    booking_start: startDateTime,
+    booking_end: endDateTime,
+
+    guest_times: guest_times.filter(t => t),
     guest_count: guest_times.filter(t => t).length || 1,
-    location,
+    location: {
+      name: location.name || "",
+      address: location.address || "",
+      city: location.city || "",
+      district: location.district || "",
+      map_link: location.map_link || "",
+      coordinates: {
+        lat: customerCoords?.lat || null,
+        lng: customerCoords?.lng || null
+      }
+    },
     notes,
     special_requests,
     selected_services,
-    total_amount: calculatedTotal,
+    
+    // 💰 Phí di chuyển
+    travel_fee: travelFeeData,
+    
+    // 💰 Thanh toán
+    service_amount: calculatedServiceAmount,
+    travel_fee_amount: travelFeeAmount,
+    total_amount: totalAmount,
     discount_amount: discount_amount || 0,
-    final_amount,
+    final_amount: finalAmount,
+    deposit_required: Math.round(finalAmount * 0.3),
+    
+    // Mã chuyển khoản
+    payment_info: {
+      transfer_code: transferCode,
+      transfer_image: null,
+      transfer_date: null,
+      verified: false
+    },
+    
+    status: "pending_payment"
   };
 
   console.log("💾 Creating order with data:", JSON.stringify(orderData, null, 2));
 
   const newOrder = await Orders.create(orderData);
-
-  console.log("✅ Order created successfully:", newOrder.order_id);
+  console.log("✅ Order created:", newOrder.order_id);
 
   return newOrder;
 };
 
 /**
- * Lấy danh sách order của một customer
+ * API tính phí di chuyển (preview, không tạo đơn)
  */
+export const calculateTravelFeePreview = async (packageId, customerCoords) => {
+  const servicePackage = await ServicePackage.findById(packageId);
+  
+  if (!servicePackage) {
+    const err = new Error("Không tìm thấy gói dịch vụ");
+    err.status = 404;
+    throw err;
+  }
+
+  const config = servicePackage.travelFeeConfig;
+  const baseCoords = servicePackage.baseLocation?.coordinates;
+
+  // Nếu không bật hoặc thiếu tọa độ
+  if (!config?.enabled) {
+    return {
+      enabled: false,
+      message: "Gói dịch vụ này không tính phí di chuyển"
+    };
+  }
+
+  if (!baseCoords?.lat || !baseCoords?.lng) {
+    return {
+      enabled: true,
+      error: "Photographer chưa cập nhật vị trí cơ sở"
+    };
+  }
+
+  if (!customerCoords?.lat || !customerCoords?.lng) {
+    return {
+      enabled: true,
+      error: "Vui lòng cung cấp tọa độ địa điểm chụp"
+    };
+  }
+
+  const distance = calculateDistance(
+    baseCoords.lat,
+    baseCoords.lng,
+    customerCoords.lat,
+    customerCoords.lng
+  );
+
+  const feeResult = servicePackage.calculateTravelFee(distance);
+
+  return {
+    enabled: true,
+    distance_km: distance,
+    ...feeResult,
+    photographer_location: servicePackage.baseLocation
+  };
+};
+
+// ==================== CÁC HÀM KHÁC GIỮ NGUYÊN ====================
+
 export const getOrdersByCustomer = async (
   customer_id,
   options = { populate: true, sort: { createdAt: -1 } }
@@ -108,49 +308,35 @@ export const getOrdersByCustomer = async (
   let query = Orders.find({ customer_id });
 
   if (options.populate) {
-    query = query.populate("service_package_id").populate("photographer_id");
+    query = query.populate("service_package_id");
   }
 
-  if (options.sort) {
-    query = query.sort(options.sort);
-  }
+  if (options.sort) query = query.sort(options.sort);
+  if (options.limit) query = query.limit(options.limit);
 
-  if (options.limit) {
-    query = query.limit(options.limit);
-  }
-
-  const orders = await query.exec();
-  return orders;
+  return await query.exec();
 };
 
-/**
- * Cập nhật trạng thái order theo order_id
- */
-export const updateOrderStatus = async (orderId, status) => {
+export const updateOrderStatus = async (orderId, status, userId = null, note = "") => {
   if (!VALID_STATUSES.includes(status)) {
     const err = new Error("Trạng thái không hợp lệ.");
     err.status = 400;
     throw err;
   }
 
-  const updated = await Orders.findOneAndUpdate(
-    { order_id: orderId },
-    { status },
-    { new: true }
-  );
-
-  if (!updated) {
-    const err = new Error("Không tìm thấy đơn hàng với order_id cung cấp.");
+  const order = await Orders.findOne({ order_id: orderId });
+  if (!order) {
+    const err = new Error("Không tìm thấy đơn hàng.");
     err.status = 404;
     throw err;
   }
 
-  return updated;
+  order.updateStatus(status, userId, note);
+  await order.save();
+
+  return order;
 };
 
-/**
- * Lấy order theo order_id
- */
 export const getOrderByOrderId = async (orderId) => {
   if (!orderId) {
     const err = new Error("orderId bắt buộc.");
@@ -160,7 +346,7 @@ export const getOrderByOrderId = async (orderId) => {
 
   const order = await Orders.findOne({ order_id: orderId })
     .populate("service_package_id")
-    .populate("photographer_id")
+    .populate("payment_info.payment_method_id")
     .exec();
 
   if (!order) {
@@ -174,6 +360,7 @@ export const getOrderByOrderId = async (orderId) => {
 
 export default {
   createOrder,
+  calculateTravelFeePreview,
   getOrdersByCustomer,
   updateOrderStatus,
   getOrderByOrderId,

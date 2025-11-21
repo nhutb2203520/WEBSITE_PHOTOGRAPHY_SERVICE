@@ -9,8 +9,10 @@ import {
   updatePackage,
   deletePackage,
   uploadPackageImage,
-  uploadPackageImages, // ✅ ADD THIS
+  uploadPackageImages,
 } from "../../redux/Slices/servicepackageSlice";
+// ✅ Import component cấu hình phí di chuyển
+import TravelFeeConfig from "../TravelFeeConfig/TravelFeeConfig"; 
 
 export default function Package() {
   const dispatch = useDispatch();
@@ -19,12 +21,29 @@ export default function Package() {
   const [showModal, setShowModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
 
+  // ✅ Cập nhật state khởi tạo với trường cấu hình vị trí & phí
   const [formData, setFormData] = useState({
     TenGoi: "",
     MoTa: "",
     DichVu: [{ name: "", Gia: "" }],
     LoaiGoi: "Other",
     ThoiGianThucHien: "",
+    // Thêm cấu hình mặc định cho TravelFeeConfig
+    baseLocation: {
+      address: "",
+      city: "",
+      district: "",
+      coordinates: { lat: null, lng: null },
+      mapLink: ""
+    },
+    travelFeeConfig: {
+      enabled: false,
+      freeDistanceKm: 10,
+      feePerKm: 5000,
+      tieredFees: [],
+      maxFee: null,
+      note: ""
+    }
   });
 
   const [modalImages, setModalImages] = useState([]);
@@ -40,6 +59,21 @@ export default function Package() {
       DichVu: [{ name: "", Gia: "" }],
       LoaiGoi: "Other",
       ThoiGianThucHien: "",
+      baseLocation: {
+        address: "",
+        city: "",
+        district: "",
+        coordinates: { lat: null, lng: null },
+        mapLink: ""
+      },
+      travelFeeConfig: {
+        enabled: false,
+        freeDistanceKm: 10,
+        feePerKm: 5000,
+        tieredFees: [],
+        maxFee: null,
+        note: ""
+      }
     });
     modalImages.forEach((img) => URL.revokeObjectURL(img.preview));
     setModalImages([]);
@@ -48,6 +82,15 @@ export default function Package() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ✅ Hàm xử lý thay đổi từ component TravelFeeConfig
+  const handleTravelConfigChange = (newConfig) => {
+    setFormData((prev) => ({
+      ...prev,
+      baseLocation: newConfig.baseLocation,
+      travelFeeConfig: newConfig.travelFeeConfig
+    }));
   };
 
   const handleServiceChange = (index, field, value) => {
@@ -97,74 +140,78 @@ export default function Package() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!formData.TenGoi || !formData.MoTa) {
-    alert("Vui lòng điền đầy đủ thông tin!");
-    return;
-  }
-
-  const filteredServices = formData.DichVu.filter(
-    (s) => s.name.trim() !== "" && s.Gia !== ""
-  );
-
-  if (filteredServices.length === 0) {
-    alert("Vui lòng thêm ít nhất 1 dịch vụ có giá!");
-    return;
-  }
-
-  const packageData = {
-    ...formData,
-    DichVu: filteredServices.map((s) => ({ 
-      name: s.name, 
-      Gia: Number(s.Gia) 
-    })),
-  };
-
-  try {
-    let resultAction;
-    if (editingPackage) {
-      resultAction = await dispatch(
-        updatePackage({ id: editingPackage._id, data: packageData })
-      );
-    } else {
-      resultAction = await dispatch(createPackage(packageData));
+    if (!formData.TenGoi || !formData.MoTa) {
+      alert("Vui lòng điền đầy đủ thông tin!");
+      return;
     }
 
-    const createdPkg = resultAction?.payload;
-    const pkgId = createdPkg?._id || 
-                  createdPkg?.id || 
-                  (editingPackage && editingPackage._id);
+    const filteredServices = formData.DichVu.filter(
+      (s) => s.name.trim() !== "" && s.Gia !== ""
+    );
 
-    // ✅ Upload images nếu có
-    if (pkgId && modalImages.length > 0) {
-      console.log(`📤 Uploading ${modalImages.length} images...`);
-      
-      // Upload ảnh đầu tiên làm ảnh bìa (cover)
-      const coverImageFd = new FormData();
-      coverImageFd.append("packageImage", modalImages[0].file);
-      await dispatch(uploadPackageImage({ id: pkgId, formData: coverImageFd }));
+    if (filteredServices.length === 0) {
+      alert("Vui lòng thêm ít nhất 1 dịch vụ có giá!");
+      return;
+    }
 
-      // Upload các ảnh còn lại vào gallery
-      if (modalImages.length > 1) {
-        const galleryFd = new FormData();
-        for (let i = 1; i < modalImages.length; i++) {
-          galleryFd.append("packageImages", modalImages[i].file);
-        }
-        
-        await dispatch(uploadPackageImages({ id: pkgId, formData: galleryFd }));
+    // Kiểm tra Travel Fee Config (nếu bật thì phải có tọa độ)
+    if (formData.travelFeeConfig.enabled) {
+      if (!formData.baseLocation.coordinates?.lat || !formData.baseLocation.coordinates?.lng) {
+        alert("Vui lòng cập nhật vị trí cơ sở (lấy tọa độ) để tính phí di chuyển!");
+        return;
       }
     }
 
-    resetForm();
-    setShowModal(false);
-    setEditingPackage(null);
-    dispatch(getMyPackages());
-  } catch (err) {
-    console.error("❌ Lỗi lưu gói:", err);
-    alert("Lưu gói thất bại. Kiểm tra console.");
-  }
-};
+    const packageData = {
+      ...formData,
+      DichVu: filteredServices.map((s) => ({
+        name: s.name,
+        Gia: Number(s.Gia),
+      })),
+    };
+
+    try {
+      let resultAction;
+      if (editingPackage) {
+        resultAction = await dispatch(
+          updatePackage({ id: editingPackage._id, data: packageData })
+        );
+      } else {
+        resultAction = await dispatch(createPackage(packageData));
+      }
+
+      const createdPkg = resultAction?.payload;
+      const pkgId =
+        createdPkg?._id || createdPkg?.id || (editingPackage && editingPackage._id);
+
+      if (pkgId && modalImages.length > 0) {
+        console.log(`📤 Uploading ${modalImages.length} images...`);
+
+        const coverImageFd = new FormData();
+        coverImageFd.append("packageImage", modalImages[0].file);
+        await dispatch(uploadPackageImage({ id: pkgId, formData: coverImageFd }));
+
+        if (modalImages.length > 1) {
+          const galleryFd = new FormData();
+          for (let i = 1; i < modalImages.length; i++) {
+            galleryFd.append("packageImages", modalImages[i].file);
+          }
+
+          await dispatch(uploadPackageImages({ id: pkgId, formData: galleryFd }));
+        }
+      }
+
+      resetForm();
+      setShowModal(false);
+      setEditingPackage(null);
+      dispatch(getMyPackages());
+    } catch (err) {
+      console.error("❌ Lỗi lưu gói:", err);
+      alert("Lưu gói thất bại. Kiểm tra console.");
+    }
+  };
 
   const handleEdit = (pkg) => {
     setEditingPackage(pkg);
@@ -177,6 +224,22 @@ export default function Package() {
           : [{ name: "", Gia: "" }],
       LoaiGoi: pkg.LoaiGoi || "Other",
       ThoiGianThucHien: pkg.ThoiGianThucHien || "",
+      // Load lại cấu hình cũ hoặc mặc định
+      baseLocation: pkg.baseLocation || {
+        address: "",
+        city: "",
+        district: "",
+        coordinates: { lat: null, lng: null },
+        mapLink: ""
+      },
+      travelFeeConfig: pkg.travelFeeConfig || {
+        enabled: false,
+        freeDistanceKm: 10,
+        feePerKm: 5000,
+        tieredFees: [],
+        maxFee: null,
+        note: ""
+      }
     });
     setModalImages([]);
     setShowModal(true);
@@ -310,6 +373,13 @@ export default function Package() {
                     {formatPriceRange(pkg.DichVu)}
                   </span>
                 </div>
+                
+                {/* Hiển thị badge nếu có tính phí di chuyển */}
+                {pkg.travelFeeConfig?.enabled && (
+                  <div className="travel-fee-badge">
+                    <span>🚗 Có tính phí di chuyển</span>
+                  </div>
+                )}
               </div>
 
               <div className="package-footer">
@@ -343,7 +413,7 @@ export default function Package() {
             <h3>{editingPackage ? "Chỉnh sửa" : "Tạo"} Gói Dịch Vụ</h3>
 
             <form onSubmit={handleSubmit}>
-              {/* Các trường nhập liệu */}
+              {/* Các trường nhập liệu cơ bản */}
               <div className="form-group">
                 <label>Tên gói *</label>
                 <input
@@ -393,6 +463,17 @@ export default function Package() {
                   placeholder="Ví dụ: 2-3 giờ"
                 />
               </div>
+
+              {/* ✅ PHẦN CẤU HÌNH PHÍ DI CHUYỂN */}
+              <div className="form-section-divider"></div>
+              <TravelFeeConfig 
+                value={{
+                  baseLocation: formData.baseLocation,
+                  travelFeeConfig: formData.travelFeeConfig
+                }}
+                onChange={handleTravelConfigChange}
+              />
+              <div className="form-section-divider"></div>
 
               {/* Upload ảnh */}
               <div className="form-group">

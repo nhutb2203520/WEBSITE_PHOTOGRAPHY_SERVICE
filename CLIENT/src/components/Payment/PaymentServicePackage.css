@@ -1,0 +1,342 @@
+.payment-page {
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    padding: 40px 0;
+}
+
+.payment-container {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    /* Cột trái lớn hơn cho QR */
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Payment Methods Section */
+.payment-left {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.payment-tabs {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.payment-tab {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.payment-tab.active {
+    border-color: #10b981;
+    background-color: #ecfdf5;
+    color: #065f46;
+}
+
+/* QR Code Area */
+.qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px dashed #d1d5db;
+}
+
+.qr-image {
+    max-width: 250px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+}
+
+.bank-details {
+    width: 100%;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 15px;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.copy-btn {
+    background: none;
+    border: none;
+    color: #10b981;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.copy-btn:hover {
+    text-decoration: underline;
+}
+
+.transfer-note {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fff7ed;
+    border-left: 4px solid #f97316;
+    border-radius: 4px;
+    color: #c2410c;
+    font-size: 14px;
+    text-align: left;
+    line-height: 1.5;
+}
+
+/* Order Summary Section */
+.payment-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.package-mini-info {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.package-mini-info img {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.package-mini-info h3 {
+    font-size: 16px;
+    margin: 0 0 5px 0;
+}
+
+.info-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.price-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    color: #374151;
+}
+
+.price-row.total {
+    font-weight: 700;
+    font-size: 18px;
+    color: #111827;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 12px;
+    margin-top: 5px;
+}
+
+.deposit-highlight {
+    background-color: #ecfdf5;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border: 1px solid #10b981;
+}
+
+.deposit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #065f46;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.deposit-label {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.actions {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-confirm {
+    width: 100%;
+    padding: 14px;
+    background-color: #10b981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 0.2s;
+}
+
+.btn-confirm:hover {
+    background-color: #059669;
+}
+
+.btn-back-home {
+    width: 100%;
+    padding: 12px;
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .payment-container {
+        grid-template-columns: 1fr;
+    }
+}
+/* Upload Section */
+.upload-section {
+    margin-top: 20px;
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 15px;
+}
+
+.upload-label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.upload-box {
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.upload-trigger {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.upload-trigger:hover {
+    background-color: #f9fafb;
+    border-color: #10b981;
+    color: #10b981;
+}
+
+.image-preview-container {
+    position: relative;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+    text-align: center;
+}
+
+.image-preview {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 4px;
+    display: block;
+    margin: 0 auto;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.remove-image-btn:hover {
+    background: red;
+}
+
+.file-name {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

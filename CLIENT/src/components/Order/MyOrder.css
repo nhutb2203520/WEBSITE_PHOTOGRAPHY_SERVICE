@@ -5,7 +5,7 @@
 .my-orders-page {
     min-height: 100vh;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 120px 0 80px;
+    padding: 15px 0 80px;
 }
 
 .my-orders-page .container {
@@ -178,6 +178,7 @@
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
+
 }
 
 .order-card:hover {
@@ -765,4 +766,97 @@
     .modal-body {
         padding: 24px 20px;
     }
+}
+/* Style cho Modal chi tiết */
+.payment-detail .divider {
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 15px 0;
+}
+
+.deposit-info-box {
+    background-color: #f9fafb;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px dashed #d1d5db;
+}
+
+.font-mono {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge.pending {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.status-badge.paid {
+    background-color: #d1fae5;
+    color: #059669;
+}
+
+/* Proof Image Style */
+.proof-image-section {
+    margin-top: 15px;
+}
+
+.proof-image-section .label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.proof-image-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 200px;
+    height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid #e5e7eb;
+}
+
+.proof-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.proof-image-wrapper:hover img {
+    transform: scale(1.05);
+}
+
+.proof-image-wrapper .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.proof-image-wrapper:hover .overlay {
+    opacity: 1;
+}
+
+/* Status colors update */
+.status-pending-payment {
+    color: #f59e0b;
+    background-color: #fef3c7;
 }
