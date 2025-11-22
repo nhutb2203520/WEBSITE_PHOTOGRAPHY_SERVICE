@@ -1,114 +1,57 @@
-// SERVER/src/routes/paymentMethod.route.js
 import express from "express";
-import {
-  getAllPaymentMethods,
-  getPaymentMethodById,
-  createPaymentMethod,
-  updatePaymentMethod,
-  deletePaymentMethod,
-  uploadQRCode,
-  toggleActiveStatus
-} from "../controllers/paymentmethod.controller.js";
-
-import { verifyTokenUser } from "../middlewares/verifyToken.js";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { PaymentMethod } from "../models/index.js";
+import paymentMethodController from "../controllers/paymentmethod.controller.js";
+import { verifyTokenUser } from "../middlewares/verifyToken.js"; 
 
 const router = express.Router();
 
-// ================== MIDDLEWARE KIỂM TRA ROLE ==================
-export const authorizeRoles = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
-    return res.status(403).json({ success: false, message: "Access denied" });
+// --- MIDDLEWARE AUTHORIZATION ---
+// Hàm kiểm tra quyền Admin (bạn có thể tách ra file riêng)
+const authorizeAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.isAdmin)) {
+    next();
+  } else {
+    res.status(403).json({ message: "Yêu cầu quyền Admin" });
   }
-  next();
 };
 
-// ================== MULTER SETUP FOR QR CODE ==================
-const qrCodeDir = "uploads/qrcodes";
-if (!fs.existsSync(qrCodeDir)) {
-  fs.mkdirSync(qrCodeDir, { recursive: true });
-}
+// --- ROUTES ---
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, qrCodeDir);
-  },
-  filename: (req, file, cb) => {
-    const userId = req.user?._id || req.user?.id || "unknown";
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `qr-${userId}-${unique}${path.extname(file.originalname)}`);
-  }
-});
+// Public: Lấy danh sách
+router.get("/", paymentMethodController.getAllPaymentMethods);
 
-const fileFilter = (req, file, cb) => {
-  if (!file.mimetype.startsWith("image/")) {
-    return cb(new Error("Chỉ được upload file ảnh!"));
-  }
-  cb(null, true);
-};
+// Public: Lấy chi tiết
+router.get("/:id", paymentMethodController.getPaymentMethodById);
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
-});
-
-// ================== PUBLIC ROUTES ==================
-router.get("/", getAllPaymentMethods);
-router.get("/:id", getPaymentMethodById);
-
-// ================== PROTECTED ROUTES ==================
-// Tạo phương thức thanh toán mới (admin/photographer)
+// Protected: Tạo mới (JSON)
 router.post(
   "/",
   verifyTokenUser,
-  authorizeRoles("admin", "photographer"),
-  createPaymentMethod
+  authorizeAdmin,
+  paymentMethodController.createPaymentMethod
 );
 
-// Cập nhật phương thức thanh toán
+// Protected: Cập nhật (JSON)
 router.put(
   "/:id",
   verifyTokenUser,
-  authorizeRoles("admin", "photographer"),
-  updatePaymentMethod
+  authorizeAdmin,
+  paymentMethodController.updatePaymentMethod
 );
 
-// Xóa phương thức thanh toán
+// Protected: Xóa
 router.delete(
   "/:id",
   verifyTokenUser,
-  authorizeRoles("admin"),
-  deletePaymentMethod
+  authorizeAdmin,
+  paymentMethodController.deletePaymentMethod
 );
 
-// Upload QR code
-router.post(
-  "/:id/upload-qr",
-  verifyTokenUser,
-  authorizeRoles("admin", "photographer"),
-  (req, res, next) => {
-    upload.single("qrCode")(req, res, (err) => {
-      if (err instanceof multer.MulterError) {
-        return res.status(400).json({ message: `Lỗi upload: ${err.message}` });
-      } else if (err) {
-        return res.status(400).json({ message: err.message });
-      }
-      next();
-    });
-  },
-  uploadQRCode
-);
-
-// Toggle trạng thái active/inactive
+// Protected: Toggle Active
 router.patch(
   "/:id/toggle-active",
   verifyTokenUser,
-  authorizeRoles("admin"),
-  toggleActiveStatus
+  authorizeAdmin,
+  paymentMethodController.toggleActiveStatus
 );
 
 export default router;

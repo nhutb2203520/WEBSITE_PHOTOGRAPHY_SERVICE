@@ -11,34 +11,28 @@ import {
   Trash2,
   Edit2,
   Save,
+  Power,
   X,
   Upload,
-  Eye,
-  EyeOff,
-  Power // Icon nút nguồn/active
+  Eye
 } from "lucide-react";
 
 import paymentMethodService from "../../apis/paymentMethodService";
 import adminAuthService from "../../apis/adminAuthService";
-// import orderService from "../../apis/orderService"; // Import service đơn hàng của bạn ở đây
 
 export default function PaymentManage() {
-  // --- STATE ---
-  const [payments, setPayments] = useState([]); // Danh sách đơn hàng
-  const [paymentMethods, setPaymentMethods] = useState([]); // Danh sách phương thức TT
+  const [payments, setPayments] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Modal states
   const [modalOpen, setModalOpen] = useState(false);
-  const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState(null);
-  const [selectedQRCode, setSelectedQRCode] = useState(null);
 
   const statusColors = {
-    "pending_payment": "warning", // Chưa thanh toán
-    "pending": "info",            // Chờ xác nhận (Khách đã up ảnh)
-    "confirmed": "success",       // Đã xác nhận
+    "pending_payment": "warning",
+    "pending": "info",
+    "confirmed": "success",
     "completed": "success",
     "cancelled": "danger"
   };
@@ -51,7 +45,6 @@ export default function PaymentManage() {
     "cancelled": "Đã hủy"
   };
 
-  // --- INITIAL FETCH ---
   useEffect(() => {
     adminAuthService.initAutoRefresh();
     fetchData();
@@ -63,34 +56,32 @@ export default function PaymentManage() {
       
       // 1. Fetch Payment Methods
       const methodsRes = await paymentMethodService.getAllPaymentMethods();
-      const formattedMethods = methodsRes.data.map((method) => ({
+      
+      // ✅ FIX LỖI: Thêm ?. để tránh crash nếu methodsRes là null/undefined
+      const methodsList = Array.isArray(methodsRes) 
+        ? methodsRes 
+        : (methodsRes?.data || []); // Thêm dấu ? trước .data
+
+      const formattedMethods = methodsList.map((method) => ({
         id: method._id,
         fullName: method.fullName,
         accountNumber: method.accountNumber,
         bank: method.bank,
         branch: method.branch || "",
-        qrCode: method.qrCode, // URL từ server
-        qrFile: null,          // File mới (nếu có upload)
         isActive: method.isActive,
         editing: false,
       }));
       setPaymentMethods(formattedMethods);
 
-      // 2. Fetch Orders (Giả lập - Bạn hãy thay bằng API thật)
-      // const ordersRes = await orderService.getAllOrders(); 
-      // setPayments(ordersRes.data);
-      
-      // Dữ liệu giả lập để test giao diện
+      // 2. Fetch Orders (Giả lập)
       setPayments([
         { id: "ORD-001", customer: "Nguyễn Văn A", service: "Chụp Cưới", amount: "2,500,000₫", date: "2023-11-20", status: "pending" },
         { id: "ORD-002", customer: "Trần Thị B", service: "Kỷ yếu", amount: "1,200,000₫", date: "2023-11-21", status: "confirmed" },
-        { id: "ORD-003", customer: "Lê Văn C", service: "Sự kiện", amount: "5,000,000₫", date: "2023-11-22", status: "pending_payment" },
       ]);
 
     } catch (error) {
       console.error("Fetch error:", error);
-      setError(error?.message || "Lỗi tải dữ liệu");
-      toast.error("Không thể tải dữ liệu");
+      // setError(error?.message || "Lỗi tải dữ liệu"); // Tạm tắt error banner để không che UI
     } finally {
       setLoading(false);
     }
@@ -108,8 +99,6 @@ export default function PaymentManage() {
         accountNumber: "",
         bank: "",
         branch: "",
-        qrCode: null,
-        qrFile: null,
         isActive: true,
         editing: true,
         isNew: true,
@@ -137,80 +126,49 @@ export default function PaymentManage() {
     }
   };
 
-  // Xử lý upload ảnh QR (Lưu vào state để preview và gửi đi)
-  const handleQrChange = (id, file) => {
-    if (!file) return;
-    
-    // Validate basic
-    if (file.size > 5 * 1024 * 1024) {
-      return toast.error("File quá lớn (Max 5MB)");
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPaymentMethods((prev) =>
-        prev.map((m) =>
-          m.id === id
-            ? { ...m, qrCode: reader.result, qrFile: file } // qrCode để preview, qrFile để upload
-            : m
-        )
-      );
-      toast.success("Đã chọn ảnh QR");
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleMethodChange = (id, field, value) => {
     setPaymentMethods((prev) =>
       prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
     );
   };
 
-  // SAVE / UPDATE FUNCTION (Quan trọng: Dùng FormData)
   const toggleEdit = async (id) => {
     const method = paymentMethods.find((m) => m.id === id);
     if (!method) return;
 
     if (method.editing) {
-      // --- SAVE MODE ---
+      // --- SAVE MODE (JSON) ---
       if (!method.fullName || !method.accountNumber || !method.bank) {
         return toast.error("Vui lòng nhập: Tên, Số TK, Ngân hàng");
       }
 
       try {
-        // Tạo FormData để gửi file
-        const formData = new FormData();
-        formData.append("fullName", method.fullName);
-        formData.append("accountNumber", method.accountNumber);
-        formData.append("bank", method.bank);
-        formData.append("branch", method.branch || "");
-        formData.append("isActive", method.isActive);
-        
-        // Chỉ gửi ảnh nếu user có chọn file mới
-        if (method.qrFile) {
-          formData.append("qrCode", method.qrFile);
-        }
+        const payload = {
+          fullName: method.fullName,
+          accountNumber: method.accountNumber,
+          bank: method.bank,
+          branch: method.branch || "",
+          isActive: method.isActive
+        };
 
         let res;
         if (method.isNew) {
-          res = await paymentMethodService.createPaymentMethod(formData);
+          res = await paymentMethodService.createPaymentMethod(payload);
           toast.success("Đã tạo phương thức mới");
         } else {
-          res = await paymentMethodService.updatePaymentMethod(id, formData);
+          res = await paymentMethodService.updatePaymentMethod(id, payload);
           toast.success("Đã cập nhật thành công");
         }
 
-        // Update state với dữ liệu từ server trả về (để có URL ảnh thật)
-        const updatedData = res.data || res; // Tùy cấu trúc response của bạn
+        // Handle response linh hoạt
+        const updatedData = res?.data || res || {}; 
         
         setPaymentMethods((prev) =>
           prev.map((m) =>
             m.id === id
               ? {
                   ...m,
-                  id: updatedData._id || m.id, // Update ID thật nếu là mới
-                  qrCode: updatedData.qrCode || m.qrCode, // Update URL ảnh từ server
-                  qrFile: null, // Reset file upload
+                  id: updatedData._id || m.id,
                   editing: false,
                   isNew: false,
                 }
@@ -239,9 +197,6 @@ export default function PaymentManage() {
 
   const confirmOrderPayment = async () => {
     try {
-      // Gọi API cập nhật trạng thái (Bỏ comment khi có API thật)
-      // await orderService.updateOrderStatus(selectedPaymentId, "confirmed");
-
       setPayments((prev) =>
         prev.map((p) =>
           p.id === selectedPaymentId ? { ...p, status: "confirmed" } : p
@@ -254,14 +209,6 @@ export default function PaymentManage() {
     }
   };
 
-  // --- HELPER ---
-  const getQRCodeUrl = (qr) => {
-    if (!qr) return null;
-    if (qr.startsWith("data:")) return qr; // Base64 preview
-    if (qr.startsWith("http")) return qr;  // Full URL
-    return `http://localhost:5000${qr}`;   // Relative path từ server
-  };
-
   if (loading) return <div className="loading-screen"><div className="spinner"></div></div>;
 
   return (
@@ -272,10 +219,8 @@ export default function PaymentManage() {
 
         <div className="page-header">
           <h2>Quản lý Thanh toán</h2>
-          <input type="text" placeholder="Tìm kiếm..." className="search-input" />
         </div>
 
-        {/* --- ERROR --- */}
         {error && (
           <div className="error-banner">
             <span>⚠️ {error}</span>
@@ -283,19 +228,17 @@ export default function PaymentManage() {
           </div>
         )}
 
-        {/* --- PAYMENT METHODS --- */}
         <button className="btn add-method" onClick={addPaymentMethod}>
           <PlusCircle size={20} /> Thêm phương thức thanh toán
         </button>
 
         <div className="payment-methods-section">
           <h3 className="section-title">Phương thức thanh toán ({paymentMethods.length})</h3>
+          <p className="text-muted mb-3">Nhập đúng <strong>Mã Ngân hàng</strong> (VD: MB, VCB, TCB) để mã QR hiển thị chính xác.</p>
           
           <div className="cards-container">
             {paymentMethods.map((m) => (
               <div key={m.id} className={`payment-card ${!m.isActive ? "inactive-mode" : ""}`}>
-                
-                {/* Card Header */}
                 <div className="card-header">
                   <strong className="card-title">
                     {m.fullName || "Tài khoản mới"}
@@ -311,9 +254,7 @@ export default function PaymentManage() {
                   </div>
                 </div>
 
-                {/* Card Body */}
                 <div className="card-body">
-                  {/* Toggle Active */}
                   <div className="form-toggle">
                     <label>Trạng thái hoạt động:</label>
                     <label className="switch">
@@ -330,61 +271,30 @@ export default function PaymentManage() {
                   <div className="form-group">
                     <label>Họ tên chủ thẻ *</label>
                     <input type="text" value={m.fullName} readOnly={!m.editing} 
+                      placeholder="VD: NGUYEN VAN A"
                       onChange={(e) => handleMethodChange(m.id, "fullName", e.target.value)} />
                   </div>
 
                   <div className="form-group">
                     <label>Số tài khoản *</label>
                     <input type="text" value={m.accountNumber} readOnly={!m.editing} 
+                      placeholder="VD: 0123456789"
                       onChange={(e) => handleMethodChange(m.id, "accountNumber", e.target.value)} />
                   </div>
 
                   <div className="form-group-row">
                     <div className="form-group">
-                      <label>Ngân hàng *</label>
+                      <label>Mã Ngân hàng *</label>
                       <input type="text" value={m.bank} readOnly={!m.editing} 
+                        placeholder="VD: MB, VCB"
                         onChange={(e) => handleMethodChange(m.id, "bank", e.target.value)} />
                     </div>
                     <div className="form-group">
                       <label>Chi nhánh</label>
                       <input type="text" value={m.branch} readOnly={!m.editing} 
+                        placeholder="Tùy chọn"
                         onChange={(e) => handleMethodChange(m.id, "branch", e.target.value)} />
                     </div>
-                  </div>
-
-                  {/* QR Upload Section */}
-                  <div className="qr-section">
-                    <label>Mã QR</label>
-                    {m.editing && (
-                      <div className="upload-btn-wrapper">
-                        <input 
-                          type="file" 
-                          id={`qr-upload-${m.id}`} 
-                          accept="image/*" 
-                          onChange={(e) => handleQrChange(m.id, e.target.files[0])} 
-                          hidden 
-                        />
-                        <label htmlFor={`qr-upload-${m.id}`} className="btn-upload-qr">
-                          <Upload size={14} /> {m.qrCode ? "Thay đổi ảnh" : "Tải ảnh lên"}
-                        </label>
-                      </div>
-                    )}
-
-                    {m.qrCode ? (
-                      <div className="qr-preview-box">
-                        <img 
-                          src={getQRCodeUrl(m.qrCode)} 
-                          alt="QR" 
-                          className="qr-thumb" 
-                          onClick={() => { setSelectedQRCode(m.qrCode); setQrModalOpen(true); }}
-                        />
-                        <span className="view-text" onClick={() => { setSelectedQRCode(m.qrCode); setQrModalOpen(true); }}>
-                          <Eye size={12} /> Xem
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="qr-placeholder">Chưa có QR</div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -426,10 +336,8 @@ export default function PaymentManage() {
                         <button className="btn-verify" onClick={() => openConfirmModal(p.id)}>
                           <CheckCircle2 size={16} /> Xác nhận
                         </button>
-                      ) : p.status === "pending_payment" ? (
-                         <span className="text-muted">Chờ khách CK...</span>
                       ) : (
-                        <span className="text-success">✓ Đã duyệt</span>
+                        <span className="text-muted">-</span>
                       )}
                     </td>
                   </tr>
@@ -439,7 +347,6 @@ export default function PaymentManage() {
           </div>
         </div>
 
-        {/* MODAL XÁC NHẬN */}
         {modalOpen && (
           <div className="modal-overlay" onClick={() => setModalOpen(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -452,17 +359,6 @@ export default function PaymentManage() {
                 <button className="btn-cancel" onClick={() => setModalOpen(false)}>Hủy</button>
                 <button className="btn-confirm" onClick={confirmOrderPayment}>Đồng ý</button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL QR ZOOM */}
-        {qrModalOpen && (
-          <div className="modal-overlay" onClick={() => setQrModalOpen(false)}>
-            <div className="modal-content qr-view" onClick={(e) => e.stopPropagation()}>
-              <button className="close-btn" onClick={() => setQrModalOpen(false)}><X /></button>
-              <h3>Mã QR</h3>
-              <img src={getQRCodeUrl(selectedQRCode)} alt="Full QR" className="qr-full-img" />
             </div>
           </div>
         )}

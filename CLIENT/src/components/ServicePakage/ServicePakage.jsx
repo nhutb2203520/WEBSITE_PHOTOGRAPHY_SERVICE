@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Heart, Camera, CheckCircle2, ClipboardList } from 'lucide-react'; // ✅ Thêm ClipboardList
+import { Star, Heart, Camera, CheckCircle2, ClipboardList, MapPin, Search } from 'lucide-react';
 import './ServicePackage.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
@@ -13,6 +13,7 @@ export default function PackagePage() {
   const dispatch = useDispatch();
   const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState('');
+  const [location, setLocation] = useState(''); // ✅ State lọc vị trí
   const [loaiGoi, setLoaiGoi] = useState('');
   const [sortBy, setSortBy] = useState('');
 
@@ -55,15 +56,28 @@ export default function PackagePage() {
     return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} đ`;
   };
 
-  // Filter packages
+  // ✅ Filter logic (Bao gồm cả Location)
   let filtered = packages.filter(pkg => {
+    // Lọc theo tên/mô tả
     const matchSearch = pkg.TenGoi?.toLowerCase().includes(search.toLowerCase()) ||
                         pkg.MoTa?.toLowerCase().includes(search.toLowerCase());
+    
+    // Lọc theo loại gói
     const matchLoaiGoi = !loaiGoi || pkg.LoaiGoi === loaiGoi;
-    return matchSearch && matchLoaiGoi;
+
+    // ✅ Lọc theo vị trí (City, District, Address)
+    const pkgLocation = [
+      pkg.baseLocation?.city, 
+      pkg.baseLocation?.district, 
+      pkg.baseLocation?.address
+    ].join(' ').toLowerCase();
+    
+    const matchLocation = !location || pkgLocation.includes(location.toLowerCase());
+
+    return matchSearch && matchLoaiGoi && matchLocation;
   });
 
-  // Sort packages
+  // Sort logic
   if (sortBy === 'rating') {
     filtered.sort((a, b) => (b.DanhGia || 0) - (a.DanhGia || 0));
   } else if (sortBy === 'popular') {
@@ -80,9 +94,11 @@ export default function PackagePage() {
     const filters = {};
     if (loaiGoi) filters.loaiGoi = loaiGoi;
     if (search) filters.search = search;
+    if (location) filters.location = location; // Gửi thêm params location lên server nếu API hỗ trợ
     dispatch(getAllPackages(filters));
   };
 
+  // Tự động fetch lại khi đổi loại gói (Dropdown)
   useEffect(() => {
     handleFilterChange();
   }, [loaiGoi]); 
@@ -101,15 +117,31 @@ export default function PackagePage() {
               <p>Khám phá các gói dịch vụ chất lượng từ các photographer chuyên nghiệp</p>
             </div>
 
-            {/* Search & Filter & My Orders Button */}
+            {/* ✅ Search & Filter Section */}
             <div className="search-filter">
-              <input
-                type="text"
-                placeholder="Tìm kiếm gói dịch vụ..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleFilterChange()}
-              />
+              {/* Ô tìm kiếm từ khóa */}
+              <div className="input-wrapper">
+                <Search size={18} className="input-icon" />
+                <input
+                  type="text"
+                  placeholder="Tìm tên gói, mô tả..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleFilterChange()}
+                />
+              </div>
+
+              {/* ✅ Ô tìm kiếm vị trí */}
+              <div className="input-wrapper">
+                <MapPin size={18} className="input-icon" />
+                <input
+                  type="text"
+                  placeholder="Tỉnh/Thành phố..."
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleFilterChange()}
+                />
+              </div>
 
               <select value={loaiGoi} onChange={(e) => setLoaiGoi(e.target.value)}>
                 <option value="">Tất cả loại gói</option>
@@ -131,7 +163,7 @@ export default function PackagePage() {
                 <option value="priceDesc">Giá: Cao đến Thấp</option>
               </select>
 
-              {/* ✅ NÚT ĐƠN HÀNG CỦA TÔI (Chỉ hiện khi đã đăng nhập) */}
+              {/* Nút Đơn hàng của tôi */}
               {user && (
                 <Link to="/my-orders" className="btn-my-orders">
                   <ClipboardList size={20} />
@@ -197,6 +229,12 @@ export default function PackagePage() {
                       </div>
                     </div>
                     
+                    {/* ✅ Hiển thị vị trí trên card */}
+                    <div className="package-location-row">
+                      <MapPin size={14} />
+                      <span>{pkg.baseLocation?.city || pkg.baseLocation?.address || 'Toàn quốc'}</span>
+                    </div>
+
                     <p className="package-description">{pkg.MoTa}</p>
 
                     <div className="package-services-list">

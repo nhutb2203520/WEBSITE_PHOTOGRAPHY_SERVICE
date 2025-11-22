@@ -2,30 +2,10 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
-    order_id: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-
-    customer_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "bangKhachHang",
-      required: true,
-    },
-
-    photographer_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "bangThoChupAnh",
-      required: false,
-      default: null,
-    },
-
-    service_package_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "ServicePackage",
-      required: true,
-    },
+    order_id: { type: String, required: true, unique: true },
+    customer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang", required: true },
+    photographer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangThoChupAnh", default: null },
+    service_package_id: { type: mongoose.Schema.Types.ObjectId, ref: "ServicePackage", required: true },
 
     // ==================== THÔNG TIN ĐẶT LỊCH ====================
     booking_date: { type: Date, required: true },
@@ -34,19 +14,22 @@ const orderSchema = new mongoose.Schema(
     completion_date: { type: Date, default: null },
     estimated_duration_days: { type: Number, default: null },
 
+    // Check trùng lịch
+    booking_start: { type: Date },
+    booking_end: { type: Date },
+
     // ==================== KHÁCH HÀNG & DỊCH VỤ ====================
     guest_count: { type: Number, default: 1 },
     guest_times: { type: [String], default: [] },
     selected_services: { type: [Number], default: [] },
 
-    // ==================== ĐỊA ĐIỂM KHÁCH HÀNG ====================
+    // ==================== ĐỊA ĐIỂM ====================
     location: {
       name: { type: String, default: "" },
       address: { type: String, required: true },
       city: { type: String, default: "" },
       district: { type: String, default: "" },
       map_link: { type: String, default: "" },
-      // ✅ THÊM TỌA ĐỘ GPS CỦA KHÁCH
       coordinates: {
         lat: { type: Number, default: null },
         lng: { type: Number, default: null }
@@ -69,21 +52,12 @@ const orderSchema = new mongoose.Schema(
     },
 
     // ==================== THANH TOÁN ====================
-    // Giá dịch vụ (chưa bao gồm phí di chuyển)
     service_amount: { type: Number, required: true },
-    
-    // Phí di chuyển
     travel_fee_amount: { type: Number, default: 0 },
-    
-    // Tổng trước giảm giá (service + travel)
     total_amount: { type: Number, required: true },
-    
     discount_amount: { type: Number, default: 0 },
-    
-    // Tổng sau giảm giá
     final_amount: { type: Number, required: true },
-
-    // ✅ THÔNG TIN CỌC 30%
+    
     deposit_required: {
       type: Number,
       required: true,
@@ -95,22 +69,15 @@ const orderSchema = new mongoose.Schema(
     deposit_paid: { type: Boolean, default: false },
     deposit_amount: { type: Number, default: 0 },
 
-    // ✅ THÔNG TIN CHUYỂN KHOẢN
     payment_info: {
       transfer_code: { type: String, default: null },
       transfer_image: { type: String, default: null },
       transfer_date: { type: Date, default: null },
-      payment_method_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "PaymentMethod",
-        default: null
-      },
+      transaction_code: { type: String, default: null },
+      deposit_amount: { type: Number, default: 0 },
+      payment_method_id: { type: mongoose.Schema.Types.ObjectId, ref: "PaymentMethod", default: null },
       verified: { type: Boolean, default: false },
-      verified_by: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "bangKhachHang",
-        default: null
-      },
+      verified_by: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang", default: null },
       verified_at: { type: Date, default: null }
     },
 
@@ -118,37 +85,33 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        "pending_payment",
-        "pending",
-        "confirmed",
-        "in_progress",
-        "completed",
-        "cancelled"
+        "pending_payment",      // Chờ thanh toán cọc
+        "pending",              // Đã cọc, chờ xác nhận (Nếu hủy lúc này -> Refund Pending)
+        "confirmed",            // Đã xác nhận (Nếu hủy lúc này -> Cancelled & Mất cọc)
+        "in_progress",          // Đang thực hiện
+        "completed",            // Hoàn thành
+        "cancelled",            // Đã hủy
+        "refund_pending"        // ✅ MỚI: Chờ hoàn tiền (Do hủy khi chưa confirm)
       ],
       default: "pending_payment",
     },
 
-    // ==================== LỊCH SỬ TRẠNG THÁI ====================
+    // ==================== LỊCH SỬ ====================
     status_history: [{
       status: String,
       changed_at: { type: Date, default: Date.now },
-      changed_by: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "bangKhachHang"
-      },
+      changed_by: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang" },
       note: String
     }]
   },
   { timestamps: true }
 );
 
-// ==================== INDEXES ====================
 orderSchema.index({ order_id: 1 });
 orderSchema.index({ customer_id: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ "payment_info.transfer_code": 1 });
 
-// ==================== METHODS ====================
 orderSchema.methods.generateTransferCode = function() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = 'CK';
@@ -168,7 +131,6 @@ orderSchema.methods.updateStatus = function(newStatus, userId, note = '') {
   });
 };
 
-// ==================== HOOKS ====================
 orderSchema.pre('save', function(next) {
   if (this.isModified('final_amount')) {
     this.deposit_required = Math.round(this.final_amount * 0.3);

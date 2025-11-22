@@ -2,32 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   CreditCard, Calendar, MapPin, Clock, CheckCircle, 
-  Copy, AlertTriangle, ShieldCheck, Wallet, Upload, X
+  Copy, AlertTriangle, ShieldCheck, Wallet, Upload, X, ChevronDown, Loader
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
 import './PaymentServicePackage.css';
 import orderApi from '../../apis/OrderService';
-
-// CẤU HÌNH THÔNG TIN NGÂN HÀNG
-const BANK_INFO = {
-  BANK_ID: 'MB', 
-  ACCOUNT_NO: '0776560735', 
-  ACCOUNT_NAME: 'PHAN VAN MINH NHUT', 
-  TEMPLATE: 'compact2' 
-};
+// ✅ Import Service để lấy thông tin ngân hàng từ Database
+import paymentMethodService from '../../apis/paymentMethodService';
 
 export default function PaymentServicePackage() {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Lấy dữ liệu từ trang Order
   const { order, transfer_code, deposit_required: depositFromState } = location.state || {};
 
   const [paymentMethod, setPaymentMethod] = useState('banking');
   const [loading, setLoading] = useState(false);
   
-  // ✅ STATE CHO ẢNH MINH CHỨNG
+  // ✅ STATE QUẢN LÝ THÔNG TIN NGÂN HÀNG ĐỘNG
+  const [adminBanks, setAdminBanks] = useState([]);
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [loadingBanks, setLoadingBanks] = useState(true);
+
+  // State cho ảnh minh chứng
   const [proofImage, setProofImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -36,23 +36,54 @@ export default function PaymentServicePackage() {
       toast.error('Không tìm thấy thông tin đơn hàng');
       navigate('/');
     }
-    // Cleanup preview URL khi unmount
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [order, navigate, previewUrl]);
 
+  // ✅ 1. TỰ ĐỘNG LẤY THÔNG TIN NGÂN HÀNG CỦA ADMIN KHI LOAD TRANG
+  useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      try {
+        setLoadingBanks(true);
+        // Gọi API lấy danh sách phương thức thanh toán
+        const res = await paymentMethodService.getAllPaymentMethods();
+        
+        const methods = Array.isArray(res) ? res : (res.data || []);
+        // Chỉ lấy những tài khoản đang hoạt động (isActive = true)
+        const activeMethods = methods.filter(m => m.isActive);
+
+        setAdminBanks(activeMethods);
+        
+        // Mặc định chọn tài khoản đầu tiên để hiển thị QR ngay lập tức
+        if (activeMethods.length > 0) {
+          setSelectedBank(activeMethods[0]);
+        }
+      } catch (error) {
+        console.error("Lỗi lấy thông tin ngân hàng:", error);
+        toast.error("Không thể tải thông tin thanh toán của Admin.");
+      } finally {
+        setLoadingBanks(false);
+      }
+    };
+
+    fetchPaymentMethods();
+  }, []);
+
   if (!order) return null;
 
   // --- TÍNH TOÁN SỐ TIỀN ---
   const serviceFee = Number(order.service_amount) || 0;
-  const travelFee = Number(order.travel_fee) || 0;
+  const travelFee = Number(order.travel_fee_amount) || 0; // Lưu ý: dùng travel_fee_amount
   const totalAmount = Number(order.total_amount) || (serviceFee + travelFee);
   const depositAmount = Number(depositFromState) || Math.round(totalAmount * 0.3);
   const transactionCode = transfer_code || `COC ${order._id.slice(-6).toUpperCase()}`;
-  // -------------------------
 
-  const qrUrl = `https://img.vietqr.io/image/${BANK_INFO.BANK_ID}-${BANK_INFO.ACCOUNT_NO}-${BANK_INFO.TEMPLATE}.png?amount=${depositAmount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(BANK_INFO.ACCOUNT_NAME)}`;
+  // ✅ 2. TẠO LINK VIETQR ĐỘNG DỰA TRÊN NGÂN HÀNG ĐANG CHỌN
+  // Format: https://img.vietqr.io/image/[BANK_ID]-[ACCOUNT_NO]-[TEMPLATE].png
+  const qrUrl = selectedBank 
+    ? `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.accountNumber}-compact2.png?amount=${depositAmount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(selectedBank.fullName)}`
+    : null;
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -61,11 +92,10 @@ export default function PaymentServicePackage() {
 
   const formatPrice = (price) => Number(price || 0).toLocaleString('vi-VN');
 
-  // ✅ XỬ LÝ CHỌN ẢNH
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // Giới hạn 5MB
+      if (file.size > 5 * 1024 * 1024) {
         toast.error("Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB");
         return;
       }
@@ -79,9 +109,7 @@ export default function PaymentServicePackage() {
     setPreviewUrl(null);
   };
 
-  // ✅ GỬI FORM DATA (BAO GỒM ẢNH)
   const handleConfirmPayment = async () => {
-    // Kiểm tra nếu chọn chuyển khoản thì bắt buộc phải có ảnh
     if (paymentMethod === 'banking' && !proofImage) {
       toast.warning('Vui lòng tải lên ảnh minh chứng chuyển khoản!');
       return;
@@ -95,8 +123,12 @@ export default function PaymentServicePackage() {
       formData.append('amount', depositAmount);
       formData.append('transaction_code', transactionCode);
       
+      // Gửi kèm ID ngân hàng (nếu có) để Admin dễ đối soát
+      if (selectedBank) {
+        formData.append('bank_id', selectedBank._id || selectedBank.id);
+      }
+      
       if (proofImage) {
-        // 'payment_proof' phải khớp với tên field trong multer ở Backend (ví dụ: upload.single('payment_proof'))
         formData.append('payment_proof', proofImage); 
       }
 
@@ -145,38 +177,86 @@ export default function PaymentServicePackage() {
 
             {paymentMethod === 'banking' ? (
               <div className="qr-section animate-fade-in">
-                <img src={qrUrl} alt="VietQR Code" className="qr-image" />
                 
-                <div className="bank-details">
-                  <div className="detail-row">
-                    <span className="text-gray-500">Chủ tài khoản</span>
-                    <span className="font-bold">{BANK_INFO.ACCOUNT_NAME}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="text-gray-500">Số tài khoản</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg text-green-700">{BANK_INFO.ACCOUNT_NO}</span>
-                      <button className="copy-btn" onClick={() => handleCopy(BANK_INFO.ACCOUNT_NO)}>
-                        <Copy size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="detail-row">
-                    <span className="text-gray-500">Số tiền cọc</span>
-                    <span className="font-bold text-lg text-red-600">{formatPrice(depositAmount)} VNĐ</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="text-gray-500">Nội dung CK</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-blue-600">{transactionCode}</span>
-                      <button className="copy-btn" onClick={() => handleCopy(transactionCode)}>
-                        <Copy size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                {loadingBanks ? (
+                   <div className="loading-banks">
+                     <Loader className="spin" /> Đang tải thông tin ngân hàng...
+                   </div>
+                ) : adminBanks.length === 0 ? (
+                   <div className="no-banks-alert">
+                     <AlertTriangle className="text-yellow-500"/> 
+                     Chưa có thông tin ngân hàng. Vui lòng liên hệ Admin để được hỗ trợ.
+                   </div>
+                ) : (
+                  <>
+                    {/* Dropdown chọn ngân hàng nếu có nhiều hơn 1 */}
+                    {adminBanks.length > 1 && (
+                      <div className="bank-selector">
+                        <label>Chọn ngân hàng thụ hưởng:</label>
+                        <div className="select-wrapper">
+                          <select 
+                            value={selectedBank?._id || selectedBank?.id} 
+                            onChange={(e) => {
+                              const bank = adminBanks.find(b => (b._id || b.id) === e.target.value);
+                              setSelectedBank(bank);
+                            }}
+                          >
+                            {adminBanks.map(bank => (
+                              <option key={bank._id || bank.id} value={bank._id || bank.id}>
+                                {bank.bank} - {bank.accountNumber} ({bank.fullName})
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown size={16} className="select-icon"/>
+                        </div>
+                      </div>
+                    )}
 
-                {/* ✅ KHU VỰC UPLOAD ẢNH */}
+                    {/* ✅ HIỂN THỊ QR ĐỘNG */}
+                    {selectedBank && (
+                      <>
+                        <img src={qrUrl} alt="VietQR Code" className="qr-image" />
+                        
+                        <div className="bank-details">
+                          <div className="detail-row">
+                            <span className="text-gray-500">Ngân hàng</span>
+                            <span className="font-bold">
+                                {selectedBank.bank} {selectedBank.branch ? `(${selectedBank.branch})` : ''}
+                            </span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="text-gray-500">Chủ tài khoản</span>
+                            <span className="font-bold text-uppercase">{selectedBank.fullName}</span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="text-gray-500">Số tài khoản</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-lg text-green-700">{selectedBank.accountNumber}</span>
+                              <button className="copy-btn" onClick={() => handleCopy(selectedBank.accountNumber)}>
+                                <Copy size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="detail-row">
+                            <span className="text-gray-500">Số tiền cọc</span>
+                            <span className="font-bold text-lg text-red-600">{formatPrice(depositAmount)} VNĐ</span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="text-gray-500">Nội dung CK</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-blue-600">{transactionCode}</span>
+                              <button className="copy-btn" onClick={() => handleCopy(transactionCode)}>
+                                <Copy size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* UPLOAD ẢNH */}
                 <div className="upload-section">
                   <label className="upload-label">Tải lên minh chứng thanh toán (Bill)</label>
                   
@@ -215,7 +295,7 @@ export default function PaymentServicePackage() {
                 <MapPin size={40} className="mx-auto text-gray-400 mb-3" />
                 <h3 className="font-bold text-gray-700 mb-2">Thanh toán tại Studio</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  Vui lòng đến trực tiếp studio để đặt cọc trong vòng 24h tới.
+                  Vui lòng đến trực tiếp studio để đặt cọc trong vòng 24h tới để giữ lịch.
                 </p>
               </div>
             )}
