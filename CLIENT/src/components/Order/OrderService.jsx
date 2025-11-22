@@ -19,7 +19,7 @@ export default function OrderServices() {
   const location = useLocation();
   const { user } = useSelector(state => state.user || {});
 
-  const [packages, setPackages] = useState([]);
+  // Bỏ state packages vì không cần danh sách chọn nữa
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -60,10 +60,14 @@ export default function OrderServices() {
       navigate('/signin', { state: { from: '/order-service' } });
       return;
     }
-    fetchPackages();
+
+    // Kiểm tra nếu không có packageId gửi sang thì báo lỗi quay về
     if (location.state?.packageId) {
       setFormData(prev => ({ ...prev, packageId: location.state.packageId }));
       loadSelectedPackage(location.state.packageId);
+    } else {
+      toast.error("Vui lòng chọn gói dịch vụ trước!");
+      navigate('/service-package'); // Quay về trang danh sách gói
     }
   }, [user, navigate, location]);
 
@@ -106,12 +110,12 @@ export default function OrderServices() {
 
   const loadSelectedPackage = async (packageId) => {
     try {
+      setLoading(true);
       const response = await servicePackageApi.getPackageById(packageId);
       if (response) {
         setSelectedPackage(response);
-        // Lấy số ngày thực hiện, nếu chuỗi không phải số thì không set
+        // Lấy số ngày thực hiện
         let duration = response.ThoiGianThucHien;
-        // Chỉ lấy số đầu tiên trong chuỗi (ví dụ "2 ngày" -> 2)
         if (typeof duration === 'string') {
            const match = duration.match(/\d+/);
            duration = match ? match[0] : ''; 
@@ -124,21 +128,13 @@ export default function OrderServices() {
       }
     } catch (error) {
       console.error("❌ Lỗi tải package:", error);
-    }
-  };
-
-  const fetchPackages = async () => {
-    try {
-      setLoading(true);
-      const response = await servicePackageApi.getAllPackages();
-      const list = Array.isArray(response) ? response : response?.packages || [];
-      setPackages(list);
-    } catch (error) {
-      toast.error("Không thể tải danh sách gói dịch vụ");
+      toast.error("Không thể tải thông tin gói dịch vụ");
     } finally {
       setLoading(false);
     }
   };
+
+  // Đã xóa hàm fetchPackages vì không cần load list nữa
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -146,28 +142,22 @@ export default function OrderServices() {
     setFormErrors(prev => ({ ...prev, [name]: '' }));
     
     if (name === "bookingDate") {
-        // Gọi hàm tính toán ngay khi đổi ngày
         calculateCompletionDate(value, formData.estimatedDuration);
     }
   };
 
-  // ✅ FIX LỖI CRASH KHI CHỌN NGÀY
   const calculateCompletionDate = (bookingDate, duration) => {
-    // Nếu thiếu ngày hoặc thời gian thực hiện -> Không tính
     if (!bookingDate || !duration) return;
 
-    // Chuyển đổi duration sang số, nếu không phải số thì bỏ qua
     const daysToAdd = parseInt(duration);
     if (isNaN(daysToAdd)) return;
 
     try {
       const d = new Date(bookingDate);
-      // Kiểm tra ngày hợp lệ
       if (isNaN(d.getTime())) return;
 
       d.setDate(d.getDate() + daysToAdd);
       
-      // Kiểm tra lại lần nữa trước khi gọi toISOString
       if (!isNaN(d.getTime())) {
         setFormData(prev => ({ ...prev, completionDate: d.toISOString().split("T")[0] }));
       }
@@ -176,13 +166,7 @@ export default function OrderServices() {
     }
   };
 
-  const handlePackageSelect = (e) => {
-    const id = e.target.value;
-    setFormData(prev => ({ ...prev, packageId: id, selectedServices: [] }));
-    setTravelFee(null);
-    if (id) loadSelectedPackage(id);
-    else setSelectedPackage(null);
-  };
+  // Đã xóa hàm handlePackageSelect vì không cho chọn lại
 
   const handleServiceToggle = (serviceIndex) => {
     setFormData(prev => {
@@ -285,6 +269,7 @@ export default function OrderServices() {
   };
 
   // --- TÍNH TOÁN GIÁ ---
+
   const calculateServicePrice = () => {
     if (!selectedPackage?.DichVu || formData.selectedServices.length === 0) return 0;
     return formData.selectedServices.reduce((total, index) => {
@@ -304,7 +289,7 @@ export default function OrderServices() {
   const validateForm = () => {
     const errors = {};
     if (!formData.customerName.trim()) errors.customerName = "Vui lòng nhập họ tên";
-    if (!formData.packageId) errors.packageId = "Vui lòng chọn gói dịch vụ";
+    // Không cần check packageId vì đã bắt buộc từ useEffect
     if (!formData.bookingDate) errors.bookingDate = "Vui lòng chọn ngày";
     if (!formData.startTime) errors.startTime = "Vui lòng chọn giờ";
     if (!formData.address) errors.address = "Vui lòng nhập địa chỉ";
@@ -314,6 +299,7 @@ export default function OrderServices() {
   };
 
   // --- SUBMIT ---
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return toast.error("Vui lòng kiểm tra lại thông tin");
@@ -383,7 +369,7 @@ export default function OrderServices() {
          : img.startsWith("http") ? img
          : `http://localhost:5000/${img.replace(/^\/+/, "")}`;
 
-  // ✅ HÀM RENDER PHẦN HIỂN THỊ PHÍ DI CHUYỂN THÔNG MINH
+  // ✅ HÀM RENDER PHÍ DI CHUYỂN
   const renderTravelFeeSection = () => {
     if (calculatingFee) {
       return (
@@ -396,7 +382,6 @@ export default function OrderServices() {
 
     if (!travelFee) return null;
 
-    // Trường hợp 1: Có lỗi (Ví dụ chưa set base location)
     if (travelFee.error) {
         return (
             <div className="info-box" style={{ borderColor: '#ef4444', backgroundColor: '#fef2f2', color: '#b91c1c' }}>
@@ -406,7 +391,6 @@ export default function OrderServices() {
         );
     }
 
-    // Trường hợp 2: Gói không tính phí (enabled = false)
     if (!travelFee.enabled) {
         return (
             <div className="info-box">
@@ -416,7 +400,6 @@ export default function OrderServices() {
         );
     }
 
-    // Trường hợp 3: Tính phí thành công
     return (
       <div className="travel-fee-box">
         <div className="travel-fee-header"><Truck size={20} /> <h4>Phí di chuyển (Lái xe)</h4></div>
@@ -458,7 +441,7 @@ export default function OrderServices() {
           {loading ? (
             <div className="loading-state">
               <div className="spinner"></div>
-              <p>Đang tải thông tin...</p>
+              <p>Đang tải thông tin gói...</p>
             </div>
           ) : (
             <div className="order-content">
@@ -480,14 +463,19 @@ export default function OrderServices() {
                 {/* DỊCH VỤ */}
                 <div className="form-section">
                   <div className="section-header"><Package /> <h2>Thông tin dịch vụ</h2></div>
+                  
+                  {/* ✅ SỬA LẠI: CHỈ HIỂN THỊ TÊN GÓI (READONLY) */}
                   <div className="form-group">
-                    <label>Chọn gói <span className="required">*</span></label>
-                    <select name="packageId" value={formData.packageId} onChange={handlePackageSelect} className={formErrors.packageId ? 'error' : ''}>
-                      <option value="">-- Chọn gói dịch vụ --</option>
-                      {packages.map(pkg => <option key={pkg._id} value={pkg._id}>{pkg.TenGoi}</option>)}
-                    </select>
+                    <label>Gói dịch vụ</label>
+                    <input 
+                      type="text" 
+                      value={selectedPackage?.TenGoi || "Đang tải..."} 
+                      disabled 
+                      style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', fontWeight: 'bold', color: '#374151' }} 
+                    />
                   </div>
                   
+                  {/* Dịch vụ con */}
                   {selectedPackage?.DichVu?.length > 0 && (
                     <div className="form-group">
                         <label>Chọn dịch vụ thêm</label>
@@ -528,7 +516,7 @@ export default function OrderServices() {
                     <div className="form-group"><label>Tỉnh/Thành phố</label><input name="city" value={formData.city} onChange={handleInputChange} placeholder="Ví dụ: Cần Thơ" /></div>
                   </div>
 
-                  {/* NÚT TỰ ĐỘNG TÌM TỌA ĐỘ TỪ ĐỊA CHỈ */}
+                  {/* NÚT TỰ ĐỘNG TÌM TỌA ĐỘ */}
                   <div className="geo-actions">
                     <button 
                       type="button" 
@@ -563,9 +551,8 @@ export default function OrderServices() {
                     </div>
                   )}
 
-                  {/* ✅ GỌI HÀM RENDER PHÍ THÔNG MINH */}
+                  {/* ✅ HIỂN THỊ PHÍ DI CHUYỂN */}
                   {renderTravelFeeSection()}
-
                 </div>
 
                 {/* 4. GHI CHÚ */}
@@ -607,7 +594,7 @@ export default function OrderServices() {
                         </div>
                     </div>
                   ) : (
-                    <div className="placeholder-box"><Camera size={40} /><p>Chọn gói dịch vụ để xem chi tiết</p></div>
+                    <div className="placeholder-box"><Camera size={40} /><p>Đang tải thông tin...</p></div>
                   )}
                 </div>
               </div>

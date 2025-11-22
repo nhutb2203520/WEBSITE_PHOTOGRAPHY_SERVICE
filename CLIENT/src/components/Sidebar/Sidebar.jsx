@@ -18,7 +18,7 @@ export default function Sidebar() {
 
   const baseMenuItems = [
     { path: '/my-account', icon: <User size={24} />, label: 'Tài khoản của tôi', badge: null },
-    { path: '/orders', icon: <ShoppingBag size={24} />, label: 'Đơn hàng của tôi', badge: null },
+    { path: '/my-orders', icon: <ShoppingBag size={24} />, label: 'Đơn hàng của tôi', badge: null },
     { path: '/favorites', icon: <Heart size={24} />, label: 'Yêu thích', badge: null },
     { path: '/albums', icon: <Images size={24} />, label: 'Album', badge: null },
     { path: '/notifications', icon: <Bell size={24} />, label: 'Thông báo', badge: 5 },
