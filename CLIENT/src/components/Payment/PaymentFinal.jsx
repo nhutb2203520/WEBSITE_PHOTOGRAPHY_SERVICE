@@ -2,20 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   CreditCard, Calendar, Clock, CheckCircle, 
-  Copy, AlertTriangle, ShieldCheck, Upload, X, ChevronDown, Loader
+  Copy, AlertTriangle, ShieldCheck, Upload, X, ChevronDown, Loader, DollarSign
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
-import './PaymentServicePackage.css';
+import './PaymentServicePackage.css'; 
 import orderApi from '../../apis/OrderService';
 import paymentMethodService from '../../apis/paymentMethodService';
 
-export default function PaymentServicePackage() {
+export default function PaymentFinal() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const { order: initialOrder, deposit_required: amountFromState, is_remaining } = location.state || {};
+  const { order: initialOrder } = location.state || {};
 
   const [orderData, setOrderData] = useState(initialOrder);
   const [loading, setLoading] = useState(false);
@@ -30,77 +30,57 @@ export default function PaymentServicePackage() {
   useEffect(() => {
     if (!initialOrder) {
       toast.error('Không tìm thấy thông tin đơn hàng');
-      navigate('/');
+      navigate('/my-orders');
       return;
     }
     
-    if (initialOrder && typeof initialOrder.service_package_id === 'string') {
-        const fetchFullOrder = async () => {
-            try {
-                const res = await orderApi.getOrderDetail(initialOrder._id || initialOrder.order_id);
-                if (res && res.data) {
-                    setOrderData(res.data);
-                }
-            } catch (error) {
-                console.error("Lỗi tải chi tiết đơn hàng:", error);
+    const fetchFullOrder = async () => {
+        try {
+            const res = await orderApi.getOrderDetail(initialOrder._id || initialOrder.order_id);
+            if (res && res.data) {
+                setOrderData(res.data);
             }
-        };
-        fetchFullOrder();
-    }
+        } catch (error) {
+            console.error("Lỗi tải chi tiết đơn hàng:", error);
+        }
+    };
+    fetchFullOrder();
 
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
-  }, [initialOrder, navigate, previewUrl]);
+  }, [initialOrder, navigate]);
 
   useEffect(() => {
     const fetchPaymentMethods = async () => {
       try {
         setLoadingBanks(true);
         const res = await paymentMethodService.getAllPaymentMethods();
-        
         const methods = Array.isArray(res) ? res : (res.data || []);
         const activeMethods = methods.filter(m => m.isActive);
-
         setAdminBanks(activeMethods);
-        
-        if (activeMethods.length > 0) {
-          setSelectedBank(activeMethods[0]);
-        }
+        if (activeMethods.length > 0) setSelectedBank(activeMethods[0]);
       } catch (error) {
         console.error("Lỗi lấy thông tin ngân hàng:", error);
-        toast.error("Không thể tải thông tin thanh toán.");
       } finally {
         setLoadingBanks(false);
       }
     };
-
     fetchPaymentMethods();
   }, []);
 
-  if (!orderData) return null;
+  if (!orderData) return <div className="p-10 text-center">Đang tải thông tin...</div>;
 
-  const getPackageImage = () => {
-    const imgPath = orderData.service_package_id?.AnhBia;
-    if (!imgPath) return ""; 
-    if (imgPath.startsWith("http")) return imgPath;
-    return `http://localhost:5000/${imgPath.replace(/^\/+/, "")}`;
-  };
+  // --- TÍNH TOÁN ---
+  const totalAmount = Number(orderData.total_amount) || 0;
+  const depositPaid = Number(orderData.deposit_required) || 0;
+  const remainingAmount = totalAmount - depositPaid;
 
-  const serviceFee = Number(orderData.service_amount) || 0;
-  const travelFee = Number(orderData.travel_fee_amount) || 0;
-  const totalAmount = Number(orderData.total_amount) || (serviceFee + travelFee);
-  
-  const paymentAmount = Number(amountFromState) || Math.round(totalAmount * 0.3);
-  
-  // ✅ CẬP NHẬT: Nội dung chuyển khoản là MÃ ĐƠN HÀNG
+  // ✅ CẬP NHẬT: Nội dung chuyển khoản là MÃ ĐƠN HÀNG (Chính xác theo yêu cầu)
   const transactionCode = orderData.order_id || 'UNKNOWN';
 
-  const paymentLabel = is_remaining ? "Thanh toán phần còn lại" : "Đặt cọc (30%)";
-  const paymentShortLabel = is_remaining ? "Số tiền TT" : "Số tiền cọc";
-
   const qrUrl = selectedBank 
-    ? `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.accountNumber}-compact2.png?amount=${paymentAmount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(selectedBank.fullName)}`
+    ? `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.accountNumber}-compact2.png?amount=${remainingAmount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(selectedBank.fullName)}`
     : null;
 
   const handleCopy = (text) => {
@@ -109,6 +89,13 @@ export default function PaymentServicePackage() {
   };
 
   const formatPrice = (price) => Number(price || 0).toLocaleString('vi-VN');
+
+  const getPackageImage = () => {
+    const imgPath = orderData.service_package_id?.AnhBia;
+    if (!imgPath) return ""; 
+    if (imgPath.startsWith("http")) return imgPath;
+    return `http://localhost:5000/${imgPath.replace(/^\/+/, "")}`;
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -122,11 +109,6 @@ export default function PaymentServicePackage() {
     }
   };
 
-  const removeImage = () => {
-    setProofImage(null);
-    setPreviewUrl(null);
-  };
-
   const handleConfirmPayment = async () => {
     if (!proofImage) {
       toast.warning('Vui lòng tải lên ảnh minh chứng chuyển khoản!');
@@ -135,23 +117,17 @@ export default function PaymentServicePackage() {
 
     try {
       setLoading(true);
-      
       const formData = new FormData();
       formData.append('method', 'banking');
-      formData.append('amount', paymentAmount);
-      formData.append('transaction_code', transactionCode); // Gửi mã đơn hàng lên server
+      formData.append('amount', remainingAmount);
+      formData.append('transaction_code', transactionCode); // Mã đơn hàng
       
-      if (selectedBank) {
-        formData.append('bank_id', selectedBank._id || selectedBank.id);
-      }
-      
-      if (proofImage) {
-        formData.append('payment_proof', proofImage); 
-      }
+      if (selectedBank) formData.append('bank_id', selectedBank._id || selectedBank.id);
+      if (proofImage) formData.append('payment_proof', proofImage); 
 
       await orderApi.confirmPayment(orderData._id || orderData.order_id, formData);
 
-      toast.success('Đã gửi xác nhận thanh toán! Vui lòng chờ duyệt.');
+      toast.success('Đã gửi xác nhận thanh toán phần còn lại! Vui lòng chờ duyệt.');
       navigate('/my-orders'); 
     } catch (error) {
       console.error(error);
@@ -171,20 +147,15 @@ export default function PaymentServicePackage() {
           {/* CỘT TRÁI */}
           <div className="payment-left">
             <div className="section-title">
-              <CreditCard className="text-green-600" />
-              Thông tin chuyển khoản
+              <CreditCard className="text-blue-600" />
+              Thanh toán phần còn lại
             </div>
 
             <div className="qr-section animate-fade-in">
               {loadingBanks ? (
-                 <div className="loading-banks">
-                   <Loader className="spin" /> Đang tải thông tin ngân hàng...
-                 </div>
+                 <div className="loading-banks"><Loader className="spin" /> Đang tải thông tin ngân hàng...</div>
               ) : adminBanks.length === 0 ? (
-                 <div className="no-banks-alert">
-                   <AlertTriangle className="text-yellow-500"/> 
-                   Chưa có thông tin ngân hàng. Vui lòng liên hệ Admin.
-                 </div>
+                 <div className="no-banks-alert"><AlertTriangle className="text-yellow-500"/> Chưa có thông tin ngân hàng.</div>
               ) : (
                 <>
                   {adminBanks.length > 1 && (
@@ -193,10 +164,7 @@ export default function PaymentServicePackage() {
                       <div className="select-wrapper">
                         <select 
                           value={selectedBank?._id || selectedBank?.id} 
-                          onChange={(e) => {
-                            const bank = adminBanks.find(b => (b._id || b.id) === e.target.value);
-                            setSelectedBank(bank);
-                          }}
+                          onChange={(e) => setSelectedBank(adminBanks.find(b => (b._id || b.id) === e.target.value))}
                         >
                           {adminBanks.map(bank => (
                             <option key={bank._id || bank.id} value={bank._id || bank.id}>
@@ -212,38 +180,31 @@ export default function PaymentServicePackage() {
                   {selectedBank && (
                     <>
                       <img src={qrUrl} alt="VietQR Code" className="qr-image" />
-                      
                       <div className="bank-details">
                         <div className="detail-row">
                           <span className="text-gray-500">Ngân hàng</span>
-                          <span className="font-bold">
-                              {selectedBank.bank} {selectedBank.branch ? `(${selectedBank.branch})` : ''}
-                          </span>
+                          <span className="font-bold">{selectedBank.bank}</span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="text-gray-500">Số tài khoản</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-lg text-green-700">{selectedBank.accountNumber}</span>
+                            <button className="copy-btn" onClick={() => handleCopy(selectedBank.accountNumber)}><Copy size={14}/></button>
+                          </div>
                         </div>
                         <div className="detail-row">
                           <span className="text-gray-500">Chủ tài khoản</span>
                           <span className="font-bold text-uppercase">{selectedBank.fullName}</span>
                         </div>
                         <div className="detail-row">
-                          <span className="text-gray-500">Số tài khoản</span>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-lg text-green-700">{selectedBank.accountNumber}</span>
-                            <button className="copy-btn" onClick={() => handleCopy(selectedBank.accountNumber)}>
-                              <Copy size={14} />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="detail-row">
-                          <span className="text-gray-500">{paymentShortLabel}</span>
-                          <span className="font-bold text-lg text-red-600">{formatPrice(paymentAmount)} VNĐ</span>
+                          <span className="text-gray-500">Số tiền cần thanh toán</span>
+                          <span className="font-bold text-lg text-red-600">{formatPrice(remainingAmount)} VNĐ</span>
                         </div>
                         <div className="detail-row">
                           <span className="text-gray-500">Nội dung CK</span>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-blue-600">{transactionCode}</span>
-                            <button className="copy-btn" onClick={() => handleCopy(transactionCode)}>
-                              <Copy size={14} />
-                            </button>
+                            <button className="copy-btn" onClick={() => handleCopy(transactionCode)}><Copy size={14}/></button>
                           </div>
                         </div>
                       </div>
@@ -253,8 +214,7 @@ export default function PaymentServicePackage() {
               )}
 
               <div className="upload-section">
-                <label className="upload-label">Tải lên minh chứng thanh toán (Bill)</label>
-                
+                <label className="upload-label">Tải lên biên lai chuyển khoản</label>
                 {!proofImage ? (
                   <div className="upload-box">
                     <input type="file" accept="image/*" id="file-upload" hidden onChange={handleImageChange} />
@@ -266,17 +226,12 @@ export default function PaymentServicePackage() {
                 ) : (
                   <div className="image-preview-container">
                     <img src={previewUrl} alt="Proof" className="image-preview" />
-                    <button className="remove-image-btn" onClick={removeImage}>
+                    <button className="remove-image-btn" onClick={() => { setProofImage(null); setPreviewUrl(null); }}>
                       <X size={16} />
                     </button>
                     <span className="file-name">{proofImage.name}</span>
                   </div>
                 )}
-              </div>
-
-              <div className="transfer-note">
-                <AlertTriangle size={16} className="inline mr-2" />
-                Vui lòng tải lên ảnh chụp màn hình chuyển khoản thành công.
               </div>
             </div>
           </div>
@@ -286,7 +241,7 @@ export default function PaymentServicePackage() {
             <div className="summary-card">
               <div className="section-title">
                 <ShieldCheck className="text-blue-600" />
-                Thông tin đặt lịch
+                Chi tiết thanh toán
               </div>
 
               <div className="package-mini-info">
@@ -299,44 +254,33 @@ export default function PaymentServicePackage() {
                 /> 
                 <div>
                   <h3>Đơn hàng #{orderData.order_id}</h3>
-                  <div className="info-line">
-                    <Calendar size={14} /> {orderData.booking_date ? new Date(orderData.booking_date).toLocaleDateString('vi-VN') : '...'}
-                  </div>
-                  <div className="info-line">
-                    <Clock size={14} /> {orderData.start_time}
-                  </div>
+                  <div className="info-line"><Calendar size={14} /> {formatPrice(orderData.booking_date)}</div>
+                  <div className="info-line"><Clock size={14} /> {orderData.start_time}</div>
                 </div>
               </div>
 
               <div className="price-summary">
-                <div className="price-row total">
-                  <span>Tổng đơn hàng</span>
-                  <span className="text-xl">{formatPrice(totalAmount)} VNĐ</span>
+                <div className="price-row">
+                  <span>Tổng giá trị đơn hàng</span>
+                  <span className="font-bold">{formatPrice(totalAmount)} VNĐ</span>
+                </div>
+                <div className="price-row text-green-600">
+                  <span>Đã đặt cọc (30%)</span>
+                  <span className="font-bold">-{formatPrice(depositPaid)} VNĐ</span>
                 </div>
                 <div className="deposit-highlight">
                   <div className="deposit-row">
-                    <span className="deposit-label">{paymentLabel}</span>
-                    <span>{formatPrice(paymentAmount)} VNĐ</span>
+                    <span className="deposit-label">Cần thanh toán nốt</span>
+                    <span>{formatPrice(remainingAmount)} VNĐ</span>
                   </div>
                 </div>
               </div>
 
               <div className="actions">
-                <button 
-                  className="btn-confirm" 
-                  onClick={handleConfirmPayment}
-                  disabled={loading}
-                >
-                  {loading ? 'Đang gửi...' : (
-                    <>
-                      <CheckCircle size={20} />
-                      Tôi đã chuyển khoản
-                    </>
-                  )}
+                <button className="btn-confirm" onClick={handleConfirmPayment} disabled={loading}>
+                  {loading ? 'Đang xử lý...' : <><CheckCircle size={20} /> Xác nhận đã chuyển khoản</>}
                 </button>
-                <button className="btn-back-home" onClick={() => navigate('/')}>
-                  Về trang chủ
-                </button>
+                <button className="btn-back-home" onClick={() => navigate('/my-orders')}>Quay lại</button>
               </div>
             </div>
           </div>

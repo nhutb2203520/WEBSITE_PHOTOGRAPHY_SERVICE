@@ -4,7 +4,7 @@ import {
   Calendar, Clock, MapPin, Package, FileText, DollarSign, User, Phone, Mail,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Eye, Search, Filter,
   Download, ChevronRight, CreditCard, Truck, AlertTriangle, Ban, HelpCircle,
-  RefreshCcw, Star // ✅ Import icon Star
+  RefreshCcw, Star, Hourglass, Image as ImageIcon
 } from 'lucide-react';
 import './MyOrder.css';
 import { useSelector } from 'react-redux';
@@ -57,6 +57,7 @@ export default function MyOrder() {
       setFilteredOrders(sortedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
+      // toast.error("Lỗi tải đơn hàng"); // Có thể comment lại nếu không muốn hiện toast khi init
     } finally {
       setLoading(false);
     }
@@ -81,33 +82,26 @@ export default function MyOrder() {
     if (!selectedOrder) return;
 
     const isPendingPayment = selectedOrder.status === 'pending_payment';
-    const isPending = selectedOrder.status === 'pending'; // Đã cọc, chưa xác nhận
-    const isConfirmed = selectedOrder.status === 'confirmed'; // Đã xác nhận
+    const isPending = selectedOrder.status === 'pending';
+    const isConfirmed = selectedOrder.status === 'confirmed';
 
-    // Validate đầu vào
+    // Validate
     if (!isPendingPayment) {
-       if (!cancelReason.trim()) {
-          return toast.warning("Vui lòng nhập lý do hủy đơn!");
-       }
-       // Chỉ cần STK nếu được hoàn tiền (trạng thái pending)
-       if (isPending && !refundAccount.trim()) {
-          return toast.warning("Vui lòng nhập số tài khoản nhận hoàn tiền!");
-       }
+       if (!cancelReason.trim()) return toast.warning("Vui lòng nhập lý do hủy đơn!");
+       if (isPending && !refundAccount.trim()) return toast.warning("Vui lòng nhập số tài khoản nhận hoàn tiền!");
     }
 
     try {
       setCancelling(true);
       
       let nextStatus = 'cancelled';
-      let cancelNote = "Khách hàng hủy đơn khi chưa thanh toán.";
+      let cancelNote = "Khách hàng hủy đơn.";
 
       if (!isPendingPayment) {
          if (isPending) {
-             // ✅ TRƯỜNG HỢP 1: Đã cọc, chưa xác nhận -> Chờ hoàn tiền
              nextStatus = 'refund_pending';
-             cancelNote = `[Chờ hoàn tiền] Khách hủy đơn chưa xác nhận. Lý do: ${cancelReason}. STK: ${refundAccount}`;
+             cancelNote = `[Chờ hoàn tiền] Lý do: ${cancelReason}. STK: ${refundAccount}`;
          } else if (isConfirmed) {
-             // ✅ TRƯỜNG HỢP 2: Đã xác nhận -> Hủy luôn (Mất cọc)
              nextStatus = 'cancelled'; 
              cancelNote = `[Khách hủy - MẤT CỌC] Đơn đã xác nhận lịch. Lý do: ${cancelReason}.`;
          }
@@ -116,11 +110,9 @@ export default function MyOrder() {
       await orderApi.updateOrderStatus(selectedOrder.order_id, nextStatus, cancelNote);
       
       if (nextStatus === 'refund_pending') {
-        toast.info("Đã gửi yêu cầu. Đơn hàng chuyển sang trạng thái Chờ hoàn tiền.");
-      } else if (isConfirmed) {
-        toast.success("Đã hủy đơn hàng (Lưu ý: Bạn đã mất cọc).");
+        toast.info("Đã gửi yêu cầu hoàn tiền.");
       } else {
-        toast.success("Đã hủy đơn hàng thành công.");
+        toast.success("Hủy đơn hàng thành công.");
       }
 
       setShowCancelModal(false);
@@ -129,19 +121,32 @@ export default function MyOrder() {
       fetchOrders(); 
     } catch (error) {
       console.error(error);
-      const msg = error.response?.data?.message || "Lỗi khi xử lý hủy đơn hàng.";
-      toast.error(msg);
+      toast.error(error.response?.data?.message || "Lỗi khi hủy đơn.");
     } finally {
       setCancelling(false);
     }
   };
 
+  // ✅ LOGIC THANH TOÁN: Tính đúng số tiền cần trả
   const handleContinuePayment = (order) => {
+    let amountToPay = 0;
+    let isRemaining = false;
+
+    if (order.status === 'pending_payment') {
+        // Giai đoạn 1: Cọc
+        amountToPay = order.deposit_required;
+    } else if (order.status === 'confirmed') {
+        // Giai đoạn 2: Thanh toán nốt
+        amountToPay = order.final_amount - order.deposit_required;
+        isRemaining = true;
+    }
+
     navigate("/payment", { 
       state: { 
         order: order,
         transfer_code: order.payment_info?.transfer_code,
-        deposit_required: order.deposit_required
+        deposit_required: amountToPay, // Truyền số tiền tính toán được
+        is_remaining: isRemaining
       } 
     });
   };
@@ -156,31 +161,42 @@ export default function MyOrder() {
   const getStatusInfo = (status) => {
     const statusMap = {
       pending_payment: { label: 'Chờ đặt cọc', icon: <CreditCard size={16} />, className: 'status-pending-payment', color: '#f59e0b' },
-      pending: { label: 'Chờ xác nhận', icon: <Clock size={16} />, className: 'status-pending', color: '#3b82f6' },
+      pending: { label: 'Chờ duyệt cọc', icon: <Clock size={16} />, className: 'status-pending', color: '#3b82f6' },
       confirmed: { label: 'Đã xác nhận', icon: <CheckCircle size={16} />, className: 'status-confirmed', color: '#0ea5e9' },
       in_progress: { label: 'Đang thực hiện', icon: <RefreshCw size={16} />, className: 'status-progress', color: '#8b5cf6' },
+      final_payment_pending: { label: 'Chờ duyệt thanh toán cuối', icon: <Hourglass size={16} />, className: 'status-refund', color: '#8b5cf6' }, 
+      processing: { label: 'Đang xử lý ảnh', icon: <RefreshCw size={16} />, className: 'status-progress', color: '#6366f1' },
       completed: { label: 'Hoàn thành', icon: <CheckCircle size={16} />, className: 'status-completed', color: '#10b981' },
       cancelled: { label: 'Đã hủy', icon: <XCircle size={16} />, className: 'status-cancelled', color: '#ef4444' },
       refund_pending: { label: 'Chờ hoàn tiền', icon: <RefreshCcw size={16} />, className: 'status-refund', color: '#a855f7' }
     };
-    return statusMap[status] || statusMap.pending;
+    return statusMap[status] || { label: status, icon: <HelpCircle size={16} />, className: 'status-default', color: '#9ca3af' };
   };
 
   const formatPrice = (price) => Number(price || 0).toLocaleString('vi-VN') + ' VNĐ';
   const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('vi-VN') : 'N/A';
-  const getImageUrl = (img) => img ? (img.startsWith('http') ? img : `http://localhost:5000/${img.replace(/^\/+/, '')}`) : '/no-image.jpg';
+  
+  // ✅ FIX: Hàm lấy URL ảnh an toàn
+  const getImageUrl = (img) => {
+    if (!img) return "";
+    if (img.startsWith('http')) return img;
+    return `http://localhost:5000/${img.replace(/^\/+/, '')}`;
+  };
 
   const OrderCard = ({ order }) => {
     const statusInfo = getStatusInfo(order.status);
     
     const isPendingPayment = order.status === 'pending_payment';
+    const isConfirmed = order.status === 'confirmed'; 
+    const isFinalPaymentPending = order.status === 'final_payment_pending';
     const isCancelled = order.status === 'cancelled';
     const isCompleted = order.status === 'completed';
     const isRefundPending = order.status === 'refund_pending';
 
-    // ✅ Lấy thông tin đánh giá từ gói dịch vụ
     const rating = order.service_package_id?.DanhGia || 0;
     const reviews = order.service_package_id?.SoLuotDanhGia || 0;
+    const remainingAmount = order.final_amount - order.deposit_required;
+    const imgUrl = getImageUrl(order.service_package_id?.AnhBia);
 
     return (
       <div className="order-card">
@@ -197,19 +213,25 @@ export default function MyOrder() {
 
         <div className="order-card-body">
           <div className="order-package-info">
-            {order.service_package_id?.AnhBia && (
-              <img
-                src={getImageUrl(order.service_package_id.AnhBia)}
-                alt={order.service_package_id?.TenGoi}
-                className="package-thumbnail"
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/100x60?text=No+Image'; }}
-              />
-            )}
+            {/* ✅ FIX: Hiển thị ảnh với background dự phòng */}
+            <div className="thumbnail-wrapper" style={{width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>
+                {imgUrl ? (
+                    <img
+                        src={imgUrl}
+                        alt={order.service_package_id?.TenGoi}
+                        className="package-thumbnail"
+                        style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                ) : (
+                    <ImageIcon size={24} color="#ccc"/>
+                )}
+            </div>
+
             <div className="package-details">
               <h3>{order.service_package_id?.TenGoi || 'Gói dịch vụ'}</h3>
               <p className="package-type">{order.service_package_id?.LoaiGoi}</p>
               
-              {/* ✅ HIỂN THỊ ĐÁNH GIÁ GÓI TRÊN CARD */}
               <div className="package-rating-mini">
                  <Star size={14} fill="#f59e0b" color="#f59e0b"/>
                  <span className="rating-value">{rating.toFixed(1)}</span>
@@ -217,6 +239,7 @@ export default function MyOrder() {
               </div>
             </div>
           </div>
+          
           <div className="order-info-grid">
             <div className="info-item">
               <Calendar size={16} />
@@ -227,6 +250,13 @@ export default function MyOrder() {
               <div><span className="info-label">Tổng tiền:</span><span className="info-value price">{formatPrice(order.final_amount)}</span></div>
             </div>
           </div>
+
+          {/* ✅ Alert nhắc thanh toán nốt */}
+          {isConfirmed && (
+            <div className="remaining-payment-alert" style={{marginTop: '10px', padding: '8px', backgroundColor: '#fff7ed', border: '1px dashed #fdba74', borderRadius: '6px', color: '#c2410c', fontSize: '13px', textAlign: 'center'}}>
+                Cần thanh toán nốt: <strong>{formatPrice(remainingAmount)}</strong>
+            </div>
+          )}
         </div>
 
         <div className="order-card-footer">
@@ -235,22 +265,42 @@ export default function MyOrder() {
           </button>
 
           <div className="action-buttons">
-            {isPendingPayment ? (
+            {/* Nút thanh toán CỌC */}
+            {isPendingPayment && (
                 <>
                   <button className="btn-pay-now" onClick={() => handleContinuePayment(order)}>
-                    <CreditCard size={16} /> Thanh toán
+                    <CreditCard size={16} /> Đặt cọc ngay
                   </button>
                   <button className="btn-cancel-order" onClick={() => openCancelModal(order)}>Hủy đơn</button>
                 </>
-            ) : isRefundPending ? (
-                <span className="cancel-disabled text-purple">
+            )}
+
+            {/* ✅ Nút thanh toán PHẦN CÒN LẠI */}
+            {isConfirmed && (
+                <button className="btn-pay-now btn-remaining" style={{backgroundColor: '#059669', borderColor: '#059669'}} onClick={() => handleContinuePayment(order)}>
+                    <DollarSign size={16} /> Thanh toán nốt
+                </button>
+            )}
+
+            {/* Trạng thái chờ */}
+            {isFinalPaymentPending && (
+                <span className="cancel-disabled" style={{color: '#6366f1', backgroundColor: '#eef2ff', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '5px'}}>
+                   <Hourglass size={16} className="spin"/> Đang duyệt thanh toán
+                </span>
+            )}
+
+            {isRefundPending && (
+                <span className="cancel-disabled" style={{color: '#9333ea', backgroundColor: '#faf5ff', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '5px'}}>
                    <RefreshCcw size={16} className="spin"/> Đang chờ hoàn tiền
                 </span>
-            ) : (!isCancelled && !isCompleted) ? (
+            )}
+
+            {/* Nút Hủy */}
+            {(!isCancelled && !isCompleted && !isPendingPayment && !isRefundPending && !isFinalPaymentPending) && (
                 <button className="btn-cancel-order" onClick={() => openCancelModal(order)}>
-                  <AlertCircle size={16} /> Yêu cầu hủy
+                  <AlertCircle size={16} /> Hủy lịch
                 </button>
-            ) : null}
+            )}
           </div>
         </div>
       </div>
@@ -260,10 +310,11 @@ export default function MyOrder() {
   const OrderDetailModal = () => {
     if (!selectedOrder) return null;
     const statusInfo = getStatusInfo(selectedOrder.status);
-
-    // ✅ Lấy thông tin đánh giá cho modal
     const rating = selectedOrder.service_package_id?.DanhGia || 0;
     const reviews = selectedOrder.service_package_id?.SoLuotDanhGia || 0;
+    const deposit = selectedOrder.deposit_required || 0;
+    const remaining = selectedOrder.final_amount - deposit;
+    const imgUrl = getImageUrl(selectedOrder.service_package_id?.AnhBia);
 
     return (
       <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
@@ -273,7 +324,6 @@ export default function MyOrder() {
             <button className="btn-close-modal" onClick={() => setShowDetailModal(false)}>×</button>
           </div>
           <div className="modal-body" style={{padding: '20px 30px'}}>
-             
              <div className="detail-section">
                 <div className="section-title"><Package size={20}/> <h3>Thông tin chung</h3></div>
                 <div className="detail-grid">
@@ -282,24 +332,20 @@ export default function MyOrder() {
                 </div>
              </div>
 
-             {/* GÓI DỊCH VỤ + ĐÁNH GIÁ */}
              <div className="detail-section">
                <div className="section-title"><Package size={20}/> <h3>Gói dịch vụ</h3></div>
                <div className="package-detail-card">
-                 {selectedOrder.service_package_id?.AnhBia && (
-                   <img src={getImageUrl(selectedOrder.service_package_id.AnhBia)} alt="" onError={(e) => e.target.src = 'https://via.placeholder.com/300x200'} />
-                 )}
+                 <div style={{width: '100px', height: '80px', flexShrink: 0, backgroundColor: '#f3f4f6', borderRadius: '8px', overflow: 'hidden'}}>
+                    {imgUrl && <img src={imgUrl} alt="" style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e) => e.target.style.display = 'none'} />}
+                 </div>
                  <div className="package-detail-content">
-                    <h4>{selectedOrder.service_package_id?.TenGoi}</h4>
-                    
-                    {/* ✅ HIỂN THỊ ĐÁNH GIÁ TRONG MODAL */}
-                    <div className="package-rating-modal">
-                        <Star size={18} fill="#f59e0b" color="#f59e0b"/>
-                        <span className="rating-value-large">{rating.toFixed(1)}</span>
-                        <span className="rating-count-large">({reviews} đánh giá)</span>
-                    </div>
-
-                    <p className="mt-2 text-muted">{selectedOrder.service_package_id?.MoTa}</p>
+                   <h4>{selectedOrder.service_package_id?.TenGoi}</h4>
+                   <div className="package-rating-modal">
+                       <Star size={18} fill="#f59e0b" color="#f59e0b"/>
+                       <span className="rating-value-large">{rating.toFixed(1)}</span>
+                       <span className="rating-count-large">({reviews} đánh giá)</span>
+                   </div>
+                   <p className="mt-2 text-muted">{selectedOrder.service_package_id?.MoTa}</p>
                  </div>
                </div>
              </div>
@@ -308,7 +354,24 @@ export default function MyOrder() {
                <div className="section-title"><CreditCard size={20}/> <h3>Thanh toán</h3></div>
                <div className="deposit-info-box">
                  <div className="payment-row"><span>Tổng tiền:</span><span className="font-bold">{formatPrice(selectedOrder.final_amount)}</span></div>
-                 <div className="payment-row"><span>Đã cọc:</span><span className="font-bold text-green-600">{formatPrice(selectedOrder.payment_info?.deposit_amount || 0)}</span></div>
+                 <div className="payment-row"><span>Đã cọc (30%):</span><span className="font-bold text-green-600">{formatPrice(deposit)}</span></div>
+                 <div className="payment-row border-top pt-2 mt-2">
+                    <span>Còn lại cần thanh toán:</span>
+                    <span className={`font-bold ${['completed', 'processing', 'final_payment_pending'].includes(selectedOrder.status) ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatPrice(remaining)}
+                    </span>
+                 </div>
+                 
+                 {selectedOrder.status === 'final_payment_pending' && (
+                     <div className="payment-status-badge mt-2 text-blue-600 bg-blue-50 p-2 rounded text-center text-sm font-semibold">
+                        ⏳ Đang chờ Admin duyệt thanh toán cuối...
+                     </div>
+                 )}
+                 {['processing', 'completed'].includes(selectedOrder.status) && (
+                     <div className="payment-status-badge mt-2 text-green-600 bg-green-50 p-2 rounded text-center text-sm font-semibold">
+                        ✅ Đã thanh toán đầy đủ
+                     </div>
+                 )}
                </div>
              </div>
           </div>
@@ -334,7 +397,7 @@ export default function MyOrder() {
             </button>
           </div>
 
-          {/* ✅ CHÍNH SÁCH HỦY ĐƠN */}
+          {/* Policy Alert */}
           <div className="policy-alert">
             <AlertTriangle className="alert-icon" size={24} />
             <div className="alert-content">
@@ -350,7 +413,7 @@ export default function MyOrder() {
           <div className="filters-section">
             <div className="search-box"><Search size={18} /><input type="text" placeholder="Tìm kiếm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
             <div className="status-filters">
-              {['all', 'pending_payment', 'pending', 'confirmed', 'refund_pending', 'completed', 'cancelled'].map(s => (
+              {['all', 'pending_payment', 'pending', 'confirmed', 'final_payment_pending', 'completed', 'cancelled'].map(s => (
                   <button key={s} className={`filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>
                     {s === 'all' ? 'Tất cả' : getStatusInfo(s).label}
                   </button>
@@ -361,6 +424,7 @@ export default function MyOrder() {
           {loading ? <div className="loading-state"><div className="spinner"></div></div> : 
            <div className="orders-grid">
               {filteredOrders.map((order) => <OrderCard key={order._id} order={order} />)}
+              {filteredOrders.length === 0 && <div className="no-orders">Không có đơn hàng nào.</div>}
            </div>
           }
         </div>
@@ -368,7 +432,6 @@ export default function MyOrder() {
 
       {showDetailModal && <OrderDetailModal />}
 
-      {/* ✅ MODAL HỦY ĐƠN */}
       {showCancelModal && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowCancelModal(false)}>
             <div className="modal-content cancel-modal" onClick={(e) => e.stopPropagation()}>
@@ -401,7 +464,6 @@ export default function MyOrder() {
                                 <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows="3" placeholder="Nhập lý do..." />
                             </div>
                             
-                            {/* Chỉ hiện ô nhập STK nếu là đơn Pending (được hoàn tiền) */}
                             {selectedOrder.status === 'pending' && (
                                 <div className="form-group">
                                     <label>Số tài khoản nhận hoàn tiền <span className="required">*</span></label>

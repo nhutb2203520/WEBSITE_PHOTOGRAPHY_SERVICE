@@ -1,27 +1,30 @@
-import { axiosInstance } from "./adminAuthService"; 
+import { axiosInstance } from "./adminAuthService";
 
 const adminOrderService = {
   // Lấy tất cả đơn hàng
   getAllOrders: () => {
-    // Sử dụng axiosInstance để gọi API
     return axiosInstance.get("/admin/orders");
   },
 
-  // Xác nhận thanh toán (Full flow)
-  confirmPayment: (orderId) => {
-    return axiosInstance.put(`/admin/orders/${orderId}/confirm-payment`, {
-        method: 'cash', 
-        amount: 0, 
-        transaction_code: 'ADMIN_CONFIRM' 
+  // ✅ CẬP NHẬT MỚI: Hàm cập nhật trạng thái linh hoạt
+  updateOrderStatus: (orderId, status, note = "") => {
+    return axiosInstance.put(`/admin/orders/${orderId}`, { 
+      status, 
+      note 
     });
   },
-  
-  // Xác nhận nhanh (Update status)
+
+  // Giữ lại hàm cũ để tương thích ngược (nếu cần)
   approveOrderManually: (orderId) => {
       return axiosInstance.put(`/admin/orders/${orderId}`, {
           status: 'confirmed',
           note: 'Admin đã xác nhận thanh toán thủ công'
       });
+  },
+
+  // Quyết toán cho thợ
+  settleForPhotographer: (orderId) => {
+    return axiosInstance.put(`/admin/orders/${orderId}/settle`);
   }
 };
 
