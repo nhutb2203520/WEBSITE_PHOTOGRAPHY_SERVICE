@@ -9,6 +9,42 @@ import { useSelector, useDispatch } from 'react-redux';
 import { getAllPackages } from '../../redux/Slices/servicepackageSlice';
 import Package from '../PhotographerPage/Package';
 
+// ✅ Component hiển thị ảnh an toàn - Không gây lỗi ERR_NAME_NOT_RESOLVED
+const SafeImage = ({ src, alt, className, style, fallbackIcon = Camera, fallbackSize = 48 }) => {
+  const [error, setError] = useState(false);
+  const FallbackIcon = fallbackIcon;
+  
+  if (!src || error) {
+    return (
+      <div 
+        className={className}
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          ...style
+        }}
+      >
+        <FallbackIcon size={fallbackSize} opacity={0.5} />
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={src} 
+      alt={alt}
+      className={className}
+      style={style}
+      onError={() => setError(true)}
+    />
+  );
+};
+
 export default function ServicePackage() {
   const dispatch = useDispatch();
   const [favorites, setFavorites] = useState([]);
@@ -33,8 +69,9 @@ export default function ServicePackage() {
     );
   };
 
+  // ✅ FIX: Không dùng placeholder URL - Trả về chuỗi rỗng nếu không có ảnh
   const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return "https://via.placeholder.com/600x400?text=No+Image";
+    if (!imageUrl) return "";
     if (imageUrl.startsWith("http")) return imageUrl;
     return `http://localhost:5000/${imageUrl.replace(/^\/+/, "")}`;
   };
@@ -190,12 +227,10 @@ export default function ServicePackage() {
               {filtered.map(pkg => (
                 <div key={pkg._id} className="package-card">
                   <div className="package-image">
-                    <img 
+                    {/* ✅ Dùng SafeImage component - Không gây lỗi mạng */}
+                    <SafeImage 
                       src={getImageUrl(pkg.AnhBia)} 
                       alt={pkg.TenGoi}
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/600x400?text=No+Image";
-                      }}
                     />
                     <button
                       className="favorite-btn"
@@ -251,7 +286,6 @@ export default function ServicePackage() {
                           {pkg.SoLuongDaDat || 0} lượt đặt
                         </span>
 
-                        {/* ✅ HIỂN THỊ KHIẾU NẠI NGAY BÊN DƯỚI LƯỢT ĐẶT */}
                         <span 
                           className="booking-count-text" 
                           style={{ 
@@ -270,11 +304,18 @@ export default function ServicePackage() {
                     {pkg.PhotographerId && (
                       <div className="photographer-info">
                         <div className="photographer-profile">
-                          <img 
+                          {/* ✅ Dùng SafeImage cho avatar photographer */}
+                          <SafeImage 
                             src={getImageUrl(pkg.PhotographerId.Avatar)} 
                             alt={pkg.PhotographerId.HoTen}
                             className="photographer-avatar"
-                            onError={(e) => e.target.src="https://via.placeholder.com/30?text=U"}
+                            fallbackSize={20}
+                            style={{ 
+                              width: '30px', 
+                              height: '30px', 
+                              borderRadius: '50%',
+                              objectFit: 'cover'
+                            }}
                           />
                           <span className="photographer-name-text">{pkg.PhotographerId.HoTen}</span>
                         </div>

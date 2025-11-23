@@ -32,11 +32,13 @@ export const login = createAsyncThunk(
       const role = res.role || null;
       const username = res.user?.HoTen || res.user?.TenDangNhap || null;
 
-      // ✅ Lưu session chính xác cho verifyTokenUser hoạt động
+      // ✅ Lưu session chính xác
       sessionStorage.setItem('token', token);
       sessionStorage.setItem('refreshToken', refreshToken);
       sessionStorage.setItem('role', role);
-      if (username) sessionStorage.setItem('username', JSON.stringify(username));
+      
+      // ❌ BỎ JSON.stringify ở đây, lưu thẳng string
+      if (username) sessionStorage.setItem('username', username); 
 
       // Gọi API lấy thông tin người dùng
       await dispatch(getInfoUser());
@@ -55,7 +57,10 @@ const initialState = {
   token: sessionStorage.getItem('token') || null,
   refreshToken: sessionStorage.getItem('refreshToken') || null,
   role: sessionStorage.getItem('role') || null,
-  username: JSON.parse(sessionStorage.getItem('username')) || null,
+  // ❌ BỎ JSON.parse ở đây, lấy thẳng string
+  // ✅ SỬA THÀNH:
+  username: sessionStorage.getItem('username') || null, 
+  
   isLoading: false,
   isSuccess: false,
   error: null,
