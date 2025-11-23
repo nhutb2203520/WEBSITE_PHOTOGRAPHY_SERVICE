@@ -1,272 +1,185 @@
 import Orders from "../models/order.model.js";
-import { ServicePackage } from "../models/index.js";
+import ServicePackage from "../models/servicePackage.model.js"
 import crypto from "crypto";
 import axios from "axios"; 
 
-const generateOrderId = () => {
-  return "ORD-" + crypto.randomBytes(4).toString("hex").toUpperCase();
-};
+const generateOrderId = () => "ORD-" + crypto.randomBytes(4).toString("hex").toUpperCase();
 
-const BUSY_STATUSES = ["pending_payment", "pending", "confirmed", "in_progress"];
-
-// ✅ DANH SÁCH TRẠNG THÁI HỢP LỆ
-const VALID_STATUSES = [
-  ...BUSY_STATUSES, 
-  "completed", 
-  "cancelled", 
-  "refund_pending" // ✅ Thêm trạng thái chờ hoàn tiền
+// Các trạng thái mà Photographer/Admin đang bận xử lý
+const BUSY_STATUSES = [
+  "pending_payment", "pending", "confirmed", "in_progress", 
+  "waiting_final_payment", "final_payment_pending", "processing"
 ];
 
-// --- HELPER FUNCTIONS ---
+const VALID_STATUSES = [
+  ...BUSY_STATUSES, 
+  "completed", "cancelled", "refund_pending", 
+  "delivered", "complaint"
+];
 
+// --- Helper tính khoảng cách ---
 const calculateHaversineDistance = (lat1, lng1, lat2, lng2) => {
   const R = 6371; 
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLng = (lng2 - lng1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-    Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return parseFloat((R * c).toFixed(2));
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return parseFloat((R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(2));
 };
 
 const getDrivingDistance = async (origin, dest) => {
   try {
     const url = `http://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?overview=false`;
     const response = await axios.get(url, { timeout: 3000 });
-    if (response.data.routes && response.data.routes.length > 0) {
-      const distanceMeters = response.data.routes[0].distance;
-      return parseFloat((distanceMeters / 1000).toFixed(2));
-    }
-  } catch (error) {
-    console.warn("⚠️ OSRM Error:", error.message);
-  }
+    if (response.data.routes?.length > 0) return parseFloat((response.data.routes[0].distance / 1000).toFixed(2));
+  } catch (e) {}
   return calculateHaversineDistance(origin.lat, origin.lng, dest.lat, dest.lng);
 };
 
 // =================================================================
-// 📦 ORDER SERVICES
+// 📦 SERVICE METHODS
 // =================================================================
 
+// 1. TÍNH PHÍ DI CHUYỂN
 export const calculateTravelFeePreview = async (packageId, customerCoords) => {
-  const servicePackage = await ServicePackage.findById(packageId);
-  if (!servicePackage) {
-    const err = new Error("Không tìm thấy gói dịch vụ");
-    err.status = 404;
-    throw err;
-  }
+  const pkg = await ServicePackage.findById(packageId);
+  if (!pkg) throw new Error("Không tìm thấy gói dịch vụ");
+  
+  const config = pkg.travelFeeConfig;
+  if (!config?.enabled) return { enabled: false, message: "Miễn phí di chuyển" };
 
-  const config = servicePackage.travelFeeConfig;
-  if (!config?.enabled) {
-    return { enabled: false, message: "Gói dịch vụ này không tính phí di chuyển" };
-  }
-
-  const baseCoords = servicePackage.baseLocation?.coordinates; 
+  const baseCoords = pkg.baseLocation?.coordinates;
   let origin = null;
+  if (Array.isArray(baseCoords) && baseCoords.length === 2) origin = { lng: baseCoords[0], lat: baseCoords[1] };
+  else if (baseCoords?.lat) origin = baseCoords;
 
-  if (Array.isArray(baseCoords) && baseCoords.length === 2) {
-      origin = { lng: baseCoords[0], lat: baseCoords[1] }; 
-  } else if (baseCoords?.lat && baseCoords?.lng) {
-      origin = baseCoords;
-  }
-
-  if (!origin) {
-    return { enabled: true, error: "Photographer chưa cập nhật vị trí cơ sở" };
-  }
-
-  if (!customerCoords?.lat || !customerCoords?.lng) {
-    return { enabled: true, error: "Vui lòng cung cấp tọa độ địa điểm chụp" };
-  }
+  if (!origin || !customerCoords?.lat) return { enabled: true, error: "Thiếu thông tin vị trí" };
 
   const distance = await getDrivingDistance(origin, customerCoords);
-
-  let fee = 0;
-  let breakdown = "";
+  let fee = 0, breakdown = "";
 
   if (distance <= config.freeDistanceKm) {
-    fee = 0;
-    breakdown = `Miễn phí trong phạm vi ${config.freeDistanceKm}km (Quãng đường: ${distance}km)`;
+    breakdown = `Miễn phí ${config.freeDistanceKm}km đầu`;
   } else {
-    const extraKm = distance - config.freeDistanceKm;
-    fee = extraKm * config.feePerKm;
+    const extra = distance - config.freeDistanceKm;
+    fee = extra * config.feePerKm;
     if (config.maxFee && fee > config.maxFee) fee = config.maxFee;
-    breakdown = `${distance}km (Trừ ${config.freeDistanceKm}km đầu, tính phí ${extraKm.toFixed(1)}km)`;
+    breakdown = `Tính phí ${extra.toFixed(1)}km`;
   }
 
   return {
-    enabled: true,
-    distance_km: distance,
-    fee: Math.round(fee),
+    enabled: true, distance_km: distance, fee: Math.round(fee),
     extra_km: Math.max(0, distance - config.freeDistanceKm),
-    free_distance_km: config.freeDistanceKm,
-    breakdown,
-    note: config.note,
-    photographer_location: origin 
+    free_distance_km: config.freeDistanceKm, breakdown, note: config.note,
+    photographer_location: origin
   };
 };
 
+// 2. TẠO ĐƠN HÀNG
 export const createOrder = async (params) => {
-  console.log("🔥 PARAMS RECEIVED:", JSON.stringify(params, null, 2));
-
-  const {
-    customer_id, photographer_id, service_package_id,
-    booking_date, start_time, completion_date, estimated_duration_days,
-    guest_times = [], location = {}, notes = "", special_requests = "", selected_services = [],
-    service_amount = 0, discount_amount = 0,
+  console.log("🔥 Creating Order:", params.customer_id);
+  const { 
+    customer_id, photographer_id, service_package_id, 
+    booking_date, start_time, booking_time, // Lấy cả booking_time
+    estimated_duration_days, location = {}, 
+    service_amount, discount_amount 
   } = params;
 
-  if (!customer_id || !service_package_id || !booking_date || !start_time) {
-    const err = new Error("Thiếu thông tin bắt buộc");
-    err.status = 400;
-    throw err;
-  }
+  const pkg = await ServicePackage.findById(service_package_id);
+  if (!pkg) throw new Error("Gói dịch vụ không tồn tại");
 
-  const servicePackage = await ServicePackage.findById(service_package_id);
-  if (!servicePackage) {
-    const err = new Error("Không tìm thấy gói dịch vụ");
-    err.status = 404;
-    throw err;
-  }
-
-  const finalPhotographerId = photographer_id || servicePackage.PhotographerId;
+  // Đảm bảo có booking_time (fix lỗi validation)
+  const finalBookingTime = booking_time || start_time;
+  if (!finalBookingTime) throw new Error("Thiếu thông tin giờ bắt đầu (booking_time)");
 
   // Check trùng lịch
   const startDateTime = new Date(booking_date);
-  const [hours, minutes] = start_time.split(':').map(Number);
-  startDateTime.setHours(hours, minutes, 0, 0);
-
-  let durationMs = 4 * 60 * 60 * 1000; 
-  if (estimated_duration_days && Number(estimated_duration_days) > 0) {
-    durationMs = Number(estimated_duration_days) * 24 * 60 * 60 * 1000;
-  }
+  const [h, m] = finalBookingTime.split(':').map(Number);
+  startDateTime.setHours(h, m, 0, 0);
+  
+  let durationMs = 4 * 3600000; // Default 4h
+  if (estimated_duration_days > 0) durationMs = estimated_duration_days * 24 * 3600000;
   const endDateTime = new Date(startDateTime.getTime() + durationMs);
 
-  const conflictOrder = await Orders.findOne({
-    photographer_id: finalPhotographerId,
-    status: { $in: BUSY_STATUSES },
-    $or: [
-      { booking_start: { $lt: endDateTime }, booking_end: { $gt: startDateTime } }
-    ]
+  const conflict = await Orders.findOne({
+    photographer_id: photographer_id || pkg.PhotographerId,
+    status: { $in: ["pending", "confirmed", "in_progress", "waiting_final_payment", "processing"] },
+    $or: [{ booking_start: { $lt: endDateTime }, booking_end: { $gt: startDateTime } }]
   });
+  if (conflict) throw new Error("Photographer bận vào khung giờ này");
 
-  if (conflictOrder) {
-    const err = new Error(`Photographer bận trong khung giờ này`);
-    err.status = 409;
-    throw err;
-  }
-
-  // Tính phí di chuyển (Server-side)
-  let travelFeeData = { enabled: false, distance_km: 0, fee: 0, breakdown: "", note: "" };
-  const config = servicePackage.travelFeeConfig;
-  let baseOrigin = null;
-  
-  if (servicePackage.baseLocation?.coordinates) {
-      if (Array.isArray(servicePackage.baseLocation.coordinates)) {
-          baseOrigin = { lng: servicePackage.baseLocation.coordinates[0], lat: servicePackage.baseLocation.coordinates[1] };
-      } else {
-          baseOrigin = servicePackage.baseLocation.coordinates;
-      }
-  }
-  
-  const destCoords = location?.coordinates;
-
-  if (config?.enabled && baseOrigin && destCoords?.lat && destCoords?.lng) {
-    const distance = await getDrivingDistance(baseOrigin, destCoords);
-    let fee = 0;
-    let breakdown = "";
-    if (distance <= config.freeDistanceKm) {
-        fee = 0;
-        breakdown = "Miễn phí";
-    } else {
-        const extra = distance - config.freeDistanceKm;
-        fee = extra * config.feePerKm;
-        if (config.maxFee && fee > config.maxFee) fee = config.maxFee;
-        breakdown = `Tính phí ${extra.toFixed(1)}km`;
-    }
-    travelFeeData = {
-      enabled: true,
-      distance_km: distance,
-      extra_km: Math.max(0, distance - config.freeDistanceKm),
-      free_distance_km: config.freeDistanceKm,
-      fee: Math.round(fee),
-      breakdown: breakdown,
-      note: config.note || ""
-    };
-  }
-
-  const calculatedServiceAmount = Number(service_amount) || 0;
-  const travelFeeAmount = travelFeeData.fee || 0;
-  const totalAmount = calculatedServiceAmount + travelFeeAmount;
+  // Tính toán tiền
+  const travelFeeAmount = params.travel_fee_amount || 0; 
+  const totalAmount = Number(service_amount) + Number(travelFeeAmount);
   const finalAmount = totalAmount - (Number(discount_amount) || 0);
-  const transferCode = 'CK' + crypto.randomBytes(4).toString('hex').toUpperCase();
+  const depositRequired = Math.round(finalAmount * 0.3);
 
-  const orderData = {
+  const newOrder = await Orders.create({
+    ...params,
+    booking_time: finalBookingTime, // Lưu booking_time
+    start_time: finalBookingTime,   
     order_id: generateOrderId(),
-    customer_id,
-    photographer_id: finalPhotographerId,
-    service_package_id,
-    booking_date,
-    booking_time: start_time,
-    start_time,
-    completion_date,
-    estimated_duration_days,
+    photographer_id: photographer_id || pkg.PhotographerId,
     booking_start: startDateTime,
     booking_end: endDateTime,
-    guest_times: guest_times.filter(t => t),
-    guest_count: guest_times.length || 1,
-    location: {
-      name: location.name || "",
-      address: location.address || "",
-      city: location.city || "",
-      district: location.district || "",
-      map_link: location.map_link || "",
-      coordinates: {
-        lat: destCoords?.lat || null,
-        lng: destCoords?.lng || null
-      }
-    },
-    notes,
-    special_requests,
-    selected_services,
-    travel_fee: travelFeeData,
-    service_amount: calculatedServiceAmount,
-    travel_fee_amount: travelFeeAmount,
     total_amount: totalAmount,
-    discount_amount: discount_amount || 0,
     final_amount: finalAmount,
-    deposit_required: Math.round(finalAmount * 0.3),
-    payment_info: {
-      transfer_code: transferCode,
-      transfer_image: null,
-      transfer_date: null,
-      verified: false
+    deposit_required: depositRequired,
+    
+    // Khởi tạo thông tin thanh toán
+    payment_info: { 
+        transfer_code: 'CK' + crypto.randomBytes(4).toString('hex').toUpperCase(),
+        deposit_amount: 0,
+        remaining_amount: finalAmount - depositRequired
     },
+    
     status: "pending_payment"
-  };
+  });
+  
+  // Tăng số lượng đã đặt của gói
+  await pkg.incrementBooking();
 
-  const newOrder = await Orders.create(orderData);
   return newOrder;
 };
 
-export const getOrdersByCustomer = async (customer_id) => {
-  return await Orders.find({ customer_id }).populate("service_package_id").sort({ createdAt: -1 }).exec();
-};
-
-// ✅ UPDATE STATUS - Logic quan trọng
+// 3. CẬP NHẬT TRẠNG THÁI (LOGIC NGHIỆP VỤ)
 export const updateOrderStatus = async (orderId, status, userId = null, note = "") => {
-  if (!VALID_STATUSES.includes(status)) {
-      throw new Error(`Trạng thái không hợp lệ: ${status}`);
-  }
-
+  if (!VALID_STATUSES.includes(status)) throw new Error(`Trạng thái không hợp lệ: ${status}`);
+  
   let order = await Orders.findOne({ order_id: orderId });
   if (!order) order = await Orders.findById(orderId);
   if (!order) throw new Error("Order not found");
 
-  // Logic bổ sung: Nếu admin chuyển trạng thái
-  if (status === 'cancelled') {
-      // Có thể thêm logic hoàn lại slot nếu cần (bỏ qua vì đã check BUSY_STATUSES)
+  // --- LOGIC TỰ ĐỘNG ---
+
+  // 1. Admin xác nhận thanh toán đợt 2 (đủ tiền) -> Chuyển sang 'processing'
+  //    => Tự động tính Deadline giao hàng là 7 ngày sau
+  if (status === 'processing') {
+      order.payment_info.remaining_status = 'paid';
+      order.payment_info.remaining_paid_at = new Date();
+      
+      const deadline = new Date();
+      deadline.setDate(deadline.getDate() + 7); // Cộng 7 ngày
+      order.delivery_info.deadline = deadline;
+      
+      note = note || `Đã thanh toán đủ. Hạn chót giao ảnh: ${deadline.toLocaleDateString('vi-VN')}`;
+  }
+
+  // 2. Photographer giao hàng (delivered) -> Check trễ hạn
+  if (status === 'delivered') {
+      order.delivery_info.delivered_at = new Date();
+      
+      // Nếu ngày giao > deadline -> Đánh dấu trễ
+      if (order.delivery_info.deadline && new Date() > order.delivery_info.deadline) {
+          order.delivery_info.status = 'late';
+          note += " (Giao trễ hạn - Khách có quyền khiếu nại)";
+      } else {
+          order.delivery_info.status = 'delivered';
+      }
+  }
+
+  // 3. Hoàn tất đơn hàng
+  if (status === 'completed') {
+      order.completion_date = new Date();
   }
 
   order.updateStatus(status, userId, note);
@@ -274,17 +187,99 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
   return order;
 };
 
-export const getOrderByOrderId = async (orderId) => {
-  let order = await Orders.findOne({ order_id: orderId }).populate("service_package_id").populate("payment_info.payment_method_id").exec();
-  if (!order) order = await Orders.findById(orderId).populate("service_package_id").exec();
-  if (!order) throw new Error("Order not found");
-  return order;
+// 4. KHÁCH HÀNG GỬI KHIẾU NẠI
+export const submitComplaint = async (orderId, reason, userId) => {
+    const order = await Orders.findOne({ order_id: orderId });
+    if (!order) throw new Error("Order not found");
+
+    // Điều kiện khiếu nại: Đã giao hàng HOẶC Quá hạn deadline
+    const isLate = order.delivery_info.deadline && new Date() > order.delivery_info.deadline;
+    const isDelivered = order.status === 'delivered';
+
+    if (!isDelivered && !isLate && order.status !== 'processing') {
+        throw new Error("Chưa đến thời điểm có thể khiếu nại (Chưa giao hàng hoặc chưa quá hạn).");
+    }
+
+    order.complaint = { 
+        is_complained: true, 
+        reason: reason, 
+        created_at: new Date(), 
+        status: 'pending' 
+    };
+    
+    // Chuyển trạng thái đơn sang 'complaint' để Admin chú ý
+    order.updateStatus('complaint', userId, `Khách hàng khiếu nại: ${reason}`);
+    await order.save();
+    return order;
+};
+
+// 5. ADMIN GIẢI QUYẾT KHIẾU NẠI (CỘNG LỖI VÀO GÓI)
+export const resolveComplaint = async (orderId, resolution, adminResponse, userId) => {
+    const order = await Orders.findOne({ order_id: orderId });
+    if (!order) throw new Error("Order not found");
+
+    order.complaint.status = resolution; // 'resolved' (Chấp nhận) | 'rejected' (Từ chối)
+    order.complaint.admin_response = adminResponse;
+    order.complaint.resolved_at = new Date();
+
+    // Nếu Admin xác nhận khiếu nại là ĐÚNG -> Tăng số lượng khiếu nại của Gói
+    if (resolution === 'resolved') {
+        await ServicePackage.findByIdAndUpdate(
+            order.service_package_id, 
+            { $inc: { SoLuongKhieuNai: 1 } }
+        );
+        order.status = 'completed'; // Hoàn tất đơn sau khi xử lý xong
+        order.status_history.push({ 
+            status: 'completed', 
+            changed_by: userId, 
+            note: "Admin CHẤP NHẬN khiếu nại (Đã ghi nhận lỗi vào uy tín gói)." 
+        });
+    } else {
+        order.status = 'completed'; 
+        order.status_history.push({ 
+            status: 'completed', 
+            changed_by: userId, 
+            note: "Admin TỪ CHỐI khiếu nại. Đơn hàng hoàn tất." 
+        });
+    }
+
+    await order.save();
+    return order;
+};
+
+// 6. KHÁCH HÀNG ĐÁNH GIÁ (CẬP NHẬT SAO TRUNG BÌNH)
+export const submitReview = async (orderId, rating, comment, userId) => {
+    const order = await Orders.findOne({ order_id: orderId });
+    if (!order) throw new Error("Order not found");
+
+    // Cho phép đánh giá ở cả trạng thái 'delivered' hoặc 'completed'
+    if (order.status !== 'completed' && order.status !== 'delivered') {
+        throw new Error("Chỉ được đánh giá khi đơn hàng đã hoàn thành hoặc đã giao hàng.");
+    }
+
+    // Lưu đánh giá vào đơn hàng
+    order.review = { is_reviewed: true, rating, comment, created_at: new Date() };
+    if (order.status !== 'completed') order.status = 'completed';
+    
+    // Cập nhật điểm trung bình cho Gói Dịch Vụ
+    const pkg = await ServicePackage.findById(order.service_package_id);
+    if (pkg) {
+        await pkg.updateRating(rating); // Hàm này đã được định nghĩa trong Model ServicePackage
+    }
+
+    await order.save();
+    return order;
+};
+
+export const getOrdersByCustomer = async (cid) => Orders.find({ customer_id: cid }).populate("service_package_id").sort({ createdAt: -1 });
+
+export const getOrderByOrderId = async (oid) => {
+    let order = await Orders.findOne({ order_id: oid }).populate("service_package_id").populate("payment_info.payment_method_id");
+    if(!order) order = await Orders.findById(oid).populate("service_package_id");
+    return order;
 };
 
 export default {
-  createOrder,
-  calculateTravelFeePreview,
-  getOrdersByCustomer,
-  updateOrderStatus,
-  getOrderByOrderId,
+  createOrder, calculateTravelFeePreview, getOrdersByCustomer, updateOrderStatus,
+  getOrderByOrderId, submitComplaint, resolveComplaint, submitReview
 };

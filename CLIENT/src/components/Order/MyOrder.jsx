@@ -4,7 +4,7 @@ import {
   Calendar, Clock, MapPin, Package, FileText, DollarSign, User, Phone, Mail,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Eye, Search, Filter,
   Download, ChevronRight, CreditCard, Truck, AlertTriangle, Ban, HelpCircle,
-  RefreshCcw // Icon hoàn tiền
+  RefreshCcw, Star // ✅ Import icon Star
 } from 'lucide-react';
 import './MyOrder.css';
 import { useSelector } from 'react-redux';
@@ -108,7 +108,7 @@ export default function MyOrder() {
              cancelNote = `[Chờ hoàn tiền] Khách hủy đơn chưa xác nhận. Lý do: ${cancelReason}. STK: ${refundAccount}`;
          } else if (isConfirmed) {
              // ✅ TRƯỜNG HỢP 2: Đã xác nhận -> Hủy luôn (Mất cọc)
-             nextStatus = 'cancelled'; // Sửa từ 'cancellation_requested' thành 'cancelled'
+             nextStatus = 'cancelled'; 
              cancelNote = `[Khách hủy - MẤT CỌC] Đơn đã xác nhận lịch. Lý do: ${cancelReason}.`;
          }
       }
@@ -129,7 +129,6 @@ export default function MyOrder() {
       fetchOrders(); 
     } catch (error) {
       console.error(error);
-      // Hiển thị lỗi chi tiết từ Backend nếu có
       const msg = error.response?.data?.message || "Lỗi khi xử lý hủy đơn hàng.";
       toast.error(msg);
     } finally {
@@ -162,7 +161,7 @@ export default function MyOrder() {
       in_progress: { label: 'Đang thực hiện', icon: <RefreshCw size={16} />, className: 'status-progress', color: '#8b5cf6' },
       completed: { label: 'Hoàn thành', icon: <CheckCircle size={16} />, className: 'status-completed', color: '#10b981' },
       cancelled: { label: 'Đã hủy', icon: <XCircle size={16} />, className: 'status-cancelled', color: '#ef4444' },
-      refund_pending: { label: 'Chờ hoàn tiền', icon: <RefreshCcw size={16} />, className: 'status-refund', color: '#a855f7' } // ✅ Status mới
+      refund_pending: { label: 'Chờ hoàn tiền', icon: <RefreshCcw size={16} />, className: 'status-refund', color: '#a855f7' }
     };
     return statusMap[status] || statusMap.pending;
   };
@@ -177,8 +176,11 @@ export default function MyOrder() {
     const isPendingPayment = order.status === 'pending_payment';
     const isCancelled = order.status === 'cancelled';
     const isCompleted = order.status === 'completed';
-    // Nếu đang chờ hoàn tiền thì không hiện nút hành động nữa
     const isRefundPending = order.status === 'refund_pending';
+
+    // ✅ Lấy thông tin đánh giá từ gói dịch vụ
+    const rating = order.service_package_id?.DanhGia || 0;
+    const reviews = order.service_package_id?.SoLuotDanhGia || 0;
 
     return (
       <div className="order-card">
@@ -206,6 +208,13 @@ export default function MyOrder() {
             <div className="package-details">
               <h3>{order.service_package_id?.TenGoi || 'Gói dịch vụ'}</h3>
               <p className="package-type">{order.service_package_id?.LoaiGoi}</p>
+              
+              {/* ✅ HIỂN THỊ ĐÁNH GIÁ GÓI TRÊN CARD */}
+              <div className="package-rating-mini">
+                 <Star size={14} fill="#f59e0b" color="#f59e0b"/>
+                 <span className="rating-value">{rating.toFixed(1)}</span>
+                 <span className="rating-count">({reviews} đánh giá)</span>
+              </div>
             </div>
           </div>
           <div className="order-info-grid">
@@ -251,6 +260,11 @@ export default function MyOrder() {
   const OrderDetailModal = () => {
     if (!selectedOrder) return null;
     const statusInfo = getStatusInfo(selectedOrder.status);
+
+    // ✅ Lấy thông tin đánh giá cho modal
+    const rating = selectedOrder.service_package_id?.DanhGia || 0;
+    const reviews = selectedOrder.service_package_id?.SoLuotDanhGia || 0;
+
     return (
       <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -259,13 +273,37 @@ export default function MyOrder() {
             <button className="btn-close-modal" onClick={() => setShowDetailModal(false)}>×</button>
           </div>
           <div className="modal-body" style={{padding: '20px 30px'}}>
+             
              <div className="detail-section">
-                <div className="section-title"><Package size={20}/> <h3>Thông tin</h3></div>
+                <div className="section-title"><Package size={20}/> <h3>Thông tin chung</h3></div>
                 <div className="detail-grid">
                     <div className="detail-item"><span className="label">Trạng thái:</span><span className={`value ${statusInfo.className}`}>{statusInfo.label}</span></div>
                     <div className="detail-item"><span className="label">Ngày book:</span><span className="value">{formatDate(selectedOrder.booking_date)}</span></div>
                 </div>
              </div>
+
+             {/* GÓI DỊCH VỤ + ĐÁNH GIÁ */}
+             <div className="detail-section">
+               <div className="section-title"><Package size={20}/> <h3>Gói dịch vụ</h3></div>
+               <div className="package-detail-card">
+                 {selectedOrder.service_package_id?.AnhBia && (
+                   <img src={getImageUrl(selectedOrder.service_package_id.AnhBia)} alt="" onError={(e) => e.target.src = 'https://via.placeholder.com/300x200'} />
+                 )}
+                 <div className="package-detail-content">
+                    <h4>{selectedOrder.service_package_id?.TenGoi}</h4>
+                    
+                    {/* ✅ HIỂN THỊ ĐÁNH GIÁ TRONG MODAL */}
+                    <div className="package-rating-modal">
+                        <Star size={18} fill="#f59e0b" color="#f59e0b"/>
+                        <span className="rating-value-large">{rating.toFixed(1)}</span>
+                        <span className="rating-count-large">({reviews} đánh giá)</span>
+                    </div>
+
+                    <p className="mt-2 text-muted">{selectedOrder.service_package_id?.MoTa}</p>
+                 </div>
+               </div>
+             </div>
+
              <div className="detail-section">
                <div className="section-title"><CreditCard size={20}/> <h3>Thanh toán</h3></div>
                <div className="deposit-info-box">
@@ -283,11 +321,17 @@ export default function MyOrder() {
     <>
       <Header />
       <Sidebar />
+
       <div className="my-orders-page">
         <div className="container">
           <div className="page-header">
-            <div><h1>Đơn hàng của tôi</h1><p className="page-subtitle">Quản lý và theo dõi các đơn đặt dịch vụ</p></div>
-            <button className="btn-refresh" onClick={fetchOrders} disabled={loading}><RefreshCw size={18} className={loading ? 'spinning' : ''} /> Làm mới</button>
+            <div>
+              <h1>Đơn hàng của tôi</h1>
+              <p className="page-subtitle">Quản lý và theo dõi các đơn đặt dịch vụ</p>
+            </div>
+            <button className="btn-refresh" onClick={fetchOrders} disabled={loading}>
+              <RefreshCw size={18} className={loading ? 'spinning' : ''} /> Làm mới
+            </button>
           </div>
 
           {/* ✅ CHÍNH SÁCH HỦY ĐƠN */}
@@ -298,7 +342,7 @@ export default function MyOrder() {
                 <ul>
                     <li><strong>Chờ thanh toán:</strong> Hủy ngay lập tức.</li>
                     <li><strong>Đã cọc (Chưa xác nhận):</strong> Được hoàn tiền cọc nếu hủy.</li>
-                    <li><strong>Đã xác nhận lịch:</strong> Nếu hủy, bạn sẽ <strong>MẤT TOÀN BỘ TIỀN CỌC</strong> để bù đắp chi phí giữ lịch.</li>
+                    <li><strong>Đã xác nhận lịch:</strong> Nếu hủy, bạn sẽ <strong>MẤT TOÀN BỘ TIỀN CỌC</strong>.</li>
                 </ul>
             </div>
           </div>

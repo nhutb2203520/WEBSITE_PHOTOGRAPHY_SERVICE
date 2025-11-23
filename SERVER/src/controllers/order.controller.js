@@ -1,7 +1,7 @@
 import orderService from "../services/order.service.js";
-import Orders from "../models/order.model.js"; // Đảm bảo đường dẫn này đúng với file Model của bạn
+import Orders from "../models/order.model.js"; 
 
-// 📦 Tạo đơn hàng
+// 📦 Tạo đơn hàng mới
 export const createOrder = async (req, res) => {
   try {
     const customer_id = req.user.id;
@@ -24,7 +24,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// 📋 Lấy đơn hàng của tôi
+// 📋 Lấy danh sách đơn hàng của tôi
 export const getMyOrders = async (req, res) => {
   try {
     const customer_id = req.user.id;
@@ -36,7 +36,7 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-// 🔄 Cập nhật trạng thái
+// 🔄 Cập nhật trạng thái (Admin/Photographer)
 export const updateOrderStatus = async (req, res) => {
   try {
     const { status, note } = req.body;
@@ -56,7 +56,7 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-// 🔍 Lấy chi tiết
+// 🔍 Lấy chi tiết đơn hàng
 export const getOrderDetail = async (req, res) => {
   try {
     const order = await orderService.getOrderByOrderId(req.params.orderId);
@@ -67,7 +67,7 @@ export const getOrderDetail = async (req, res) => {
   }
 };
 
-// 🚚 Tính phí di chuyển
+// 🚚 Tính phí di chuyển (Preview)
 export const calculateTravelFee = async (req, res) => {
   try {
     const { packageId, lat, lng } = req.body;
@@ -88,16 +88,11 @@ export const calculateTravelFee = async (req, res) => {
   }
 };
 
-// ✅ XÁC NHẬN THANH TOÁN (FULL CODE ĐÃ SỬA)
+// ✅ XÁC NHẬN THANH TOÁN (CỌC HOẶC PHẦN CÒN LẠI)
 export const confirmPayment = async (req, res) => {
   try {
-    const { orderId } = req.params; // Lấy ID từ URL
+    const { orderId } = req.params; 
     
-    // 👇 LOG DEBUG: Xem server nhận được gì
-    console.log(`📸 [Payment] OrderID: ${orderId}`);
-    console.log("📂 File nhận được:", req.file ? req.file.filename : "Không có file");
-    console.log("📝 Body nhận được:", req.body);
-
     const { method, amount, transaction_code } = req.body;
 
     // 1. Kiểm tra file (Bắt buộc nếu là Banking)
@@ -108,38 +103,45 @@ export const confirmPayment = async (req, res) => {
     // 2. Tạo đường dẫn file ảnh
     let fileUrl = null;
     if (req.file) {
-      // Cần đảm bảo app.js đã cấu hình static folder cho 'uploads'
       fileUrl = `${req.protocol}://${req.get('host')}/uploads/orders/${req.file.filename}`;
     }
 
-    // 3. Tìm đơn hàng (Sử dụng findById vì URL chứa MongoID)
+    // 3. Tìm đơn hàng
     const order = await Orders.findById(orderId);
-    
     if (!order) {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
-    // 4. Cập nhật thông tin thanh toán
-    order.payment_info.transfer_image = fileUrl;
-    order.payment_info.transfer_date = new Date();
-    
-    // Lưu mã giao dịch nếu có (bạn cần đảm bảo model có trường này, hoặc lưu vào transfer_code)
-    // order.payment_info.transfer_code = transaction_code; 
-    
-    order.payment_info.deposit_amount = Number(amount);
-    
-    // Lưu phương thức thanh toán (nếu schema hỗ trợ)
-    if (method) order.payment_method = method; // Hoặc order.payment_info.payment_method
-
-    // 5. Chuyển trạng thái sang "Chờ xác nhận" (pending)
+    // 4. Phân loại thanh toán
+    // Trường hợp 1: Thanh toán Cọc (Lần đầu)
     if (order.status === 'pending_payment') {
+      order.payment_info.transfer_image = fileUrl;
+      order.payment_info.transfer_date = new Date();
+      order.payment_info.transaction_code = transaction_code;
+      order.payment_info.deposit_amount = Number(amount);
+      
+      // Chuyển trạng thái sang "Chờ xác nhận cọc"
       order.status = 'pending';
       
-      // Thêm lịch sử
       order.status_history.push({
         status: 'pending',
         changed_by: req.user.id,
-        note: `Khách hàng đã gửi ảnh xác thực (Mã GD: ${transaction_code || 'N/A'})`
+        note: `Khách hàng đã gửi ảnh cọc (Mã GD: ${transaction_code || 'N/A'})`
+      });
+    } 
+    // Trường hợp 2: Thanh toán Phần còn lại (Sau khi chụp/Trước khi giao ảnh)
+    else {
+      order.payment_info.remaining_transfer_image = fileUrl;
+      order.payment_info.remaining_status = 'pending'; // Chờ duyệt
+      order.payment_info.remaining_paid_at = new Date(); // Tạm lưu thời gian gửi
+
+      // Chuyển trạng thái sang "Chờ duyệt thanh toán cuối"
+      order.status = 'final_payment_pending';
+      
+      order.status_history.push({
+        status: 'final_payment_pending',
+        changed_by: req.user.id,
+        note: `Khách hàng đã gửi ảnh thanh toán phần còn lại (Mã GD: ${transaction_code || 'N/A'})`
       });
     }
 
@@ -147,7 +149,7 @@ export const confirmPayment = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Đã gửi xác nhận thanh toán. Vui lòng chờ duyệt.",
+      message: "Đã gửi xác nhận thanh toán. Vui lòng chờ Admin duyệt.",
       data: {
         order_id: order.order_id,
         transfer_image: fileUrl,
@@ -161,6 +163,56 @@ export const confirmPayment = async (req, res) => {
   }
 };
 
+// 📢 Gửi khiếu nại (Khách hàng)
+export const submitComplaint = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.id;
+
+    const result = await orderService.submitComplaint(orderId, reason, userId);
+    res.json({ success: true, message: "Đã gửi khiếu nại thành công", data: result });
+  } catch (error) {
+    console.error("Submit complaint error:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// ⭐ Gửi đánh giá (Khách hàng)
+export const submitReview = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user.id;
+
+    const result = await orderService.submitReview(orderId, rating, comment, userId);
+    res.json({ success: true, message: "Cảm ơn bạn đã đánh giá dịch vụ!", data: result });
+  } catch (error) {
+    console.error("Submit review error:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// 👮 Admin giải quyết khiếu nại
+export const resolveComplaint = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status, response } = req.body; // status: 'resolved' | 'rejected'
+    const adminId = req.user.id;
+
+    const result = await orderService.resolveComplaint(orderId, status, response, adminId);
+    
+    res.json({ 
+        success: true, 
+        message: status === 'resolved' ? "Đã chấp nhận khiếu nại (Cộng lỗi vào gói)" : "Đã từ chối khiếu nại",
+        data: result 
+    });
+  } catch (error) {
+    console.error("Resolve complaint error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export default {
   createOrder,
   getMyOrders,
@@ -168,4 +220,7 @@ export default {
   getOrderDetail,
   calculateTravelFee,
   confirmPayment,
+  submitComplaint,
+  submitReview,
+  resolveComplaint
 };

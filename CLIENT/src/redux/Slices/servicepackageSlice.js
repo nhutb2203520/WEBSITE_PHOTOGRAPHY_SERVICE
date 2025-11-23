@@ -2,39 +2,45 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import servicePackageApi from '../../apis/ServicePackageService';
 import { toast } from 'react-toastify';
 
+// ==================== THUNKS ====================
+
 /** 🔹 Lấy tất cả gói dịch vụ công khai */
 export const getAllPackages = createAsyncThunk('package/getAllPackages', async (filters = {}, { rejectWithValue }) => {
   try {
-    console.log('📥 [Thunk] Fetch all packages with filters:', filters);
     const res = await servicePackageApi.getAllPackages(filters);
     return res.packages || [];
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi getAllPackages:', err.response?.data || err);
     return rejectWithValue(err.response?.data?.message || 'Không thể tải danh sách gói dịch vụ');
+  }
+});
+
+/** 🔹 Lấy chi tiết 1 gói (Dùng cho trang Detail) */
+export const getPackageById = createAsyncThunk('package/getPackageById', async (id, { rejectWithValue }) => {
+  try {
+    const res = await servicePackageApi.getPackageById(id);
+    return res;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Không thể tải thông tin gói');
   }
 });
 
 /** 🔹 Lấy gói của photographer hiện tại */
 export const getMyPackages = createAsyncThunk('package/getMyPackages', async (_, { rejectWithValue }) => {
   try {
-    console.log('📥 [Thunk] Fetch my packages...');
     const res = await servicePackageApi.getMyPackages();
     return res.packages || [];
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi getMyPackages:', err.response?.data || err);
-    return rejectWithValue(err.response?.data?.message || 'Không thể tải danh sách gói dịch vụ');
+    return rejectWithValue(err.response?.data?.message || 'Không thể tải danh sách gói của bạn');
   }
 });
 
 /** 🔹 Tạo gói mới */
 export const createPackage = createAsyncThunk('package/createPackage', async (data, { rejectWithValue }) => {
   try {
-    console.log('📤 [Thunk] Create package:', data);
     const res = await servicePackageApi.createPackage(data);
     toast.success('Tạo gói dịch vụ thành công!');
     return res.package || res;
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi createPackage:', err.response?.data || err);
     toast.error(err.response?.data?.message || 'Tạo gói thất bại.');
     return rejectWithValue(err.response?.data);
   }
@@ -43,12 +49,10 @@ export const createPackage = createAsyncThunk('package/createPackage', async (da
 /** 🔹 Cập nhật gói */
 export const updatePackage = createAsyncThunk('package/updatePackage', async ({ id, data }, { rejectWithValue }) => {
   try {
-    console.log('📤 [Thunk] Update package:', id);
     const res = await servicePackageApi.updatePackage(id, data);
     toast.success('Cập nhật gói dịch vụ thành công!');
     return res.package || res;
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi updatePackage:', err.response?.data || err);
     toast.error(err.response?.data?.message || 'Cập nhật thất bại.');
     return rejectWithValue(err.response?.data);
   }
@@ -57,128 +61,152 @@ export const updatePackage = createAsyncThunk('package/updatePackage', async ({ 
 /** 🔹 Xóa gói */
 export const deletePackage = createAsyncThunk('package/deletePackage', async (id, { rejectWithValue }) => {
   try {
-    console.log('🗑️ [Thunk] Delete package:', id);
     await servicePackageApi.deletePackage(id);
     toast.success('Xóa gói dịch vụ thành công!');
     return id;
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi deletePackage:', err.response?.data || err);
     toast.error(err.response?.data?.message || 'Xóa gói thất bại.');
     return rejectWithValue(err.response?.data);
   }
 });
 
-/** 🔹 Upload ảnh bìa (single) */
+/** 🔹 Đánh giá gói dịch vụ (Rating) */
+export const ratePackage = createAsyncThunk('package/ratePackage', async ({ id, rating }, { rejectWithValue }) => {
+  try {
+    const res = await servicePackageApi.ratePackage(id, rating);
+    return res; // Trả về gói đã update
+  } catch (err) {
+    return rejectWithValue(err.response?.data);
+  }
+});
+
+/** 🔹 Upload ảnh bìa */
 export const uploadPackageImage = createAsyncThunk('package/uploadPackageImage', async ({ id, formData }, { rejectWithValue }) => {
   try {
-    console.log('📤 [Thunk] Upload package cover image for:', id);
     const res = await servicePackageApi.uploadPackageImage(id, formData);
-    return { id, imageUrl: res.fileUrl || res.imageUrl || res.url };
+    return { id, imageUrl: res.fileUrl || res.imageUrl };
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi uploadPackageImage:', err.response?.data || err);
     return rejectWithValue(err.response?.data);
   }
 });
 
-/** 🔹 NEW: Upload nhiều ảnh gallery (multiple) */
+/** 🔹 Upload nhiều ảnh gallery */
 export const uploadPackageImages = createAsyncThunk('package/uploadPackageImages', async ({ id, formData }, { rejectWithValue }) => {
   try {
-    console.log('📤 [Thunk] Upload package gallery images for:', id);
     const res = await servicePackageApi.uploadPackageImages(id, formData);
-    return { 
-      id, 
-      imageUrls: res.fileUrls || res.imageUrls || res.urls || [] 
-    };
+    return { id, imageUrls: res.fileUrls || res.imageUrls || [] };
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi uploadPackageImages:', err.response?.data || err);
     return rejectWithValue(err.response?.data);
   }
 });
 
-/** 🔹 NEW: Xóa ảnh khỏi gallery */
+/** 🔹 Xóa ảnh khỏi gallery */
 export const deletePackageImage = createAsyncThunk('package/deletePackageImage', async ({ id, imageUrl }, { rejectWithValue }) => {
   try {
-    console.log('🗑️ [Thunk] Delete image:', imageUrl);
-    //const res = await servicePackageApi.deletePackageImage(id, imageUrl);
+    await servicePackageApi.deletePackageImage(id, imageUrl);
     toast.success('Xóa ảnh thành công!');
     return { id, imageUrl };
   } catch (err) {
-    console.error('❌ [Thunk] Lỗi deletePackageImage:', err.response?.data || err);
-    toast.error(err.response?.data?.message || 'Không thể xóa ảnh.');
+    toast.error('Không thể xóa ảnh.');
     return rejectWithValue(err.response?.data);
   }
 });
+
+// ==================== SLICE ====================
 
 const servicePackageSlice = createSlice({
   name: 'package',
   initialState: {
-    packages: [],
-    myPackages: [],
+    packages: [],       // Danh sách gói public
+    myPackages: [],     // Danh sách gói của photographer
+    currentPackage: null, // Chi tiết 1 gói đang xem
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    clearCurrentPackage: (state) => {
+      state.currentPackage = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
-      // 📦 GET ALL PACKAGES (Public)
-      .addCase(getAllPackages.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // --- GET ALL ---
+      .addCase(getAllPackages.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(getAllPackages.fulfilled, (state, action) => {
         state.loading = false;
         state.packages = action.payload;
       })
-      .addCase(getAllPackages.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
+      .addCase(getAllPackages.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
-      // 📦 GET MY PACKAGES
-      .addCase(getMyPackages.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      // --- GET BY ID ---
+      .addCase(getPackageById.pending, (state) => { state.loading = true; })
+      .addCase(getPackageById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentPackage = action.payload;
       })
+      .addCase(getPackageById.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
+
+      // --- GET MY PACKAGES ---
+      .addCase(getMyPackages.pending, (state) => { state.loading = true; })
       .addCase(getMyPackages.fulfilled, (state, action) => {
         state.loading = false;
         state.myPackages = action.payload;
       })
-      .addCase(getMyPackages.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
+      .addCase(getMyPackages.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
-      // ➕ CREATE
-      .addCase(createPackage.pending, (state) => {
-        state.loading = true;
-      })
+      // --- CREATE ---
+      .addCase(createPackage.pending, (state) => { state.loading = true; })
       .addCase(createPackage.fulfilled, (state, action) => {
         state.loading = false;
         state.myPackages.push(action.payload);
+        state.packages.push(action.payload); // Cập nhật luôn list public nếu cần
       })
-      .addCase(createPackage.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
+      .addCase(createPackage.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
-      // ✏️ UPDATE
+      // --- UPDATE ---
+      .addCase(updatePackage.pending, (state) => { state.loading = true; })
       .addCase(updatePackage.fulfilled, (state, action) => {
+        state.loading = false;
         const index = state.myPackages.findIndex(p => p._id === action.payload._id);
         if (index !== -1) state.myPackages[index] = action.payload;
+        
+        // Cập nhật cả currentPackage nếu đang xem
+        if (state.currentPackage?._id === action.payload._id) {
+          state.currentPackage = action.payload;
+        }
       })
+      .addCase(updatePackage.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
-      // 🗑️ DELETE
+      // --- DELETE ---
       .addCase(deletePackage.fulfilled, (state, action) => {
         state.myPackages = state.myPackages.filter(pkg => pkg._id !== action.payload);
+        state.packages = state.packages.filter(pkg => pkg._id !== action.payload);
       })
 
-      // 📸 UPLOAD COVER IMAGE
+      // --- RATE (Cập nhật lại điểm đánh giá trong list) ---
+      .addCase(ratePackage.fulfilled, (state, action) => {
+        const updatedPkg = action.payload;
+        // Cập nhật trong list public
+        const index = state.packages.findIndex(p => p._id === updatedPkg._id);
+        if (index !== -1) state.packages[index] = updatedPkg;
+        
+        // Cập nhật trong list photographer
+        const myIndex = state.myPackages.findIndex(p => p._id === updatedPkg._id);
+        if (myIndex !== -1) state.myPackages[myIndex] = updatedPkg;
+
+        // Cập nhật currentPackage
+        if (state.currentPackage?._id === updatedPkg._id) {
+          state.currentPackage = updatedPkg;
+        }
+      })
+
+      // --- UPLOAD COVER IMAGE ---
       .addCase(uploadPackageImage.fulfilled, (state, action) => {
         const pkg = state.myPackages.find(p => p._id === action.payload.id);
         if (pkg) pkg.AnhBia = action.payload.imageUrl;
       })
 
-      // 📸 NEW: UPLOAD GALLERY IMAGES
+      // --- UPLOAD GALLERY ---
       .addCase(uploadPackageImages.fulfilled, (state, action) => {
         const pkg = state.myPackages.find(p => p._id === action.payload.id);
         if (pkg) {
@@ -187,7 +215,7 @@ const servicePackageSlice = createSlice({
         }
       })
 
-      // 🗑️ NEW: DELETE IMAGE
+      // --- DELETE GALLERY IMAGE ---
       .addCase(deletePackageImage.fulfilled, (state, action) => {
         const pkg = state.myPackages.find(p => p._id === action.payload.id);
         if (pkg && pkg.Images) {
@@ -197,4 +225,5 @@ const servicePackageSlice = createSlice({
   },
 });
 
+export const { clearCurrentPackage } = servicePackageSlice.actions;
 export default servicePackageSlice.reducer;

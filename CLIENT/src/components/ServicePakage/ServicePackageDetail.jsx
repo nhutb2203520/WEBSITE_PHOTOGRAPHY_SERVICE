@@ -1,22 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
-  Star, 
-  Heart, 
-  MapPin, 
-  Clock, 
-  Check, 
-  Phone, 
-  Mail, 
-  Camera,
-  ArrowLeft,
-  Share2,
-  MessageCircle,
-  ChevronLeft,
-  ChevronRight,
-  Truck, // Icon cho phí di chuyển
-  Info,
-  CalendarDays
+  Star, Heart, MapPin, Clock, Check, Phone, Mail, Camera, ArrowLeft, Share2, MessageCircle, ChevronLeft, ChevronRight, Truck, Info, CalendarDays, AlertTriangle
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -231,9 +216,12 @@ export default function ServicePackageDetail() {
               <section className="package-section">
                 <h2>Mô tả chi tiết</h2>
                 <p className="package-description">{packageData.MoTa}</p>
-                <div className="created-date">
-                  <CalendarDays size={16} />
-                  <span>Đăng ngày: {new Date(packageData.createdAt).toLocaleDateString('vi-VN')}</span>
+                
+                <div className="flex gap-4 mt-4 items-center flex-wrap">
+                    <div className="created-date">
+                        <CalendarDays size={16} />
+                        <span>Đăng ngày: {new Date(packageData.createdAt).toLocaleDateString('vi-VN')}</span>
+                    </div>
                 </div>
               </section>
 
@@ -257,7 +245,7 @@ export default function ServicePackageDetail() {
                 </div>
               </section>
 
-              {/* ✅ NEW: Base Location Section */}
+              {/* Base Location Section */}
               {packageData.baseLocation && (packageData.baseLocation.address || packageData.baseLocation.city) && (
                 <section className="package-section">
                   <h2>Khu vực hoạt động</h2>
@@ -289,7 +277,7 @@ export default function ServicePackageDetail() {
                 </section>
               )}
 
-              {/* ✅ NEW: Travel Fee Policy Section */}
+              {/* Travel Fee Policy Section */}
               {packageData.travelFeeConfig && packageData.travelFeeConfig.enabled && (
                 <section className="package-section">
                   <h2>Chính sách phí di chuyển</h2>
@@ -385,10 +373,21 @@ export default function ServicePackageDetail() {
                       <span>{(packageData.DanhGia || 0).toFixed(1)}</span>
                       <span className="reviews">({packageData.SoLuotDanhGia || 0} đánh giá)</span>
                     </div>
-                    <div className="booking-count">
-                      <Camera size={18} />
-                      <span>{packageData.SoLuongDaDat || 0} lượt đặt</span>
+                    
+                    {/* ✅ HIỂN THỊ SỐ LƯỢT ĐẶT VÀ KHIẾU NẠI */}
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '10px', alignItems: 'center'}}>
+                        <div className="booking-count">
+                            <Camera size={18} />
+                            <span>{packageData.SoLuongDaDat || 0} lượt đặt</span>
+                        </div>
+                        
+                        {/* Hiển thị khiếu nại kể cả bằng 0 */}
+                        <div style={{display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: packageData.SoLuongKhieuNai > 0 ? '#ef4444' : '#6b7280', fontWeight: packageData.SoLuongKhieuNai > 0 ? '600' : '400'}}>
+                            <AlertTriangle size={16} />
+                            <span>{packageData.SoLuongKhieuNai || 0} khiếu nại</span>
+                        </div>
                     </div>
+
                   </div>
                 </div>
 

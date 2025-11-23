@@ -51,13 +51,14 @@ const orderSchema = new mongoose.Schema(
       note: { type: String, default: "" }
     },
 
-    // ==================== THANH TOÁN ====================
+    // ==================== TÀI CHÍNH & THANH TOÁN ====================
     service_amount: { type: Number, required: true },
     travel_fee_amount: { type: Number, default: 0 },
     total_amount: { type: Number, required: true },
     discount_amount: { type: Number, default: 0 },
     final_amount: { type: Number, required: true },
     
+    // Tiền cọc (30%)
     deposit_required: {
       type: Number,
       required: true,
@@ -70,33 +71,78 @@ const orderSchema = new mongoose.Schema(
     deposit_amount: { type: Number, default: 0 },
 
     payment_info: {
+      // --- Giai đoạn 1: Đặt cọc ---
       transfer_code: { type: String, default: null },
       transfer_image: { type: String, default: null },
       transfer_date: { type: Date, default: null },
       transaction_code: { type: String, default: null },
       deposit_amount: { type: Number, default: 0 },
+      deposit_status: { type: String, enum: ['unpaid', 'paid'], default: 'unpaid' },
+      
       payment_method_id: { type: mongoose.Schema.Types.ObjectId, ref: "PaymentMethod", default: null },
       verified: { type: Boolean, default: false },
       verified_by: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang", default: null },
-      verified_at: { type: Date, default: null }
+      verified_at: { type: Date, default: null },
+
+      // --- Giai đoạn 2: Thanh toán phần còn lại (Sau khi chụp) ---
+      remaining_amount: { type: Number, default: 0 }, // Số tiền còn lại phải trả
+      remaining_status: { type: String, enum: ['unpaid', 'pending', 'paid'], default: 'unpaid' },
+      remaining_transfer_image: { type: String, default: null }, // Ảnh bill đợt 2
+      remaining_paid_at: { type: Date, default: null } // Ngày Admin xác nhận đã trả đủ
     },
 
-    // ==================== TRẠNG THÁI ====================
+    // ==================== GIAO HÀNG (ALBUM ẢNH) ====================
+    delivery_info: {
+      deadline: { type: Date, default: null }, // Hạn chót giao ảnh (Ngày thanh toán đủ + 7 ngày)
+      product_link: { type: String, default: "" }, // Link Google Drive/Flickr
+      delivered_at: { type: Date, default: null }, // Ngày giao thực tế
+      status: { type: String, enum: ['pending', 'delivered', 'late'], default: 'pending' }
+    },
+
+    // ==================== KHIẾU NẠI ====================
+    complaint: {
+      is_complained: { type: Boolean, default: false },
+      reason: { type: String, default: "" },
+      created_at: { type: Date, default: null },
+      status: { type: String, enum: ['pending', 'resolved', 'rejected'], default: 'pending' },
+      admin_response: { type: String, default: "" },
+      resolved_at: { type: Date, default: null }
+    },
+
+    // ==================== ĐÁNH GIÁ ====================
+    review: {
+      is_reviewed: { type: Boolean, default: false },
+      rating: { type: Number, default: 0 }, // 1-5 sao
+      comment: { type: String, default: "" },
+      created_at: { type: Date, default: null }
+    },
+
+    // ==================== TRẠNG THÁI ĐƠN HÀNG ====================
     status: {
       type: String,
       enum: [
+        // Giai đoạn 1: Đặt lịch & Cọc
         "pending_payment",      // Chờ thanh toán cọc
-        "pending",              // Đã cọc, chờ xác nhận (Nếu hủy lúc này -> Refund Pending)
-        "confirmed",            // Đã xác nhận (Nếu hủy lúc này -> Cancelled & Mất cọc)
-        "in_progress",          // Đang thực hiện
-        "completed",            // Hoàn thành
-        "cancelled",            // Đã hủy
-        "refund_pending"        // ✅ MỚI: Chờ hoàn tiền (Do hủy khi chưa confirm)
+        "pending",              // Đã cọc, chờ Admin xác nhận
+        "refund_pending",       // Đã hủy khi chưa confirm -> Chờ hoàn tiền cọc
+        "cancelled",            // Đã hủy (Mất cọc hoặc đã hoàn tiền xong)
+        
+        // Giai đoạn 2: Thực hiện
+        "confirmed",            // Đã xác nhận lịch (Đã giữ chỗ)
+        "in_progress",          // Đang thực hiện chụp (Đến ngày chụp)
+        "waiting_final_payment",// Đã chụp xong -> Chờ khách thanh toán phần còn lại
+        "final_payment_pending",// Khách đã CK phần còn lại -> Chờ Admin duyệt
+        
+        // Giai đoạn 3: Hậu kỳ & Giao hàng
+        "processing",           // Đã thanh toán đủ -> Đang xử lý ảnh (Bắt đầu tính 7 ngày)
+        "delivered",            // Photographer đã giao ảnh
+        "complaint",            // Khách hàng đang khiếu nại
+        "completed"             // Hoàn tất đơn hàng (Hài lòng/Hết hạn khiếu nại)
       ],
       default: "pending_payment",
     },
 
-    // ==================== LỊCH SỬ ====================
+    // ==================== LỊCH SỬ TRẠNG THÁI ====================
     status_history: [{
       status: String,
       changed_at: { type: Date, default: Date.now },
@@ -107,11 +153,13 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// ==================== INDEXES ====================
 orderSchema.index({ order_id: 1 });
 orderSchema.index({ customer_id: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ "payment_info.transfer_code": 1 });
 
+// ==================== METHODS ====================
 orderSchema.methods.generateTransferCode = function() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = 'CK';
@@ -131,9 +179,13 @@ orderSchema.methods.updateStatus = function(newStatus, userId, note = '') {
   });
 };
 
+// ==================== HOOKS ====================
 orderSchema.pre('save', function(next) {
   if (this.isModified('final_amount')) {
+    // Tự động tính tiền cọc 30%
     this.deposit_required = Math.round(this.final_amount * 0.3);
+    // Tự động tính số tiền còn lại cần thanh toán sau
+    this.payment_info.remaining_amount = this.final_amount - this.deposit_required;
   }
   next();
 });

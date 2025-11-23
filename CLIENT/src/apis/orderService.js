@@ -1,5 +1,4 @@
 import axiosUser from "./axiosUser";
-
 const ORDER_URL = "/orders";
 
 const orderApi = {
@@ -37,6 +36,14 @@ const orderApi = {
         "Content-Type": undefined 
       }
     }),
+
+  // ✅ MỚI: Gửi khiếu nại
+  submitComplaint: (orderId, reason) => 
+    axiosUser.post(`${ORDER_URL}/${orderId}/complaint`, { reason }),
+
+  // ✅ MỚI: Gửi đánh giá
+  submitReview: (orderId, rating, comment) => 
+    axiosUser.post(`${ORDER_URL}/${orderId}/review`, { rating, comment }),
 };
 
 export default orderApi;

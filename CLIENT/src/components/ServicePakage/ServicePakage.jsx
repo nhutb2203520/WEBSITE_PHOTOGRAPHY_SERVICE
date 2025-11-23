@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Heart, Camera, CheckCircle2, ClipboardList, MapPin, Search } from 'lucide-react';
+import { Star, Heart, Camera, CheckCircle2, ClipboardList, MapPin, Search, AlertTriangle } from 'lucide-react';
 import './ServicePackage.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
@@ -9,11 +9,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { getAllPackages } from '../../redux/Slices/servicepackageSlice';
 import Package from '../PhotographerPage/Package';
 
-export default function PackagePage() {
+export default function ServicePackage() {
   const dispatch = useDispatch();
   const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState('');
-  const [location, setLocation] = useState(''); // ✅ State lọc vị trí
+  const [location, setLocation] = useState(''); 
   const [loaiGoi, setLoaiGoi] = useState('');
   const [sortBy, setSortBy] = useState('');
 
@@ -56,16 +56,13 @@ export default function PackagePage() {
     return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} đ`;
   };
 
-  // ✅ Filter logic (Bao gồm cả Location)
+  // Filter logic
   let filtered = packages.filter(pkg => {
-    // Lọc theo tên/mô tả
     const matchSearch = pkg.TenGoi?.toLowerCase().includes(search.toLowerCase()) ||
                         pkg.MoTa?.toLowerCase().includes(search.toLowerCase());
     
-    // Lọc theo loại gói
     const matchLoaiGoi = !loaiGoi || pkg.LoaiGoi === loaiGoi;
 
-    // ✅ Lọc theo vị trí (City, District, Address)
     const pkgLocation = [
       pkg.baseLocation?.city, 
       pkg.baseLocation?.district, 
@@ -94,11 +91,10 @@ export default function PackagePage() {
     const filters = {};
     if (loaiGoi) filters.loaiGoi = loaiGoi;
     if (search) filters.search = search;
-    if (location) filters.location = location; // Gửi thêm params location lên server nếu API hỗ trợ
+    if (location) filters.location = location; 
     dispatch(getAllPackages(filters));
   };
 
-  // Tự động fetch lại khi đổi loại gói (Dropdown)
   useEffect(() => {
     handleFilterChange();
   }, [loaiGoi]); 
@@ -117,9 +113,7 @@ export default function PackagePage() {
               <p>Khám phá các gói dịch vụ chất lượng từ các photographer chuyên nghiệp</p>
             </div>
 
-            {/* ✅ Search & Filter Section */}
             <div className="search-filter">
-              {/* Ô tìm kiếm từ khóa */}
               <div className="input-wrapper">
                 <Search size={18} className="input-icon" />
                 <input
@@ -131,7 +125,6 @@ export default function PackagePage() {
                 />
               </div>
 
-              {/* ✅ Ô tìm kiếm vị trí */}
               <div className="input-wrapper">
                 <MapPin size={18} className="input-icon" />
                 <input
@@ -163,7 +156,6 @@ export default function PackagePage() {
                 <option value="priceDesc">Giá: Cao đến Thấp</option>
               </select>
 
-              {/* Nút Đơn hàng của tôi */}
               {user && (
                 <Link to="/my-orders" className="btn-my-orders">
                   <ClipboardList size={20} />
@@ -172,7 +164,6 @@ export default function PackagePage() {
               )}
             </div>
 
-            {/* Photographer Section */}
             {isPhotographer && (
               <div className="photographer-section-wrapper">
                 <div className="section-divider">
@@ -182,7 +173,6 @@ export default function PackagePage() {
               </div>
             )}
 
-            {/* Public Packages Grid */}
             <div className="section-divider">
               <h3>Tất cả gói dịch vụ</h3>
             </div>
@@ -226,10 +216,12 @@ export default function PackagePage() {
                       <div className="package-rating">
                         <Star className="star-icon" fill="#fbbf24" color="#fbbf24" size={14} />
                         <span>{(pkg.DanhGia || 0).toFixed(1)}</span>
+                        <span style={{ marginLeft: '4px', color: '#6b7280', fontSize: '0.85em' }}>
+                          ({pkg.SoLuotDanhGia || 0})
+                        </span>
                       </div>
                     </div>
                     
-                    {/* ✅ Hiển thị vị trí trên card */}
                     <div className="package-location-row">
                       <MapPin size={14} />
                       <span>{pkg.baseLocation?.city || pkg.baseLocation?.address || 'Toàn quốc'}</span>
@@ -248,13 +240,29 @@ export default function PackagePage() {
                       )}
                     </div>
 
-                    <div className="package-footer-info">
+                    <div className="package-footer-info" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', flexWrap: 'wrap'}}>
                       <span className="package-price">
                         {formatPriceRange(pkg.DichVu)}
                       </span>
-                      <span className="booking-count-text">
-                        {pkg.SoLuongDaDat || 0} lượt đặt
-                      </span>
+                      
+                      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px'}}>
+                        <span className="booking-count-text">
+                          <Camera size={14} style={{display: 'inline', marginRight: '4px'}}/>
+                          {pkg.SoLuongDaDat || 0} lượt đặt
+                        </span>
+
+                        {/* ✅ HIỂN THỊ KHIẾU NẠI NGAY BÊN DƯỚI LƯỢT ĐẶT */}
+                        <span 
+                          className="booking-count-text" 
+                          style={{ 
+                            color: pkg.SoLuongKhieuNai > 0 ? '#ef4444' : '#9ca3af',
+                            fontWeight: pkg.SoLuongKhieuNai > 0 ? '600' : '400',
+                            display: 'flex', alignItems: 'center', gap: '4px'
+                          }}
+                        >
+                           <AlertTriangle size={14} /> {pkg.SoLuongKhieuNai || 0} khiếu nại
+                        </span>
+                      </div>
                     </div>
 
                     <div className="card-divider"></div>

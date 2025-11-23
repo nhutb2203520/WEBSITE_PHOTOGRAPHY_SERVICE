@@ -35,6 +35,7 @@ const ServicePackageSchema = new mongoose.Schema(
       type: String
     }],
     
+    // --- ĐÁNH GIÁ & UY TÍN ---
     DanhGia: {
       type: Number,
       default: 0,
@@ -46,6 +47,13 @@ const ServicePackageSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0,
+    },
+
+    // ✅ MỚI: Tổng số khiếu nại đã được Admin xác nhận (Confirmed Faults)
+    SoLuongKhieuNai: { 
+      type: Number, 
+      default: 0, 
+      min: 0 
     },
     
     PhotographerId: {
@@ -82,18 +90,16 @@ const ServicePackageSchema = new mongoose.Schema(
       default: false,
     },
 
-    // ==================== SỬA LẠI CHUẨN GEOJSON ====================
+    // ==================== GEOJSON LOCATION ====================
     baseLocation: {
-      // GeoJSON bắt buộc phải có field 'type'
       type: {
         type: String,
         enum: ['Point'],
         default: 'Point'
       },
-      // GeoJSON bắt buộc coordinates là mảng [Kinh độ, Vĩ độ]
       coordinates: {
-        type: [Number],
-        default: [0, 0] // Mặc định giữa biển để tránh lỗi null
+        type: [Number], // [lng, lat]
+        default: [0, 0]
       },
       address: {
         type: String,
@@ -113,7 +119,7 @@ const ServicePackageSchema = new mongoose.Schema(
       }
     },
 
-    // Cấu hình phí di chuyển
+    // ==================== CẤU HÌNH PHÍ DI CHUYỂN ====================
     travelFeeConfig: {
       enabled: {
         type: Boolean,
@@ -155,8 +161,6 @@ ServicePackageSchema.index({ PhotographerId: 1, TrangThai: 1 });
 ServicePackageSchema.index({ LoaiGoi: 1, TrangThai: 1 });
 ServicePackageSchema.index({ DanhGia: -1 });
 ServicePackageSchema.index({ SoLuongDaDat: -1 });
-
-// Index địa lý 2dsphere cho coordinates
 ServicePackageSchema.index({ 'baseLocation.coordinates': '2dsphere' });
 
 // Virtual: Tổng giá gói
@@ -242,11 +246,13 @@ ServicePackageSchema.methods.calculateTravelFee = function(distanceKm) {
   };
 };
 
-ServicePackageSchema.methods.addReview = function(rating) {
+// ✅ METHOD CẬP NHẬT RATING (Đổi tên từ addReview để khớp với logic controller)
+ServicePackageSchema.methods.updateRating = async function(rating) {
   if (rating < 1 || rating > 5) {
     throw new Error('Đánh giá phải từ 1 đến 5 sao');
   }
   
+  // Tính điểm trung bình mới (Weighted Average)
   const currentTotal = this.DanhGia * this.SoLuotDanhGia;
   const newTotal = currentTotal + rating;
   const newCount = this.SoLuotDanhGia + 1;
