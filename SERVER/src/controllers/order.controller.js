@@ -212,7 +212,24 @@ export const resolveComplaint = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const getAllOrders = async (req, res) => {
+  try {
+    // Lấy tất cả, sắp xếp mới nhất trước
+    // .populate kết nối sang bảng Khách Hàng và Gói Dịch Vụ để lấy tên
+    const orders = await Orders.find()
+      .populate("customer_id", "full_name email phone") // Thay 'full_name' bằng tên trường thật trong bangKhachHang
+      .populate("service_package_id", "name price")     // Thay 'name' bằng tên trường thật trong ServicePackage
+      .sort({ createdAt: -1 });
 
+    res.json({ 
+        success: true,
+        data: orders 
+    });
+  } catch (error) {
+    console.error("Get all orders error:", error);
+    res.status(500).json({ message: "Lỗi server khi lấy danh sách đơn!" });
+  }
+};
 export default {
   createOrder,
   getMyOrders,
@@ -222,5 +239,6 @@ export default {
   confirmPayment,
   submitComplaint,
   submitReview,
-  resolveComplaint
+  resolveComplaint,
+  getAllOrders
 };

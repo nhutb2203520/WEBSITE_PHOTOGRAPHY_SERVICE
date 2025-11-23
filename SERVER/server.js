@@ -20,7 +20,7 @@ import paymentMethodRoutes from "./src/routes/paymentMethod.route.js";
 import adminRoute from "./src/routes/admin.route.js";
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
-
+import serviceFeeRoutes from "./src/routes/servicefree.route.js";
 // ✅ Load environment
 dotenv.config();
 
@@ -64,7 +64,7 @@ app.use('/api/service-packages', servicePackageRoutes);
 app.use("/api/orders", orderRoute);
 app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/admin", adminRoute);
-
+app.use("/api/service-fees", serviceFeeRoutes);
 // ✅ Get current user profile
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 

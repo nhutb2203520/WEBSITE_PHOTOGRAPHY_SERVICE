@@ -7,60 +7,81 @@ import routes from './routes';
 import ProtectedRoute from './components/ProtectedAdminRoute';
 import adminAuthService from './apis/adminAuthService';
 
-function App() {
-  // ✅ Khởi động auth service khi app mount
-  useEffect(() => {
-    console.log('🚀 App initialized - Starting auth service');
-    
-    // Khởi động auto-refresh nếu đã đăng nhập
-    if (adminAuthService.isAuthenticated()) {
-      console.log('✅ User already authenticated, starting auto-refresh');
-      adminAuthService.initAutoRefresh();
-    } else {
-      console.log('ℹ️ User not authenticated');
-    }
+// Component Loading xoay tròn (Spinner)
+const LoadingFallback = () => (
+  <div className="loading-screen" style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    backgroundColor: '#f8f9fa' 
+  }}>
+    <div className="spinner" style={{
+      width: '40px',
+      height: '40px',
+      border: '4px solid #e5e7eb',
+      borderTop: '4px solid #2563eb',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
+    }}></div>
+    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+  </div>
+);
 
-    // Cleanup khi app unmount
-    return () => {
-      console.log('🛑 App unmounting');
-    };
+function App() {
+  useEffect(() => {
+    // console.log('🚀 App initialized');
+    
+    // Kiểm tra an toàn trước khi gọi service
+    if (adminAuthService && typeof adminAuthService.isAuthenticated === 'function') {
+      if (adminAuthService.isAuthenticated()) {
+        // console.log('✅ User authenticated, starting refresh timer');
+        if (typeof adminAuthService.initAutoRefresh === 'function') {
+           adminAuthService.initAutoRefresh();
+        }
+      }
+    }
   }, []);
 
   return (
     <BrowserRouter>
-      <Suspense fallback={<div>Loading...</div>}>
+      {/* Suspense bọc ngoài để xử lý lazy loading cho toàn bộ routes */}
+      <Suspense fallback={<LoadingFallback />}>
         <Routes>
           {routes.map((item, index) => {
-            const Component = item.component;
-            
-            // ✅ Bảo vệ các route admin (trừ login)
-            if (item.path.startsWith('/admin') && item.path !== '/admin/login') {
+            const PageComponent = item.component;
+
+            // Bỏ qua nếu route không có component hợp lệ
+            if (!PageComponent) return null;
+
+            // Xử lý Route Admin (Protected)
+            // Logic: Đường dẫn bắt đầu bằng /admin VÀ không phải là trang login
+            if (item.path && item.path.startsWith('/admin') && item.path !== '/admin/login') {
               return (
                 <Route
                   key={index}
                   path={item.path}
                   element={
                     <ProtectedRoute requiredRole="admin">
-                      <Component />
+                      <PageComponent />
                     </ProtectedRoute>
                   }
                 />
               );
             }
 
-            // Route thông thường
+            // Route thông thường (Public)
             return (
               <Route
                 key={index}
                 path={item.path}
-                element={<Component />}
+                element={<PageComponent />}
               />
             );
           })}
         </Routes>
       </Suspense>
       
-      {/* Toast hiển thị */}
       <ToastContainer
         position='top-right'
         autoClose={3000}

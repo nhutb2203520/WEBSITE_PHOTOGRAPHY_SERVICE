@@ -9,20 +9,22 @@ import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
 import './PaymentServicePackage.css';
 import orderApi from '../../apis/OrderService';
-// ✅ Import Service để lấy thông tin ngân hàng từ Database
 import paymentMethodService from '../../apis/paymentMethodService';
 
 export default function PaymentServicePackage() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Lấy dữ liệu từ trang Order
-  const { order, transfer_code, deposit_required: depositFromState } = location.state || {};
+  // Lấy dữ liệu từ trang Order (MyOrder hoặc OrderService)
+  // deposit_required: Là số tiền CẦN THANH TOÁN (có thể là cọc hoặc phần còn lại)
+  const { order: initialOrder, transfer_code, deposit_required: amountFromState, is_remaining } = location.state || {};
 
+  // ✅ State lưu trữ order mới nhất, khởi tạo bằng data truyền qua state
+  const [orderData, setOrderData] = useState(initialOrder);
   const [paymentMethod, setPaymentMethod] = useState('banking');
   const [loading, setLoading] = useState(false);
   
-  // ✅ STATE QUẢN LÝ THÔNG TIN NGÂN HÀNG ĐỘNG
+  // STATE QUẢN LÝ THÔNG TIN NGÂN HÀNG
   const [adminBanks, setAdminBanks] = useState([]);
   const [selectedBank, setSelectedBank] = useState(null);
   const [loadingBanks, setLoadingBanks] = useState(true);
@@ -32,36 +34,51 @@ export default function PaymentServicePackage() {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
-    if (!order) {
+    if (!initialOrder) {
       toast.error('Không tìm thấy thông tin đơn hàng');
       navigate('/');
+      return;
     }
+    
+    // ✅ TỰ ĐỘNG FETCH LẠI ĐƠN HÀNG ĐỂ CÓ DỮ LIỆU POPULATE (NẾU CẦN)
+    // Nếu service_package_id chỉ là string (ID) thay vì object, nghĩa là chưa populate
+    if (initialOrder && typeof initialOrder.service_package_id === 'string') {
+        const fetchFullOrder = async () => {
+            try {
+                const res = await orderApi.getOrderDetail(initialOrder._id || initialOrder.order_id);
+                if (res && res.data) {
+                    setOrderData(res.data);
+                }
+            } catch (error) {
+                console.error("Lỗi tải chi tiết đơn hàng:", error);
+            }
+        };
+        fetchFullOrder();
+    }
+
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
-  }, [order, navigate, previewUrl]);
+  }, [initialOrder, navigate, previewUrl]);
 
-  // ✅ 1. TỰ ĐỘNG LẤY THÔNG TIN NGÂN HÀNG CỦA ADMIN KHI LOAD TRANG
+  // 1. TỰ ĐỘNG LẤY THÔNG TIN NGÂN HÀNG CỦA ADMIN
   useEffect(() => {
     const fetchPaymentMethods = async () => {
       try {
         setLoadingBanks(true);
-        // Gọi API lấy danh sách phương thức thanh toán
         const res = await paymentMethodService.getAllPaymentMethods();
         
         const methods = Array.isArray(res) ? res : (res.data || []);
-        // Chỉ lấy những tài khoản đang hoạt động (isActive = true)
         const activeMethods = methods.filter(m => m.isActive);
 
         setAdminBanks(activeMethods);
         
-        // Mặc định chọn tài khoản đầu tiên để hiển thị QR ngay lập tức
         if (activeMethods.length > 0) {
           setSelectedBank(activeMethods[0]);
         }
       } catch (error) {
         console.error("Lỗi lấy thông tin ngân hàng:", error);
-        toast.error("Không thể tải thông tin thanh toán của Admin.");
+        toast.error("Không thể tải thông tin thanh toán.");
       } finally {
         setLoadingBanks(false);
       }
@@ -70,19 +87,36 @@ export default function PaymentServicePackage() {
     fetchPaymentMethods();
   }, []);
 
-  if (!order) return null;
+  if (!orderData) return null;
 
-  // --- TÍNH TOÁN SỐ TIỀN ---
-  const serviceFee = Number(order.service_amount) || 0;
-  const travelFee = Number(order.travel_fee_amount) || 0; // Lưu ý: dùng travel_fee_amount
-  const totalAmount = Number(order.total_amount) || (serviceFee + travelFee);
-  const depositAmount = Number(depositFromState) || Math.round(totalAmount * 0.3);
-  const transactionCode = transfer_code || `COC ${order._id.slice(-6).toUpperCase()}`;
+  // --- XỬ LÝ URL ẢNH (LẤY TỪ ORDER DATA ĐÃ UPDATE) ---
+  const getPackageImage = () => {
+    // Thử lấy ảnh bìa từ object service_package_id (sau khi populate)
+    const imgPath = orderData.service_package_id?.AnhBia;
+    
+    if (!imgPath) return "https://placehold.co/100x100?text=No+Image"; // Fallback
+    if (imgPath.startsWith("http")) return imgPath;
+    return `http://localhost:5000/${imgPath.replace(/^\/+/, "")}`;
+  };
 
-  // ✅ 2. TẠO LINK VIETQR ĐỘNG DỰA TRÊN NGÂN HÀNG ĐANG CHỌN
-  // Format: https://img.vietqr.io/image/[BANK_ID]-[ACCOUNT_NO]-[TEMPLATE].png
+  // --- TÍNH TOÁN SỐ TIỀN & NỘI DUNG ---
+  const serviceFee = Number(orderData.service_amount) || 0;
+  const travelFee = Number(orderData.travel_fee_amount) || 0;
+  const totalAmount = Number(orderData.total_amount) || (serviceFee + travelFee);
+  
+  // Số tiền cần thanh toán 
+  const paymentAmount = Number(amountFromState) || Math.round(totalAmount * 0.3);
+  
+  // Mã giao dịch
+  const transactionCode = transfer_code || `PAY ${orderData.order_id ? orderData.order_id.slice(-6).toUpperCase() : 'UNKNOWN'}`;
+
+  // Label hiển thị
+  const paymentLabel = is_remaining ? "Thanh toán phần còn lại" : "Đặt cọc (30%)";
+  const paymentShortLabel = is_remaining ? "Số tiền TT" : "Số tiền cọc";
+
+  // 2. TẠO LINK VIETQR
   const qrUrl = selectedBank 
-    ? `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.accountNumber}-compact2.png?amount=${depositAmount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(selectedBank.fullName)}`
+    ? `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.accountNumber}-compact2.png?amount=${paymentAmount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(selectedBank.fullName)}`
     : null;
 
   const handleCopy = (text) => {
@@ -120,10 +154,9 @@ export default function PaymentServicePackage() {
       
       const formData = new FormData();
       formData.append('method', paymentMethod);
-      formData.append('amount', depositAmount);
+      formData.append('amount', paymentAmount);
       formData.append('transaction_code', transactionCode);
       
-      // Gửi kèm ID ngân hàng (nếu có) để Admin dễ đối soát
       if (selectedBank) {
         formData.append('bank_id', selectedBank._id || selectedBank.id);
       }
@@ -132,7 +165,8 @@ export default function PaymentServicePackage() {
         formData.append('payment_proof', proofImage); 
       }
 
-      await orderApi.confirmPayment(order._id, formData);
+      // Gọi API xác nhận
+      await orderApi.confirmPayment(orderData._id || orderData.order_id, formData);
 
       toast.success('Đã gửi xác nhận thanh toán! Vui lòng chờ duyệt.');
       navigate('/my-orders'); 
@@ -185,11 +219,11 @@ export default function PaymentServicePackage() {
                 ) : adminBanks.length === 0 ? (
                    <div className="no-banks-alert">
                      <AlertTriangle className="text-yellow-500"/> 
-                     Chưa có thông tin ngân hàng. Vui lòng liên hệ Admin để được hỗ trợ.
+                     Chưa có thông tin ngân hàng. Vui lòng liên hệ Admin.
                    </div>
                 ) : (
                   <>
-                    {/* Dropdown chọn ngân hàng nếu có nhiều hơn 1 */}
+                    {/* Dropdown chọn ngân hàng */}
                     {adminBanks.length > 1 && (
                       <div className="bank-selector">
                         <label>Chọn ngân hàng thụ hưởng:</label>
@@ -212,7 +246,7 @@ export default function PaymentServicePackage() {
                       </div>
                     )}
 
-                    {/* ✅ HIỂN THỊ QR ĐỘNG */}
+                    {/* QR Code & Info */}
                     {selectedBank && (
                       <>
                         <img src={qrUrl} alt="VietQR Code" className="qr-image" />
@@ -238,8 +272,8 @@ export default function PaymentServicePackage() {
                             </div>
                           </div>
                           <div className="detail-row">
-                            <span className="text-gray-500">Số tiền cọc</span>
-                            <span className="font-bold text-lg text-red-600">{formatPrice(depositAmount)} VNĐ</span>
+                            <span className="text-gray-500">{paymentShortLabel}</span>
+                            <span className="font-bold text-lg text-red-600">{formatPrice(paymentAmount)} VNĐ</span>
                           </div>
                           <div className="detail-row">
                             <span className="text-gray-500">Nội dung CK</span>
@@ -295,7 +329,7 @@ export default function PaymentServicePackage() {
                 <MapPin size={40} className="mx-auto text-gray-400 mb-3" />
                 <h3 className="font-bold text-gray-700 mb-2">Thanh toán tại Studio</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  Vui lòng đến trực tiếp studio để đặt cọc trong vòng 24h tới để giữ lịch.
+                  Vui lòng đến trực tiếp studio để thanh toán trong vòng 24h tới.
                 </p>
               </div>
             )}
@@ -310,31 +344,33 @@ export default function PaymentServicePackage() {
               </div>
 
               <div className="package-mini-info">
+                {/* ✅ Sử dụng ảnh thật từ orderData */}
                 <img 
-                  src="https://via.placeholder.com/100?text=Package" 
+                  src={getPackageImage()} 
                   alt="Package" 
                   className="w-20 h-20 object-cover rounded"
+                  onError={(e) => { e.target.src = "https://placehold.co/100x100?text=No+Image"; }}
                 /> 
                 <div>
-                  <h3>Đơn hàng #{order._id.slice(-6).toUpperCase()}</h3>
+                  <h3>Đơn hàng #{orderData.order_id ? orderData.order_id.slice(-6).toUpperCase() : '...'}</h3>
                   <div className="info-line">
-                    <Calendar size={14} /> {new Date(order.booking_date).toLocaleDateString('vi-VN')}
+                    <Calendar size={14} /> {orderData.booking_date ? new Date(orderData.booking_date).toLocaleDateString('vi-VN') : '...'}
                   </div>
                   <div className="info-line">
-                    <Clock size={14} /> {order.start_time}
+                    <Clock size={14} /> {orderData.start_time}
                   </div>
                 </div>
               </div>
 
               <div className="price-summary">
                 <div className="price-row total">
-                  <span>Tổng cộng</span>
+                  <span>Tổng đơn hàng</span>
                   <span className="text-xl">{formatPrice(totalAmount)} VNĐ</span>
                 </div>
                 <div className="deposit-highlight">
                   <div className="deposit-row">
-                    <span className="deposit-label">Cọc (30%)</span>
-                    <span>{formatPrice(depositAmount)} VNĐ</span>
+                    <span className="deposit-label">{paymentLabel}</span>
+                    <span>{formatPrice(paymentAmount)} VNĐ</span>
                   </div>
                 </div>
               </div>
@@ -348,7 +384,7 @@ export default function PaymentServicePackage() {
                   {loading ? 'Đang gửi...' : (
                     <>
                       <CheckCircle size={20} />
-                      {paymentMethod === 'banking' ? 'Tôi đã chuyển khoản' : 'Xác nhận đặt lịch'}
+                      {paymentMethod === 'banking' ? 'Tôi đã chuyển khoản' : 'Xác nhận thanh toán'}
                     </>
                   )}
                 </button>

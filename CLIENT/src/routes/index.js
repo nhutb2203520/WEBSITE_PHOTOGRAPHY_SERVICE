@@ -82,6 +82,15 @@ const routes = [
     path: '/admin/login',
     component: lazy(() => import('../admin/AdminPage/AdminLogin'))
   },
+  {
+    path: '/admin/service-fee',
+    component: lazy(() => import('../admin/AdminPage/ServiceFeeManage'))
+  },
+  {
+    path: '/admin/order-manage',
+    component: lazy(() => import('../admin/AdminPage/OrderManage'))
+  },
+
 ];
 
 export default routes;

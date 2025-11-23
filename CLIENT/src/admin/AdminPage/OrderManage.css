@@ -1,0 +1,375 @@
+/* =========================================
+   GLOBAL & LAYOUT
+   ========================================= */
+.admin-main {
+    padding: 24px 40px;
+    background-color: #f3f4f6;
+    /* Xám nhạt hiện đại */
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1f2937;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.page-header h2 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    margin-top: 50px;
+    letter-spacing: -0.025em;
+}
+
+/* =========================================
+   FILTER TABS (PILLS STYLE)
+   ========================================= */
+.filter-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.filter-tabs .btn {
+    padding: 10px 20px;
+    border-radius: 9999px;
+    /* Bo tròn hoàn toàn (Pill shape) */
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Active State - Các nút đang chọn */
+.filter-tabs .add-method {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+    border: none;
+}
+
+/* Inactive State - Các nút chưa chọn */
+.filter-tabs .btn-cancel {
+    background-color: white;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-tabs .btn-cancel:hover {
+    background-color: #f9fafb;
+    color: #374151;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+}
+
+/* Custom Colors for specific tabs when active */
+.filter-tabs .btn[style*="ea580c"] {
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+    box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3);
+}
+
+.filter-tabs .btn[style*="059669"] {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);
+}
+
+/* =========================================
+   MAIN CARD SECTION
+   ========================================= */
+.orders-section {
+    background: white;
+    border-radius: 16px;
+    /* Bo góc lớn hơn */
+    padding: 0;
+    /* Xóa padding để header/table tràn viền */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.orders-header {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #f3f4f6;
+    background-color: #ffffff;
+    gap: 20px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #374151;
+    border-left: 4px solid #2563eb;
+    padding-left: 16px;
+    min-width: 200px;
+}
+
+/* =========================================
+   SEARCH BOX
+   ========================================= */
+.search-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.search-box {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 44px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    font-size: 14px;
+    color: #374151;
+    background-color: #f9fafb;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.search-box input:focus {
+    background-color: white;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.clear-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #d1d5db;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.clear-icon:hover {
+    color: #ef4444;
+}
+
+.header-spacer {
+    width: 200px;
+    visibility: hidden;
+}
+
+/* =========================================
+   TABLE STYLES (Modern)
+   ========================================= */
+.table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    /* Để border-radius hoạt động */
+    border-spacing: 0;
+    min-width: 1000px;
+}
+
+.admin-table th {
+    background-color: #f9fafb;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 16px 24px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.admin-table td {
+    padding: 18px 24px;
+    color: #374151;
+    font-size: 14px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.15s;
+}
+
+.admin-table tr:hover td {
+    background-color: #f8fafc;
+    /* Highlight dòng khi hover */
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Typography trong bảng */
+.admin-table td strong {
+    color: #111827;
+    font-weight: 600;
+}
+
+/* Cột Tiền - Money Columns */
+.text-success {
+    color: #059669 !important;
+    font-weight: 600;
+    font-family: 'Roboto Mono', monospace;
+    /* Font số đẹp hơn */
+}
+
+.text-danger {
+    color: #dc2626 !important;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.text-primary {
+    color: #2563eb !important;
+    font-weight: 700;
+    font-size: 15px;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.text-muted {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+/* =========================================
+   STATUS BADGES (Pastel Style)
+   ========================================= */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+    /* Bo góc vuông nhẹ */
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* Hoàn thành / Paid */
+.status-badge.success {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+/* Cần quyết toán / Pending */
+.status-badge.warning {
+    background-color: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #fed7aa;
+}
+
+/* Default / Info */
+.status-badge.default,
+.status-badge.info {
+    background-color: #eff6ff;
+    color: #3b82f6;
+    border: 1px solid #dbeafe;
+}
+
+/* =========================================
+   ACTION BUTTONS
+   ========================================= */
+.btn-verify {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.btn-verify:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.25);
+}
+
+.btn-verify:active {
+    transform: translateY(0);
+}
+
+/* Text trạng thái "Chờ hoàn thành" */
+.wait-text {
+    font-size: 13px;
+    color: #9ca3af;
+    font-style: italic;
+    background: #f9fafb;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px dashed #e5e7eb;
+    display: inline-block;
+    text-align: center;
+    width: 100%;
+}
+
+.done-text {
+    font-size: 13px;
+    color: #059669;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* =========================================
+   LOADING SPINNER
+   ========================================= */
+.loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

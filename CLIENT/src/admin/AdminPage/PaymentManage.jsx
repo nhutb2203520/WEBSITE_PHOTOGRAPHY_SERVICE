@@ -11,14 +11,13 @@ import {
   Trash2,
   Edit2,
   Save,
-  Power,
-  X,
-  Upload,
-  Eye
+  Search,
+  XCircle
 } from "lucide-react";
 
 import paymentMethodService from "../../apis/paymentMethodService";
 import adminAuthService from "../../apis/adminAuthService";
+import adminOrderService from "../../apis/adminOrderService";
 
 export default function PaymentManage() {
   const [payments, setPayments] = useState([]);
@@ -26,21 +25,29 @@ export default function PaymentManage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // State tìm kiếm
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState(null);
 
+  // Map màu sắc trạng thái
   const statusColors = {
     "pending_payment": "warning",
     "pending": "info",
     "confirmed": "success",
+    "in_progress": "primary",
+    "final_payment_pending": "warning",
     "completed": "success",
     "cancelled": "danger"
   };
 
   const statusLabels = {
-    "pending_payment": "Chưa thanh toán",
-    "pending": "Chờ duyệt",
-    "confirmed": "Đã thanh toán",
+    "pending_payment": "Chờ cọc",
+    "pending": "Chờ duyệt cọc",
+    "confirmed": "Đã xác nhận",
+    "in_progress": "Đang thực hiện",
+    "final_payment_pending": "Chờ thanh toán cuối",
     "completed": "Hoàn thành",
     "cancelled": "Đã hủy"
   };
@@ -50,17 +57,35 @@ export default function PaymentManage() {
     fetchData();
   }, []);
 
+  // --- HELPER FUNCTIONS ---
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  };
+
+  // Logic lọc danh sách (Tìm theo Mã đơn, Tên khách, Dịch vụ)
+  const filteredPayments = payments.filter((p) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      p.displayId?.toLowerCase().includes(term) ||
+      p.customer?.toLowerCase().includes(term) ||
+      p.service?.toLowerCase().includes(term)
+    );
+  });
+
+  // --- FETCH DATA ---
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // 1. Fetch Payment Methods
+      // 1. Payment Methods
       const methodsRes = await paymentMethodService.getAllPaymentMethods();
-      
-      // ✅ FIX LỖI: Thêm ?. để tránh crash nếu methodsRes là null/undefined
-      const methodsList = Array.isArray(methodsRes) 
-        ? methodsRes 
-        : (methodsRes?.data || []); // Thêm dấu ? trước .data
+      const methodsList = Array.isArray(methodsRes) ? methodsRes : (methodsRes?.data || []);
 
       const formattedMethods = methodsList.map((method) => ({
         id: method._id,
@@ -73,50 +98,53 @@ export default function PaymentManage() {
       }));
       setPaymentMethods(formattedMethods);
 
-      // 2. Fetch Orders (Giả lập)
-      setPayments([
-        { id: "ORD-001", customer: "Nguyễn Văn A", service: "Chụp Cưới", amount: "2,500,000₫", date: "2023-11-20", status: "pending" },
-        { id: "ORD-002", customer: "Trần Thị B", service: "Kỷ yếu", amount: "1,200,000₫", date: "2023-11-21", status: "confirmed" },
-      ]);
+      // 2. Orders (API Thật)
+      const ordersRes = await adminOrderService.getAllOrders();
+      const rawOrders = ordersRes.data?.data || ordersRes.data || [];
+
+      const formattedOrders = rawOrders.map((order) => {
+        const customerName = order.customer_id?.full_name || order.customer_id?.email || "Khách hàng";
+        const serviceName = order.service_package_id?.name || "Gói dịch vụ";
+
+        return {
+          id: order._id,
+          displayId: order.order_id,
+          customer: customerName,
+          service: serviceName,
+          amount: formatCurrency(order.final_amount),
+          date: formatDate(order.createdAt),
+          status: order.status,
+          rawStatus: order.status
+        };
+      });
+
+      setPayments(formattedOrders);
 
     } catch (error) {
       console.error("Fetch error:", error);
-      // setError(error?.message || "Lỗi tải dữ liệu"); // Tạm tắt error banner để không che UI
+      toast.error("Lỗi khi tải dữ liệu đơn hàng");
     } finally {
       setLoading(false);
     }
   };
 
   // --- PAYMENT METHODS LOGIC ---
-
   const addPaymentMethod = () => {
     const newId = `temp-${Date.now()}`;
     setPaymentMethods((prev) => [
       ...prev,
-      {
-        id: newId,
-        fullName: "",
-        accountNumber: "",
-        bank: "",
-        branch: "",
-        isActive: true,
-        editing: true,
-        isNew: true,
-      },
+      { id: newId, fullName: "", accountNumber: "", bank: "", branch: "", isActive: true, editing: true, isNew: true },
     ]);
   };
 
   const removePaymentMethod = async (id) => {
     const method = paymentMethods.find((m) => m.id === id);
     if (!method) return;
-
     if (method.isNew) {
       setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
       return;
     }
-
     if (!window.confirm("Bạn có chắc muốn xóa phương thức này?")) return;
-
     try {
       await paymentMethodService.deletePaymentMethod(id);
       setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
@@ -127,30 +155,18 @@ export default function PaymentManage() {
   };
 
   const handleMethodChange = (id, field, value) => {
-    setPaymentMethods((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
-    );
+    setPaymentMethods((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
   };
 
   const toggleEdit = async (id) => {
     const method = paymentMethods.find((m) => m.id === id);
     if (!method) return;
-
     if (method.editing) {
-      // --- SAVE MODE (JSON) ---
       if (!method.fullName || !method.accountNumber || !method.bank) {
         return toast.error("Vui lòng nhập: Tên, Số TK, Ngân hàng");
       }
-
       try {
-        const payload = {
-          fullName: method.fullName,
-          accountNumber: method.accountNumber,
-          bank: method.bank,
-          branch: method.branch || "",
-          isActive: method.isActive
-        };
-
+        const payload = { fullName: method.fullName, accountNumber: method.accountNumber, bank: method.bank, branch: method.branch || "", isActive: method.isActive };
         let res;
         if (method.isNew) {
           res = await paymentMethodService.createPaymentMethod(payload);
@@ -159,37 +175,17 @@ export default function PaymentManage() {
           res = await paymentMethodService.updatePaymentMethod(id, payload);
           toast.success("Đã cập nhật thành công");
         }
-
-        // Handle response linh hoạt
         const updatedData = res?.data || res || {}; 
-        
-        setPaymentMethods((prev) =>
-          prev.map((m) =>
-            m.id === id
-              ? {
-                  ...m,
-                  id: updatedData._id || m.id,
-                  editing: false,
-                  isNew: false,
-                }
-              : m
-          )
-        );
-
+        setPaymentMethods((prev) => prev.map((m) => m.id === id ? { ...m, id: updatedData._id || m.id, editing: false, isNew: false } : m));
       } catch (error) {
-        console.error("Save error:", error);
         toast.error(error.response?.data?.message || "Lỗi khi lưu dữ liệu");
       }
     } else {
-      // --- EDIT MODE ---
-      setPaymentMethods((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, editing: true } : m))
-      );
+      setPaymentMethods((prev) => prev.map((m) => (m.id === id ? { ...m, editing: true } : m)));
     }
   };
 
   // --- ORDERS LOGIC ---
-
   const openConfirmModal = (id) => {
     setSelectedPaymentId(id);
     setModalOpen(true);
@@ -197,15 +193,13 @@ export default function PaymentManage() {
 
   const confirmOrderPayment = async () => {
     try {
-      setPayments((prev) =>
-        prev.map((p) =>
-          p.id === selectedPaymentId ? { ...p, status: "confirmed" } : p
-        )
-      );
+      await adminOrderService.approveOrderManually(selectedPaymentId);
+      setPayments((prev) => prev.map((p) => p.id === selectedPaymentId ? { ...p, status: "confirmed" } : p));
       toast.success("Đã xác nhận thanh toán đơn hàng");
       setModalOpen(false);
     } catch (error) {
-      toast.error("Lỗi khi cập nhật đơn hàng");
+      console.error(error);
+      toast.error("Lỗi khi cập nhật đơn hàng: " + (error.response?.data?.message || "Lỗi Server"));
     }
   };
 
@@ -228,6 +222,7 @@ export default function PaymentManage() {
           </div>
         )}
 
+        {/* --- PHẦN PAYMENT METHODS --- */}
         <button className="btn add-method" onClick={addPaymentMethod}>
           <PlusCircle size={20} /> Thêm phương thức thanh toán
         </button>
@@ -259,29 +254,24 @@ export default function PaymentManage() {
                     <label>Trạng thái hoạt động:</label>
                     <label className="switch">
                       <input 
-                        type="checkbox" 
-                        checked={m.isActive} 
-                        disabled={!m.editing}
+                        type="checkbox" checked={m.isActive} disabled={!m.editing}
                         onChange={(e) => handleMethodChange(m.id, "isActive", e.target.checked)} 
                       />
                       <span className="slider round"></span>
                     </label>
                   </div>
-
                   <div className="form-group">
                     <label>Họ tên chủ thẻ *</label>
                     <input type="text" value={m.fullName} readOnly={!m.editing} 
                       placeholder="VD: NGUYEN VAN A"
                       onChange={(e) => handleMethodChange(m.id, "fullName", e.target.value)} />
                   </div>
-
                   <div className="form-group">
                     <label>Số tài khoản *</label>
                     <input type="text" value={m.accountNumber} readOnly={!m.editing} 
                       placeholder="VD: 0123456789"
                       onChange={(e) => handleMethodChange(m.id, "accountNumber", e.target.value)} />
                   </div>
-
                   <div className="form-group-row">
                     <div className="form-group">
                       <label>Mã Ngân hàng *</label>
@@ -302,9 +292,37 @@ export default function PaymentManage() {
           </div>
         </div>
 
-        {/* --- ORDERS LIST --- */}
+        {/* --- ORDERS LIST VỚI THANH TÌM KIẾM Ở GIỮA --- */}
         <div className="orders-section">
-          <h3 className="section-title">Duyệt thanh toán đơn hàng</h3>
+          <div className="orders-header">
+            {/* 1. Title bên trái */}
+            <h3 className="section-title">Duyệt thanh toán đơn hàng</h3>
+            
+            {/* 2. Thanh tìm kiếm ở giữa */}
+            <div className="search-container">
+              <div className="search-box">
+                <input
+                  type="text"
+                  placeholder="Tìm mã đơn hoặc khách hàng..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search size={18} className="search-icon" />
+                
+                {searchTerm && (
+                  <XCircle 
+                    size={16} 
+                    className="clear-icon"
+                    onClick={() => setSearchTerm("")}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 3. Khoảng trống bên phải để cân bằng */}
+            <div className="header-spacer"></div>
+          </div>
+
           <div className="table-wrapper">
             <table className="admin-table">
               <thead>
@@ -319,34 +337,41 @@ export default function PaymentManage() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((p) => (
-                  <tr key={p.id}>
-                    <td>#{p.id}</td>
-                    <td>{p.customer}</td>
-                    <td>{p.service}</td>
-                    <td className="price-text">{p.amount}</td>
-                    <td>{p.date}</td>
-                    <td>
-                      <span className={`status-badge ${statusColors[p.status] || 'default'}`}>
-                        {statusLabels[p.status] || p.status}
-                      </span>
-                    </td>
-                    <td>
-                      {p.status === "pending" ? (
-                        <button className="btn-verify" onClick={() => openConfirmModal(p.id)}>
-                          <CheckCircle2 size={16} /> Xác nhận
-                        </button>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {filteredPayments.length === 0 ? (
+                    <tr><td colSpan="7" className="text-center">
+                        {searchTerm ? "Không tìm thấy kết quả phù hợp" : "Chưa có đơn hàng nào"}
+                    </td></tr>
+                ) : (
+                    filteredPayments.map((p) => (
+                    <tr key={p.id}>
+                        <td>#{p.displayId}</td>
+                        <td>{p.customer}</td>
+                        <td>{p.service}</td>
+                        <td className="price-text">{p.amount}</td>
+                        <td>{p.date}</td>
+                        <td>
+                        <span className={`status-badge ${statusColors[p.status] || 'default'}`}>
+                            {statusLabels[p.status] || p.status}
+                        </span>
+                        </td>
+                        <td>
+                        {(p.status === "pending" || p.status === "final_payment_pending") ? (
+                            <button className="btn-verify" onClick={() => openConfirmModal(p.id)}>
+                            <CheckCircle2 size={16} /> Xác nhận
+                            </button>
+                        ) : (
+                            <span className="text-muted">-</span>
+                        )}
+                        </td>
+                    </tr>
+                    ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
+        {/* MODAL CONFIRM */}
         {modalOpen && (
           <div className="modal-overlay" onClick={() => setModalOpen(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -354,7 +379,7 @@ export default function PaymentManage() {
                 <CheckCircle2 size={40} />
                 <h3>Xác nhận thanh toán</h3>
               </div>
-              <p>Bạn xác nhận đã nhận đủ tiền cho đơn hàng <strong>#{selectedPaymentId}</strong>?</p>
+              <p>Bạn xác nhận đã nhận đủ tiền cho đơn hàng?</p>
               <div className="modal-buttons">
                 <button className="btn-cancel" onClick={() => setModalOpen(false)}>Hủy</button>
                 <button className="btn-confirm" onClick={confirmOrderPayment}>Đồng ý</button>

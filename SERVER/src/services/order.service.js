@@ -1,15 +1,11 @@
 import Orders from "../models/order.model.js";
-import ServicePackage from "../models/servicePackage.model.js"
+import ServicePackage from "../models/servicePackage.model.js"; 
 import crypto from "crypto";
 import axios from "axios"; 
 
 const generateOrderId = () => "ORD-" + crypto.randomBytes(4).toString("hex").toUpperCase();
 
-// Các trạng thái mà Photographer/Admin đang bận xử lý
-const BUSY_STATUSES = [
-  "pending_payment", "pending", "confirmed", "in_progress", 
-  "waiting_final_payment", "final_payment_pending", "processing"
-];
+const BUSY_STATUSES = ["pending_payment", "pending", "confirmed", "in_progress", "waiting_final_payment", "final_payment_pending", "processing"];
 
 const VALID_STATUSES = [
   ...BUSY_STATUSES, 
@@ -35,11 +31,8 @@ const getDrivingDistance = async (origin, dest) => {
   return calculateHaversineDistance(origin.lat, origin.lng, dest.lat, dest.lng);
 };
 
-// =================================================================
-// 📦 SERVICE METHODS
-// =================================================================
+// --- SERVICE METHODS ---
 
-// 1. TÍNH PHÍ DI CHUYỂN
 export const calculateTravelFeePreview = async (packageId, customerCoords) => {
   const pkg = await ServicePackage.findById(packageId);
   if (!pkg) throw new Error("Không tìm thấy gói dịch vụ");
@@ -74,20 +67,13 @@ export const calculateTravelFeePreview = async (packageId, customerCoords) => {
   };
 };
 
-// 2. TẠO ĐƠN HÀNG
 export const createOrder = async (params) => {
   console.log("🔥 Creating Order:", params.customer_id);
-  const { 
-    customer_id, photographer_id, service_package_id, 
-    booking_date, start_time, booking_time, // Lấy cả booking_time
-    estimated_duration_days, location = {}, 
-    service_amount, discount_amount 
-  } = params;
+  const { customer_id, photographer_id, service_package_id, booking_date, start_time, booking_time, estimated_duration_days, location = {}, service_amount, discount_amount } = params;
 
   const pkg = await ServicePackage.findById(service_package_id);
   if (!pkg) throw new Error("Gói dịch vụ không tồn tại");
 
-  // Đảm bảo có booking_time (fix lỗi validation)
   const finalBookingTime = booking_time || start_time;
   if (!finalBookingTime) throw new Error("Thiếu thông tin giờ bắt đầu (booking_time)");
 
@@ -96,7 +82,7 @@ export const createOrder = async (params) => {
   const [h, m] = finalBookingTime.split(':').map(Number);
   startDateTime.setHours(h, m, 0, 0);
   
-  let durationMs = 4 * 3600000; // Default 4h
+  let durationMs = 4 * 3600000; 
   if (estimated_duration_days > 0) durationMs = estimated_duration_days * 24 * 3600000;
   const endDateTime = new Date(startDateTime.getTime() + durationMs);
 
@@ -107,7 +93,6 @@ export const createOrder = async (params) => {
   });
   if (conflict) throw new Error("Photographer bận vào khung giờ này");
 
-  // Tính toán tiền
   const travelFeeAmount = params.travel_fee_amount || 0; 
   const totalAmount = Number(service_amount) + Number(travelFeeAmount);
   const finalAmount = totalAmount - (Number(discount_amount) || 0);
@@ -115,7 +100,7 @@ export const createOrder = async (params) => {
 
   const newOrder = await Orders.create({
     ...params,
-    booking_time: finalBookingTime, // Lưu booking_time
+    booking_time: finalBookingTime, 
     start_time: finalBookingTime,   
     order_id: generateOrderId(),
     photographer_id: photographer_id || pkg.PhotographerId,
@@ -125,7 +110,6 @@ export const createOrder = async (params) => {
     final_amount: finalAmount,
     deposit_required: depositRequired,
     
-    // Khởi tạo thông tin thanh toán
     payment_info: { 
         transfer_code: 'CK' + crypto.randomBytes(4).toString('hex').toUpperCase(),
         deposit_amount: 0,
@@ -135,13 +119,13 @@ export const createOrder = async (params) => {
     status: "pending_payment"
   });
   
-  // Tăng số lượng đã đặt của gói
-  await pkg.incrementBooking();
+  // ❌ ĐÃ XÓA: Không tăng lượt đặt ở đây nữa
+  // await pkg.incrementBooking(); 
 
   return newOrder;
 };
 
-// 3. CẬP NHẬT TRẠNG THÁI (LOGIC NGHIỆP VỤ)
+// ✅ HÀM CẬP NHẬT TRẠNG THÁI & LOGIC TỰ ĐỘNG
 export const updateOrderStatus = async (orderId, status, userId = null, note = "") => {
   if (!VALID_STATUSES.includes(status)) throw new Error(`Trạng thái không hợp lệ: ${status}`);
   
@@ -151,7 +135,17 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
 
   // --- LOGIC TỰ ĐỘNG ---
 
-  // 1. Admin xác nhận thanh toán đợt 2 (đủ tiền) -> Chuyển sang 'processing'
+  // 1. Admin xác nhận đơn hàng (confirmed) -> Tăng lượt đặt cho gói dịch vụ
+  if (status === 'confirmed' && order.status !== 'confirmed') {
+      // ✅ MỚI: Chỉ tăng khi đơn được xác nhận
+      await ServicePackage.findByIdAndUpdate(
+          order.service_package_id, 
+          { $inc: { SoLuongDaDat: 1 } }
+      );
+      note = note || "Admin đã xác nhận đơn hàng.";
+  }
+
+  // 2. Admin xác nhận thanh toán đợt 2 (đủ tiền) -> Chuyển sang 'processing'
   //    => Tự động tính Deadline giao hàng là 7 ngày sau
   if (status === 'processing') {
       order.payment_info.remaining_status = 'paid';
@@ -164,7 +158,7 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
       note = note || `Đã thanh toán đủ. Hạn chót giao ảnh: ${deadline.toLocaleDateString('vi-VN')}`;
   }
 
-  // 2. Photographer giao hàng (delivered) -> Check trễ hạn
+  // 3. Photographer giao hàng (delivered) -> Check trễ hạn
   if (status === 'delivered') {
       order.delivery_info.delivered_at = new Date();
       
@@ -177,9 +171,17 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
       }
   }
 
-  // 3. Hoàn tất đơn hàng
+  // 4. Hoàn tất đơn hàng
   if (status === 'completed') {
       order.completion_date = new Date();
+  }
+  
+  // 5. Hủy đơn -> Giảm lượt đặt nếu đơn đã từng được confirm
+  if (status === 'cancelled' && order.status === 'confirmed') {
+       await ServicePackage.findByIdAndUpdate(
+          order.service_package_id, 
+          { $inc: { SoLuongDaDat: -1 } }
+      );
   }
 
   order.updateStatus(status, userId, note);
@@ -192,12 +194,11 @@ export const submitComplaint = async (orderId, reason, userId) => {
     const order = await Orders.findOne({ order_id: orderId });
     if (!order) throw new Error("Order not found");
 
-    // Điều kiện khiếu nại: Đã giao hàng HOẶC Quá hạn deadline
     const isLate = order.delivery_info.deadline && new Date() > order.delivery_info.deadline;
     const isDelivered = order.status === 'delivered';
 
     if (!isDelivered && !isLate && order.status !== 'processing') {
-        throw new Error("Chưa đến thời điểm có thể khiếu nại (Chưa giao hàng hoặc chưa quá hạn).");
+        throw new Error("Chưa đến thời điểm có thể khiếu nại.");
     }
 
     order.complaint = { 
@@ -207,28 +208,26 @@ export const submitComplaint = async (orderId, reason, userId) => {
         status: 'pending' 
     };
     
-    // Chuyển trạng thái đơn sang 'complaint' để Admin chú ý
     order.updateStatus('complaint', userId, `Khách hàng khiếu nại: ${reason}`);
     await order.save();
     return order;
 };
 
-// 5. ADMIN GIẢI QUYẾT KHIẾU NẠI (CỘNG LỖI VÀO GÓI)
+// 5. ADMIN GIẢI QUYẾT KHIẾU NẠI
 export const resolveComplaint = async (orderId, resolution, adminResponse, userId) => {
     const order = await Orders.findOne({ order_id: orderId });
     if (!order) throw new Error("Order not found");
 
-    order.complaint.status = resolution; // 'resolved' (Chấp nhận) | 'rejected' (Từ chối)
+    order.complaint.status = resolution; 
     order.complaint.admin_response = adminResponse;
     order.complaint.resolved_at = new Date();
 
-    // Nếu Admin xác nhận khiếu nại là ĐÚNG -> Tăng số lượng khiếu nại của Gói
     if (resolution === 'resolved') {
         await ServicePackage.findByIdAndUpdate(
             order.service_package_id, 
             { $inc: { SoLuongKhieuNai: 1 } }
         );
-        order.status = 'completed'; // Hoàn tất đơn sau khi xử lý xong
+        order.status = 'completed'; 
         order.status_history.push({ 
             status: 'completed', 
             changed_by: userId, 
@@ -247,24 +246,21 @@ export const resolveComplaint = async (orderId, resolution, adminResponse, userI
     return order;
 };
 
-// 6. KHÁCH HÀNG ĐÁNH GIÁ (CẬP NHẬT SAO TRUNG BÌNH)
+// 6. KHÁCH HÀNG ĐÁNH GIÁ
 export const submitReview = async (orderId, rating, comment, userId) => {
     const order = await Orders.findOne({ order_id: orderId });
     if (!order) throw new Error("Order not found");
 
-    // Cho phép đánh giá ở cả trạng thái 'delivered' hoặc 'completed'
     if (order.status !== 'completed' && order.status !== 'delivered') {
         throw new Error("Chỉ được đánh giá khi đơn hàng đã hoàn thành hoặc đã giao hàng.");
     }
 
-    // Lưu đánh giá vào đơn hàng
     order.review = { is_reviewed: true, rating, comment, created_at: new Date() };
     if (order.status !== 'completed') order.status = 'completed';
     
-    // Cập nhật điểm trung bình cho Gói Dịch Vụ
     const pkg = await ServicePackage.findById(order.service_package_id);
     if (pkg) {
-        await pkg.updateRating(rating); // Hàm này đã được định nghĩa trong Model ServicePackage
+        await pkg.updateRating(rating); 
     }
 
     await order.save();
