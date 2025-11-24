@@ -1,60 +1,129 @@
 import Order from "../models/order.model.js";
 import ServicePackage from "../models/servicePackage.model.js";
 import Review from "../models/review.model.js";
+import Schedule from "../models/schedule.model.js"; // ✅ QUAN TRỌNG: Để check và tạo lịch
 import mongoose from "mongoose";
 import orderService from "../services/order.service.js"; 
 
-// 📦 Tạo đơn hàng mới
+// ==============================================================================
+// 📦 1. TẠO ĐƠN HÀNG MỚI (Đã Fix lỗi trùng lịch Personal/Busy)
+// ==============================================================================
 export const createOrder = async (req, res) => {
   try {
     const customer_id = req.user.id;
-    // Gọi service để xử lý logic tạo đơn phức tạp (nếu có)
+    const { booking_date, start_time, photographer_id, service_package_id, package_name } = req.body;
+
+    // --- BƯỚC 1: VALIDATION & CHUẨN HÓA NGÀY ---
+    if (!booking_date || !start_time) {
+        return res.status(400).json({ message: "Vui lòng chọn ngày và giờ chụp!" });
+    }
+
+    // Tạo khoảng thời gian bao trùm cả ngày (00:00 -> 23:59)
+    // Để bắt dính mọi lịch cá nhân (thường lưu là 00:00) hoặc lịch bận trong ngày đó
+    const searchDate = new Date(booking_date);
+    const startOfDay = new Date(searchDate); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(searchDate); endOfDay.setHours(23, 59, 59, 999);
+
+    // --- BƯỚC 2: KIỂM TRA TRÙNG ĐƠN HÀNG ĐÃ CÓ (Order Collection) ---
+    const orderQuery = {
+        booking_date: { $gte: startOfDay, $lte: endOfDay }, // Trùng ngày
+        start_time: start_time, // Trùng giờ
+        status: { $nin: ['cancelled', 'refund_pending', 'rejected'] } // Bỏ qua đơn hủy
+    };
+
+    if (photographer_id) {
+        orderQuery.photographer_id = photographer_id;
+        const duplicateOrder = await Order.findOne(orderQuery);
+        if (duplicateOrder) {
+            return res.status(409).json({ 
+                message: `Nhiếp ảnh gia đã có đơn hàng vào lúc ${start_time} ngày này.` 
+            });
+        }
+    } else {
+        // Nếu không chọn thợ, check xem khách có tự đặt trùng không
+        orderQuery.customer_id = customer_id;
+        const duplicateMyOrder = await Order.findOne(orderQuery);
+        if (duplicateMyOrder) {
+            return res.status(409).json({ 
+                message: `Bạn đã có một đơn hàng khác vào khung giờ này rồi!` 
+            });
+        }
+    }
+
+    // --- BƯỚC 3: KIỂM TRA LỊCH CÁ NHÂN / BÁO BẬN (Schedule Collection) ---
+    // ✅ Fix: Check cả type 'personal' và 'busy' trong khoảng thời gian ngày đó
+    if (photographer_id) {
+        const conflictSchedule = await Schedule.findOne({
+            photographerId: photographer_id,
+            date: { $gte: startOfDay, $lte: endOfDay }, // Tìm trong ngày đó
+            type: { $in: ['busy', 'personal'] } // Chặn cả Báo bận và Lịch cá nhân
+        });
+
+        if (conflictSchedule) {
+            return res.status(409).json({ 
+                message: `Nhiếp ảnh gia có lịch cá nhân/báo bận vào ngày này ("${conflictSchedule.title}"). Vui lòng chọn ngày khác.` 
+            });
+        }
+    }
+
+    // --- BƯỚC 4: TẠO ĐƠN HÀNG ---
     const payload = { customer_id, ...req.body };
     const newOrder = await orderService.createOrder(payload);
+    
+    // --- BƯỚC 5: ĐỒNG BỘ VÀO BẢNG SCHEDULE ---
+    // Tạo lịch hiển thị cho Khách hàng
+    await new Schedule({
+        photographerId: customer_id, // Lưu ID khách để hiện trên lịch của họ
+        title: `Đơn hàng #${newOrder.order_id}`,
+        date: searchDate,
+        type: 'order',
+        orderId: newOrder._id,
+        description: `Gói: ${package_name || 'Dịch vụ chụp ảnh'}`
+    }).save();
+
+    // Tạo lịch hiển thị cho Nhiếp ảnh gia (nếu có)
+    if (newOrder.photographer_id) {
+         await new Schedule({
+            photographerId: newOrder.photographer_id,
+            title: `Chụp khách: ${req.user.last_name || 'Khách'} (${start_time})`,
+            date: searchDate,
+            type: 'order',
+            orderId: newOrder._id
+        }).save();
+    }
     
     res.status(201).json({ 
       message: "Tạo đơn hàng thành công!", 
       data: newOrder,
-      payment_info: {
-        transfer_code: newOrder.payment_info.transfer_code,
-        deposit_required: newOrder.deposit_required,
-        final_amount: newOrder.final_amount
-      }
+      payment_info: newOrder.payment_info
     });
+
   } catch (error) {
     console.error("Create order error:", error);
     res.status(error.status || 500).json({ message: error.message || "Lỗi server!" });
   }
 };
 
-// 📋 Lấy danh sách đơn hàng của tôi (KÈM REVIEW)
-// ✅ HÀM ĐÃ ĐƯỢC VIẾT LẠI ĐỂ FIX LỖI REVIEW UNDEFINED
+// ==============================================================================
+// 📋 2. LẤY DANH SÁCH ĐƠN CỦA TÔI (Kèm Review & Package Info)
+// ==============================================================================
 export const getMyOrders = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
 
     const orders = await Order.aggregate([
-      // 1. Lọc theo User ID
       { 
-        $match: { 
-            customer_id: new mongoose.Types.ObjectId(userId) 
-        } 
+        $match: { customer_id: new mongoose.Types.ObjectId(userId) } 
       },
-
-      // 2. Join bảng ServicePackage để lấy thông tin gói
       {
         $lookup: {
-          from: "servicepackages", // Tên collection trong MongoDB (thường là chữ thường, số nhiều)
+          from: "servicepackages",
           localField: "service_package_id",
           foreignField: "_id",
           as: "package_info"
         }
       },
-      { 
-        $unwind: { path: "$package_info", preserveNullAndEmptyArrays: true } 
-      },
-
-      // 3. Join bảng Reviews để lấy đánh giá (nếu có)
+      { $unwind: { path: "$package_info", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "reviews",
@@ -63,18 +132,12 @@ export const getMyOrders = async (req, res) => {
           as: "review_info"
         }
       },
-      
-      // 4. Xử lý dữ liệu trả về
       {
         $addFields: {
-            // Lấy phần tử đầu tiên trong mảng review (vì 1 đơn chỉ có 1 review)
             review: { $arrayElemAt: ["$review_info", 0] },
-            // Map lại tên trường để khớp với Frontend cũ
             service_package_id: "$package_info" 
         }
       },
-
-      // 5. Sắp xếp mới nhất
       { $sort: { createdAt: -1 } }
     ]);
 
@@ -88,7 +151,9 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-// 🔄 Cập nhật trạng thái (Admin/Photographer)
+// ==============================================================================
+// 🔄 3. CẬP NHẬT TRẠNG THÁI ĐƠN
+// ==============================================================================
 export const updateOrderStatus = async (req, res) => {
   try {
     const { status, note } = req.body;
@@ -108,7 +173,9 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-// 🔍 Lấy chi tiết đơn hàng
+// ==============================================================================
+// 🔍 4. LẤY CHI TIẾT ĐƠN HÀNG
+// ==============================================================================
 export const getOrderDetail = async (req, res) => {
   try {
     const order = await orderService.getOrderByOrderId(req.params.orderId);
@@ -119,7 +186,9 @@ export const getOrderDetail = async (req, res) => {
   }
 };
 
-// 🚚 Tính phí di chuyển (Preview)
+// ==============================================================================
+// 🚚 5. TÍNH PHÍ DI CHUYỂN (Preview)
+// ==============================================================================
 export const calculateTravelFee = async (req, res) => {
   try {
     const { packageId, lat, lng } = req.body;
@@ -130,17 +199,16 @@ export const calculateTravelFee = async (req, res) => {
     
     const result = await orderService.calculateTravelFeePreview(packageId, { lat, lng });
     
-    res.json({
-      success: true,
-      data: result
-    });
+    res.json({ success: true, data: result });
   } catch (error) {
     console.error("Calculate travel fee error:", error);
     res.status(error.status || 500).json({ message: error.message || "Lỗi server!" });
   }
 };
 
-// ✅ XÁC NHẬN THANH TOÁN
+// ==============================================================================
+// 💰 6. XÁC NHẬN THANH TOÁN (Upload Bill)
+// ==============================================================================
 export const confirmPayment = async (req, res) => {
   try {
     const { orderId } = req.params; 
@@ -152,34 +220,40 @@ export const confirmPayment = async (req, res) => {
 
     let fileUrl = null;
     if (req.file) {
+      // Lưu đường dẫn file ảnh upload
       fileUrl = `${req.protocol}://${req.get('host')}/uploads/orders/${req.file.filename}`;
     }
 
     const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
 
+    // Logic phân loại thanh toán (Cọc vs Còn lại)
     if (order.status === 'pending_payment') {
+      // Giai đoạn 1: Đặt cọc
       order.payment_info.transfer_image = fileUrl;
       order.payment_info.transfer_date = new Date();
       order.payment_info.transaction_code = transaction_code;
       order.payment_info.deposit_amount = Number(amount);
-      order.status = 'pending';
+      order.status = 'pending'; // Chuyển sang chờ duyệt cọc
       
       order.status_history.push({
         status: 'pending',
         changed_by: req.user.id,
-        note: `Khách hàng đã gửi ảnh cọc (Mã GD: ${transaction_code || 'N/A'})`
+        note: `Khách hàng xác nhận cọc (Mã GD: ${transaction_code})`
       });
     } else {
+      // Giai đoạn 2: Thanh toán nốt
       order.payment_info.remaining_transfer_image = fileUrl;
       order.payment_info.remaining_status = 'pending'; 
       order.payment_info.remaining_paid_at = new Date();
-      order.status = 'final_payment_pending';
+      order.status = 'final_payment_pending'; // Chuyển sang chờ duyệt thanh toán cuối
       
       order.status_history.push({
         status: 'final_payment_pending',
         changed_by: req.user.id,
-        note: `Khách hàng đã gửi ảnh thanh toán phần còn lại (Mã GD: ${transaction_code || 'N/A'})`
+        note: `Khách hàng thanh toán phần còn lại (Mã GD: ${transaction_code})`
       });
     }
 
@@ -201,7 +275,9 @@ export const confirmPayment = async (req, res) => {
   }
 };
 
-// 📢 Gửi khiếu nại
+// ==============================================================================
+// 📢 7. GỬI KHIẾU NẠI
+// ==============================================================================
 export const submitComplaint = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -216,7 +292,9 @@ export const submitComplaint = async (req, res) => {
   }
 };
 
-// ⭐ Gửi đánh giá (Backward Compatibility)
+// ==============================================================================
+// ⭐ 8. GỬI ĐÁNH GIÁ
+// ==============================================================================
 export const submitReview = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -231,11 +309,13 @@ export const submitReview = async (req, res) => {
   }
 };
 
-// 👮 Admin giải quyết khiếu nại
+// ==============================================================================
+// 👮 9. ADMIN GIẢI QUYẾT KHIẾU NẠI
+// ==============================================================================
 export const resolveComplaint = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status, response } = req.body; 
+    const { status, response } = req.body;
     const adminId = req.user.id;
 
     const result = await orderService.resolveComplaint(orderId, status, response, adminId);
@@ -251,11 +331,14 @@ export const resolveComplaint = async (req, res) => {
   }
 };
 
+// ==============================================================================
+// 📋 10. LẤY TẤT CẢ ĐƠN HÀNG (ADMIN)
+// ==============================================================================
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate("customer_id", "full_name email phone")
-      .populate("service_package_id", "name price")
+      .populate("customer_id", "full_name email phone") 
+      .populate("service_package_id", "name price")     
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: orders });

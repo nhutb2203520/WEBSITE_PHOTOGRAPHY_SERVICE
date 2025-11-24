@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar, Clock, MapPin, Package, FileText, DollarSign, User, Phone, Mail,
-  CheckCircle, XCircle, AlertCircle, RefreshCw, Eye, Search, Filter,
-  Download, ChevronRight, CreditCard, Truck, AlertTriangle, Ban, HelpCircle,
+  Calendar, Clock, DollarSign,
+  CheckCircle, XCircle, AlertCircle, RefreshCw, Eye, Search,
+  CreditCard, AlertTriangle, HelpCircle,
   RefreshCcw, Star, Hourglass, Image as ImageIcon, Upload, Edit3
 } from 'lucide-react';
 import './MyOrder.css';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+// ✅ KHÔNG IMPORT HEADER/SIDEBAR/FOOTER Ở ĐÂY NỮA
 import orderApi from '../../apis/OrderService';
 
 export default function MyOrder() {
@@ -37,14 +35,14 @@ export default function MyOrder() {
   const [refundAccount, setRefundAccount] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
-  // --- STATE ĐÁNH GIÁ (REVIEW) ---
+  // --- STATE ĐÁNH GIÁ ---
   const [rating, setRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
-  const [reviewImages, setReviewImages] = useState([]); // File upload (cho cái mới)
+  const [reviewImages, setReviewImages] = useState([]); // File upload
   const [previewImages, setPreviewImages] = useState([]); // URL hiển thị
   const [existingReview, setExistingReview] = useState(null); 
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [isEditing, setIsEditing] = useState(false); // true: Form nhập, false: Chỉ xem
+  const [isEditing, setIsEditing] = useState(false); // true: Sửa, false: Xem
 
   useEffect(() => {
     if (!user) { navigate('/signin'); return; }
@@ -59,7 +57,11 @@ export default function MyOrder() {
       setLoading(true);
       const response = await orderApi.getMyOrders();
       const ordersList = response?.data || response || [];
-      const sortedOrders = ordersList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      // Đảm bảo ordersList là mảng
+      const safeList = Array.isArray(ordersList) ? ordersList : (ordersList.data || []);
+      
+      const sortedOrders = safeList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setOrders(sortedOrders);
       setFilteredOrders(sortedOrders);
     } catch (error) {
@@ -83,26 +85,26 @@ export default function MyOrder() {
     setFilteredOrders(filtered);
   };
 
-  // --- LOGIC ĐÁNH GIÁ ---
+  // --- REVIEW LOGIC ---
   const openReviewModal = (order) => {
     setSelectedOrder(order);
     
     if (order.review) {
-        // Đã có đánh giá -> Chế độ XEM
+        // Đã có đánh giá -> Chế độ Xem
         setExistingReview(order.review);
         setRating(order.review.Rating || 5);
         setReviewComment(order.review.Comment || '');
         setPreviewImages(order.review.Images || []); 
         setReviewImages([]); 
-        setIsEditing(false); // Mặc định là false để hiện chế độ xem
+        setIsEditing(false);
     } else {
-        // Chưa đánh giá -> Chế độ NHẬP
+        // Chưa có -> Chế độ Nhập
         setExistingReview(null);
         setRating(5);
         setReviewComment('');
         setReviewImages([]);
         setPreviewImages([]);
-        setIsEditing(true); // Bật form nhập
+        setIsEditing(true);
     }
     setShowReviewModal(true);
   };
@@ -110,25 +112,17 @@ export default function MyOrder() {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length + reviewImages.length > 5) return toast.warning("Tối đa 5 ảnh.");
-    
     setReviewImages(prev => [...prev, ...files]);
     const newPreviews = files.map(file => URL.createObjectURL(file));
     setPreviewImages(prev => [...prev, ...newPreviews]);
   };
 
   const removeImage = (index) => {
-      // Nếu đang ở chế độ sửa đánh giá cũ và ảnh đó là ảnh cũ (URL string) -> Chặn xóa (đơn giản hóa logic)
       if (existingReview && !isEditing) return; 
-      
-      // Logic xóa cho ảnh mới upload (Blob URL)
-      // Cần tính toán index chính xác nếu trộn lẫn ảnh cũ và mới
-      // Ở đây để đơn giản: Khi sửa sẽ reset ảnh cũ nếu upload ảnh mới (tùy logic backend)
-      
       const newPreviews = [...previewImages];
       newPreviews.splice(index, 1);
       setPreviewImages(newPreviews);
 
-      // Xóa trong mảng file upload (cần map index tương ứng, ở đây làm đơn giản xóa theo thứ tự thêm vào sau)
       if(index >= (existingReview?.Images?.length || 0)) {
           const fileIndex = index - (existingReview?.Images?.length || 0);
           const newFiles = [...reviewImages];
@@ -139,7 +133,6 @@ export default function MyOrder() {
 
   const handleSubmitReview = async () => {
     if (!reviewComment.trim()) return toast.warning("Vui lòng nhập nội dung đánh giá!");
-    
     try {
         setSubmittingReview(true);
         const formData = new FormData();
@@ -149,27 +142,24 @@ export default function MyOrder() {
         reviewImages.forEach(img => formData.append('images', img));
 
         let res;
+        // Kiểm tra _id để biết là tạo mới hay cập nhật
         if (existingReview && existingReview._id) {
-            if (existingReview.is_edited) {
-                return toast.error("Bạn chỉ được chỉnh sửa đánh giá 1 lần duy nhất.");
-            }
+            if (existingReview.is_edited) return toast.error("Bạn chỉ được chỉnh sửa đánh giá 1 lần duy nhất.");
             res = await orderApi.updateReview(existingReview._id, formData); 
         } else {
             res = await orderApi.createReview(formData);
         }
-
-        toast.success(existingReview ? "Cập nhật thành công!" : "Đánh giá thành công!");
+        toast.success("Thành công!");
         setShowReviewModal(false);
         fetchOrders(); 
     } catch (error) {
-        console.error(error);
         toast.error(error.response?.data?.message || "Lỗi khi gửi đánh giá.");
     } finally {
         setSubmittingReview(false);
     }
   };
 
-  // --- LOGIC HỦY & THANH TOÁN ---
+  // --- CANCEL & PAYMENT LOGIC ---
   const handleCancelOrder = async () => {
     if (!selectedOrder) return;
     try {
@@ -194,9 +184,7 @@ export default function MyOrder() {
   const handleContinuePayment = (order) => {
     let amountToPay = order.status === 'pending_payment' ? order.deposit_required : (order.final_amount - order.deposit_required);
     let isRemaining = order.status === 'confirmed';
-    navigate("/payment", { 
-      state: { order, transfer_code: order.payment_info?.transfer_code, deposit_required: amountToPay, is_remaining: isRemaining } 
-    });
+    navigate("/payment", { state: { order, transfer_code: order.payment_info?.transfer_code, deposit_required: amountToPay, is_remaining: isRemaining } });
   };
 
   const openCancelModal = (order) => {
@@ -206,7 +194,7 @@ export default function MyOrder() {
     setRefundAccount('');
   };
 
-  // --- UTILS ---
+  // --- UTILS & COMPONENTS ---
   const getStatusInfo = (status) => {
     const statusMap = {
       pending_payment: { label: 'Chờ đặt cọc', icon: <CreditCard size={16} />, className: 'status-pending-payment' },
@@ -230,7 +218,6 @@ export default function MyOrder() {
     return `http://localhost:5000/${img.replace(/^\/+/, '')}`;
   };
 
-  // --- COMPONENTS ---
   const OrderCard = ({ order }) => {
     const statusInfo = getStatusInfo(order.status);
     const isCompleted = order.status === 'completed';
@@ -265,12 +252,9 @@ export default function MyOrder() {
             {isPendingPayment && <button className="btn-pay-now" onClick={() => handleContinuePayment(order)}>Đặt cọc ngay</button>}
             {isConfirmed && <button className="btn-pay-now btn-remaining" onClick={() => handleContinuePayment(order)}>Thanh toán nốt</button>}
             
-            {/* ✅ Nút Đánh giá / Xem đánh giá */}
+            {/* Nút Đánh giá / Xem đánh giá */}
             {isCompleted && (
-                <button 
-                    className={`btn-review ${order.review ? 'reviewed' : ''}`} 
-                    onClick={() => openReviewModal(order)}
-                >
+                <button className={`btn-review ${order.review ? 'reviewed' : ''}`} onClick={() => openReviewModal(order)}>
                     {order.review ? <><CheckCircle size={16}/> Xem đánh giá</> : <><Star size={16}/> Đánh giá ngay</>}
                 </button>
             )}
@@ -292,7 +276,7 @@ export default function MyOrder() {
           <div className="modal-header"><h2>Chi tiết đơn hàng #{selectedOrder.order_id}</h2><button onClick={() => setShowDetailModal(false)}>×</button></div>
           <div className="modal-body" style={{padding: '20px 30px'}}>
              <div className="detail-item"><span className="label">Trạng thái:</span><span className={`value ${statusInfo.className}`}>{statusInfo.label}</span></div>
-             {/* Thêm thông tin khác nếu cần */}
+             {/* ... */}
           </div>
         </div>
       </div>
@@ -301,7 +285,6 @@ export default function MyOrder() {
 
   return (
     <>
-      <Header /><Sidebar />
       <div className="my-orders-page">
         <div className="container">
           <div className="page-header"><h1>Đơn hàng của tôi</h1></div>
@@ -322,22 +305,20 @@ export default function MyOrder() {
         </div>
       </div>
       
-      {/* MODAL REVIEW */}
       {showReviewModal && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowReviewModal(false)}>
             <div className="modal-content review-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>{isEditing ? (existingReview ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá') : 'Chi tiết đánh giá'}</h2>
+                    <h2>{existingReview ? (isEditing ? 'Chỉnh sửa đánh giá' : 'Chi tiết đánh giá') : 'Đánh giá dịch vụ'}</h2>
                     <button className="btn-close-modal" onClick={() => setShowReviewModal(false)}>×</button>
                 </div>
-                
                 <div className="modal-body">
                     <div className="review-product-info">
                         <img src={getImageUrl(selectedOrder.service_package_id?.AnhBia)} alt="" />
                         <div><h4>{selectedOrder.service_package_id?.TenGoi}</h4><p>Mã đơn: {selectedOrder.order_id}</p></div>
                     </div>
-
-                    {/* --- CHẾ ĐỘ NHẬP / SỬA --- */}
+                    
+                    {/* CHẾ ĐỘ NHẬP / SỬA */}
                     {isEditing ? (
                         <div className="review-form">
                             <div className="star-rating-input">
@@ -347,9 +328,8 @@ export default function MyOrder() {
                                 <span className="rating-label">{rating === 5 ? 'Tuyệt vời' : rating === 4 ? 'Hài lòng' : rating === 3 ? 'Bình thường' : 'Tệ'}</span>
                             </div>
                             <textarea className="review-textarea" placeholder="Chia sẻ cảm nhận của bạn..." value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows="4"></textarea>
-                            
                             <div className="review-image-upload">
-                                <label htmlFor="review-images" className="upload-btn"><Upload size={20}/> Thêm hình ảnh (Max 5)</label>
+                                <label htmlFor="review-images" className="upload-btn"><Upload size={20}/> Thêm hình ảnh</label>
                                 <input type="file" id="review-images" multiple accept="image/*" onChange={handleImageChange} style={{display: 'none'}}/>
                                 <div className="image-previews">
                                     {previewImages.map((src, index) => (
@@ -360,10 +340,10 @@ export default function MyOrder() {
                                     ))}
                                 </div>
                             </div>
-                            {existingReview && <p className="edit-warning"><Edit3 size={14}/> Lưu ý: Bạn chỉ được chỉnh sửa đánh giá 1 lần duy nhất.</p>}
+                            {existingReview && <p className="edit-warning"><Edit3 size={14}/> Bạn chỉ được chỉnh sửa 1 lần.</p>}
                         </div>
                     ) : (
-                        // --- CHẾ ĐỘ XEM ---
+                        // CHẾ ĐỘ XEM
                         <div className="review-view-only">
                             <div className="view-rating">{[...Array(5)].map((_, i) => <Star key={i} size={24} fill={i < rating ? "#fbbf24" : "#e5e7eb"} color={i < rating ? "#fbbf24" : "#e5e7eb"} />)}</div>
                             <p className="view-comment">{reviewComment}</p>
@@ -372,8 +352,6 @@ export default function MyOrder() {
                                     <img key={index} src={getImageUrl(src)} alt="Review" onClick={()=>window.open(getImageUrl(src), '_blank')} style={{cursor:'zoom-in'}}/>
                                 ))}
                             </div>
-                            
-                            {/* Chỉ hiện nút sửa nếu chưa từng sửa */}
                             {existingReview?.is_edited ? (
                                 <div className="edited-badge">Đã chỉnh sửa</div>
                             ) : (
@@ -386,21 +364,17 @@ export default function MyOrder() {
 
                     <div className="modal-actions">
                         <button className="btn-back-modal" onClick={() => setShowReviewModal(false)}>Đóng</button>
-                        {isEditing && (
-                            <button className="btn-submit-review" onClick={handleSubmitReview} disabled={submittingReview}>
-                                {submittingReview ? 'Đang gửi...' : (existingReview ? 'Cập nhật đánh giá' : 'Gửi đánh giá')}
-                            </button>
-                        )}
+                        {isEditing && <button className="btn-submit-review" onClick={handleSubmitReview} disabled={submittingReview}>Gửi đánh giá</button>}
                     </div>
                 </div>
             </div>
         </div>
       )}
 
-      {/* Modal Hủy đơn */}
       {showCancelModal && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowCancelModal(false)}>
             <div className="modal-content cancel-modal" onClick={(e) => e.stopPropagation()}>
+               {/* Modal Content Hủy (Giữ nguyên) */}
                <div className="modal-header"><h2>Hủy đơn hàng</h2><button onClick={()=>setShowCancelModal(false)}>×</button></div>
                <div className="modal-body">
                   <textarea value={cancelReason} onChange={(e)=>setCancelReason(e.target.value)} placeholder="Lý do hủy..." className="review-textarea"></textarea>
@@ -412,8 +386,6 @@ export default function MyOrder() {
             </div>
         </div>
       )}
-
-      <Footer />
     </>
   );
 }

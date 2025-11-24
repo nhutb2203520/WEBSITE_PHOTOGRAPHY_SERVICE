@@ -20,10 +20,9 @@ import orderRoute from "./src/routes/order.route.js";
 import paymentMethodRoutes from "./src/routes/paymentMethod.route.js";
 import adminRoute from "./src/routes/admin.route.js";
 import serviceFeeRoutes from "./src/routes/servicefree.route.js";
-
+import scheduleRoutes from "./src/routes/schedule.route.js";
 // ✅ [MỚI] Import Review Route để sửa lỗi 404 api/reviews
 import reviewRoutes from "./src/routes/review.route.js";
-
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
 
@@ -81,7 +80,8 @@ app.use("/api/admin", adminRoute);
 
 // 5. ✅ [MỚI] Reviews (Sửa lỗi 404)
 app.use("/api/reviews", reviewRoutes);
-
+//lịch trình
+app.use("/api/schedule", scheduleRoutes);
 // 6. Direct Controller Routes
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 

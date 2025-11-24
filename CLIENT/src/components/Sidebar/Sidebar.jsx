@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Images, Bell, MessageCircle, Menu, X, ShoppingBag, Heart, Package, Tag } from 'lucide-react';
+import { 
+  User, Images, Bell, MessageCircle, Menu, X, 
+  ShoppingBag, Heart, Package, CalendarCheck, CalendarDays // Import thêm icon
+} from 'lucide-react';
 import { useSelector } from 'react-redux';
 import './Sidebar.css';
 
@@ -11,11 +14,12 @@ export default function Sidebar() {
   
   const isPhotographer = user?.isPhotographer;
   
-  // Dữ liệu dung lượng mẫu - thay bằng dữ liệu thực từ API
+  // Dữ liệu dung lượng mẫu
   const storageUsed = user?.storageUsed || 22.16; // GB
   const storageTotal = user?.storageTotal || 30; // GB
-  const storagePercent = (storageUsed / storageTotal) * 100;
+  const storagePercent = Math.min((storageUsed / storageTotal) * 100, 100);
 
+  // Menu cơ bản cho mọi người dùng
   const baseMenuItems = [
     { path: '/my-account', icon: <User size={24} />, label: 'Tài khoản của tôi', badge: null },
     { path: '/my-orders', icon: <ShoppingBag size={24} />, label: 'Đơn hàng của tôi', badge: null },
@@ -25,9 +29,11 @@ export default function Sidebar() {
     { path: '/messages', icon: <MessageCircle size={24} />, label: 'Tin nhắn', badge: 3 }
   ];
 
+  // Menu bổ sung cho Photographer (Đã tách riêng Lịch & Đơn)
   const photographerMenuItems = [
-    { path: '/packages', icon: <Package size={24} />, label: 'Gói dung lượng', badge: null },
-    { path: '/promotions', icon: <Tag size={24} />, label: 'Khuyến mãi', badge: 'HOT' }
+    { path: '/photographer/orders', icon: <CalendarCheck size={24} />, label: 'Quản lý đơn đặt', badge: 'NEW' },
+    { path: '/photographer/schedule', icon: <CalendarDays size={24} />, label: 'Lịch trình', badge: null },
+    { path: '/photographer/my-services', icon: <Package size={24} />, label: 'Quản lý gói chụp', badge: null },
   ];
 
   const menuItems = isPhotographer 
@@ -70,7 +76,7 @@ export default function Sidebar() {
                   <>
                     <span className="sidebar-label">{item.label}</span>
                     {item.badge && (
-                      <span className={`sidebar-badge ${item.badge === 'HOT' ? 'hot' : ''}`}>
+                      <span className={`sidebar-badge ${item.badge === 'NEW' ? 'new' : ''}`}>
                         {item.badge}
                       </span>
                     )}
@@ -94,7 +100,7 @@ export default function Sidebar() {
                 ></div>
               </div>
               <div className="storage-info">
-                {storageUsed.toFixed(2)} GB/{storageTotal} GB
+                {storageUsed.toFixed(2)} GB / {storageTotal} GB
               </div>
             </div>
           )}

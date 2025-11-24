@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   CreditCard, Calendar, Clock, CheckCircle, 
-  Copy, AlertTriangle, ShieldCheck, Upload, X, ChevronDown, Loader
+  Copy, AlertTriangle, ShieldCheck, Upload, X, ChevronDown, Loader, Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../Header/Header';
@@ -11,10 +11,14 @@ import './PaymentServicePackage.css';
 import orderApi from '../../apis/OrderService';
 import paymentMethodService from '../../apis/paymentMethodService';
 
+// ⚠️ Tốt nhất nên đưa vào file config hoặc biến môi trường (.env)
+const API_BASE_URL = 'http://localhost:5000'; 
+
 export default function PaymentServicePackage() {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Lấy dữ liệu từ state khi điều hướng (navigate)
   const { order: initialOrder, deposit_required: amountFromState, is_remaining } = location.state || {};
 
   const [orderData, setOrderData] = useState(initialOrder);
@@ -27,32 +31,38 @@ export default function PaymentServicePackage() {
   const [proofImage, setProofImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
+  // --- 1. Lấy thông tin đơn hàng chi tiết ---
   useEffect(() => {
     if (!initialOrder) {
-      toast.error('Không tìm thấy thông tin đơn hàng');
-      navigate('/');
+      toast.error('Không tìm thấy thông tin đơn hàng. Vui lòng thử lại.');
+      navigate('/'); // Quay về trang chủ nếu không có dữ liệu
       return;
     }
     
+    // Nếu chỉ có ID gói (string), cần fetch lại full data để lấy tên gói, ảnh, v.v.
     if (initialOrder && typeof initialOrder.service_package_id === 'string') {
         const fetchFullOrder = async () => {
             try {
-                const res = await orderApi.getOrderDetail(initialOrder._id || initialOrder.order_id);
+                const orderId = initialOrder._id || initialOrder.order_id;
+                const res = await orderApi.getOrderDetail(orderId);
                 if (res && res.data) {
                     setOrderData(res.data);
                 }
             } catch (error) {
                 console.error("Lỗi tải chi tiết đơn hàng:", error);
+                toast.error("Không thể tải chi tiết đơn hàng.");
             }
         };
         fetchFullOrder();
     }
 
+    // Cleanup URL preview khi unmount
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [initialOrder, navigate, previewUrl]);
 
+  // --- 2. Lấy danh sách ngân hàng Admin ---
   useEffect(() => {
     const fetchPaymentMethods = async () => {
       try {
@@ -80,11 +90,16 @@ export default function PaymentServicePackage() {
 
   if (!orderData) return null;
 
+  // --- HELPERS ---
+  
+  // Fix lỗi src="" : Trả về null nếu không có ảnh
   const getPackageImage = () => {
     const imgPath = orderData.service_package_id?.AnhBia;
-    if (!imgPath) return ""; 
+    if (!imgPath) return null; 
+    
     if (imgPath.startsWith("http")) return imgPath;
-    return `http://localhost:5000/${imgPath.replace(/^\/+/, "")}`;
+    // Xử lý đường dẫn tương đối
+    return `${API_BASE_URL}/${imgPath.replace(/^\/+/, "")}`;
   };
 
   const serviceFee = Number(orderData.service_amount) || 0;
@@ -93,14 +108,13 @@ export default function PaymentServicePackage() {
   
   const paymentAmount = Number(amountFromState) || Math.round(totalAmount * 0.3);
   
-  // ✅ CẬP NHẬT: Nội dung chuyển khoản là MÃ ĐƠN HÀNG
   const transactionCode = orderData.order_id || 'UNKNOWN';
-
   const paymentLabel = is_remaining ? "Thanh toán phần còn lại" : "Đặt cọc (30%)";
   const paymentShortLabel = is_remaining ? "Số tiền TT" : "Số tiền cọc";
 
+  // Fix QR URL: Encode các tham số để tránh lỗi ký tự đặc biệt
   const qrUrl = selectedBank 
-    ? `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.accountNumber}-compact2.png?amount=${paymentAmount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(selectedBank.fullName)}`
+    ? `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.accountNumber}-compact2.png?amount=${paymentAmount}&addInfo=${encodeURIComponent(transactionCode)}&accountName=${encodeURIComponent(selectedBank.fullName)}`
     : null;
 
   const handleCopy = (text) => {
@@ -109,6 +123,8 @@ export default function PaymentServicePackage() {
   };
 
   const formatPrice = (price) => Number(price || 0).toLocaleString('vi-VN');
+
+  // --- HANDLERS ---
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -139,7 +155,7 @@ export default function PaymentServicePackage() {
       const formData = new FormData();
       formData.append('method', 'banking');
       formData.append('amount', paymentAmount);
-      formData.append('transaction_code', transactionCode); // Gửi mã đơn hàng lên server
+      formData.append('transaction_code', transactionCode);
       
       if (selectedBank) {
         formData.append('bank_id', selectedBank._id || selectedBank.id);
@@ -149,7 +165,8 @@ export default function PaymentServicePackage() {
         formData.append('payment_proof', proofImage); 
       }
 
-      await orderApi.confirmPayment(orderData._id || orderData.order_id, formData);
+      const orderId = orderData._id || orderData.order_id;
+      await orderApi.confirmPayment(orderId, formData);
 
       toast.success('Đã gửi xác nhận thanh toán! Vui lòng chờ duyệt.');
       navigate('/my-orders'); 
@@ -162,13 +179,15 @@ export default function PaymentServicePackage() {
     }
   };
 
+  const packageImgSrc = getPackageImage();
+
   return (
     <>
       <Header />
       <div className="payment-page">
         <div className="payment-container">
           
-          {/* CỘT TRÁI */}
+          {/* --- CỘT TRÁI: THÔNG TIN CK --- */}
           <div className="payment-left">
             <div className="section-title">
               <CreditCard className="text-green-600" />
@@ -281,7 +300,7 @@ export default function PaymentServicePackage() {
             </div>
           </div>
 
-          {/* CỘT PHẢI */}
+          {/* --- CỘT PHẢI: TÓM TẮT ĐƠN HÀNG --- */}
           <div className="payment-right">
             <div className="summary-card">
               <div className="section-title">
@@ -290,13 +309,22 @@ export default function PaymentServicePackage() {
               </div>
 
               <div className="package-mini-info">
-                <img 
-                  src={getPackageImage()} 
-                  alt="Package" 
-                  className="w-20 h-20 object-cover rounded"
-                  style={{ backgroundColor: '#f3f4f6' }}
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                /> 
+                {/* ✅ Fix: Chỉ render img nếu có src, tránh warning */}
+                {packageImgSrc ? (
+                    <img 
+                      src={packageImgSrc} 
+                      alt="Package" 
+                      className="w-20 h-20 object-cover rounded"
+                      style={{ backgroundColor: '#f3f4f6' }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    /> 
+                ) : (
+                    // Placeholder khi không có ảnh
+                    <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                        <ImageIcon size={24} />
+                    </div>
+                )}
+
                 <div>
                   <h3>Đơn hàng #{orderData.order_id}</h3>
                   <div className="info-line">
@@ -304,6 +332,9 @@ export default function PaymentServicePackage() {
                   </div>
                   <div className="info-line">
                     <Clock size={14} /> {orderData.start_time}
+                  </div>
+                  <div className="info-line font-semibold text-sm mt-1">
+                     {orderData.service_package_id?.TenGoi || "Gói dịch vụ"}
                   </div>
                 </div>
               </div>
