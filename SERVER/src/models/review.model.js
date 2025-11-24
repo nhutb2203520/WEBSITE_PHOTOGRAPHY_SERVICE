@@ -5,7 +5,7 @@ const ReviewSchema = new mongoose.Schema(
     // ✅ Đơn hàng nào được đánh giá
     OrderId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Order', // Giả sử bạn có model Order
+      ref: 'Order', 
       required: true,
     },
     
@@ -50,17 +50,12 @@ const ReviewSchema = new mongoose.Schema(
       type: String,
     }],
     
-    // ✅ Trả lời từ photographer (optional)
-    Reply: {
-      content: {
-        type: String,
-        trim: true,
-      },
-      repliedAt: {
-        type: Date,
-      }
+    // ✅ Trạng thái chỉnh sửa (Cho phép sửa 1 lần)
+    is_edited: {
+        type: Boolean,
+        default: false
     },
-    
+
     // ✅ Trạng thái
     Status: {
       type: String,
@@ -86,19 +81,8 @@ ReviewSchema.index({ PhotographerId: 1, Status: 1 });
 ReviewSchema.index({ CustomerId: 1 });
 ReviewSchema.index({ OrderId: 1 }, { unique: true }); // Mỗi đơn chỉ đánh giá 1 lần
 
-// ✅ Middleware: Tự động cập nhật rating của package khi tạo/xóa review
-ReviewSchema.post('save', async function() {
-  const ServicePackage = mongoose.model('ServicePackage');
-  await updatePackageRating(this.PackageId, ServicePackage);
-});
-
-ReviewSchema.post('remove', async function() {
-  const ServicePackage = mongoose.model('ServicePackage');
-  await updatePackageRating(this.PackageId, ServicePackage);
-});
-
-// ✅ Helper function để tính lại rating
-async function updatePackageRating(packageId, ServicePackage) {
+// ✅ Middleware: Tự động cập nhật rating của package khi tạo/xóa/sửa review
+const updatePackageRating = async (packageId, ServicePackage) => {
   const Review = mongoose.model('Review');
   
   const reviews = await Review.find({
@@ -121,7 +105,17 @@ async function updatePackageRating(packageId, ServicePackage) {
     DanhGia: avgRating,
     SoLuotDanhGia: reviews.length
   });
-}
+};
+
+ReviewSchema.post('save', async function() {
+  const ServicePackage = mongoose.model('ServicePackage');
+  await updatePackageRating(this.PackageId, ServicePackage);
+});
+
+ReviewSchema.post('remove', async function() {
+  const ServicePackage = mongoose.model('ServicePackage');
+  await updatePackageRating(this.PackageId, ServicePackage);
+});
 
 const Review = mongoose.model('Review', ReviewSchema);
 

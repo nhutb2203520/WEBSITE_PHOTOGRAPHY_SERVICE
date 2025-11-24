@@ -1,12 +1,15 @@
-import orderService from "../services/order.service.js";
-import Orders from "../models/order.model.js"; 
+import Order from "../models/order.model.js";
+import ServicePackage from "../models/servicePackage.model.js";
+import Review from "../models/review.model.js";
+import mongoose from "mongoose";
+import orderService from "../services/order.service.js"; 
 
 // 📦 Tạo đơn hàng mới
 export const createOrder = async (req, res) => {
   try {
     const customer_id = req.user.id;
+    // Gọi service để xử lý logic tạo đơn phức tạp (nếu có)
     const payload = { customer_id, ...req.body };
-    
     const newOrder = await orderService.createOrder(payload);
     
     res.status(201).json({ 
@@ -24,15 +27,64 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// 📋 Lấy danh sách đơn hàng của tôi
+// 📋 Lấy danh sách đơn hàng của tôi (KÈM REVIEW)
+// ✅ HÀM ĐÃ ĐƯỢC VIẾT LẠI ĐỂ FIX LỖI REVIEW UNDEFINED
 export const getMyOrders = async (req, res) => {
   try {
-    const customer_id = req.user.id;
-    const orders = await orderService.getOrdersByCustomer(customer_id);
-    res.json({ message: "Danh sách đơn hàng của bạn", data: orders });
+    const userId = req.user._id || req.user.id;
+
+    const orders = await Order.aggregate([
+      // 1. Lọc theo User ID
+      { 
+        $match: { 
+            customer_id: new mongoose.Types.ObjectId(userId) 
+        } 
+      },
+
+      // 2. Join bảng ServicePackage để lấy thông tin gói
+      {
+        $lookup: {
+          from: "servicepackages", // Tên collection trong MongoDB (thường là chữ thường, số nhiều)
+          localField: "service_package_id",
+          foreignField: "_id",
+          as: "package_info"
+        }
+      },
+      { 
+        $unwind: { path: "$package_info", preserveNullAndEmptyArrays: true } 
+      },
+
+      // 3. Join bảng Reviews để lấy đánh giá (nếu có)
+      {
+        $lookup: {
+          from: "reviews",
+          localField: "_id",
+          foreignField: "OrderId",
+          as: "review_info"
+        }
+      },
+      
+      // 4. Xử lý dữ liệu trả về
+      {
+        $addFields: {
+            // Lấy phần tử đầu tiên trong mảng review (vì 1 đơn chỉ có 1 review)
+            review: { $arrayElemAt: ["$review_info", 0] },
+            // Map lại tên trường để khớp với Frontend cũ
+            service_package_id: "$package_info" 
+        }
+      },
+
+      // 5. Sắp xếp mới nhất
+      { $sort: { createdAt: -1 } }
+    ]);
+
+    res.status(200).json({ 
+        message: "Danh sách đơn hàng của bạn", 
+        data: orders 
+    });
   } catch (error) {
     console.error("Get my orders error:", error);
-    res.status(error.status || 500).json({ message: error.message || "Lỗi server!" });
+    res.status(500).json({ message: "Lỗi server khi lấy danh sách đơn!" });
   }
 };
 
@@ -88,39 +140,29 @@ export const calculateTravelFee = async (req, res) => {
   }
 };
 
-// ✅ XÁC NHẬN THANH TOÁN (CỌC HOẶC PHẦN CÒN LẠI)
+// ✅ XÁC NHẬN THANH TOÁN
 export const confirmPayment = async (req, res) => {
   try {
     const { orderId } = req.params; 
-    
     const { method, amount, transaction_code } = req.body;
 
-    // 1. Kiểm tra file (Bắt buộc nếu là Banking)
     if (method === 'banking' && !req.file) {
       return res.status(400).json({ message: "Vui lòng tải lên ảnh xác thực chuyển khoản!" });
     }
 
-    // 2. Tạo đường dẫn file ảnh
     let fileUrl = null;
     if (req.file) {
       fileUrl = `${req.protocol}://${req.get('host')}/uploads/orders/${req.file.filename}`;
     }
 
-    // 3. Tìm đơn hàng
-    const order = await Orders.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
-    }
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
 
-    // 4. Phân loại thanh toán
-    // Trường hợp 1: Thanh toán Cọc (Lần đầu)
     if (order.status === 'pending_payment') {
       order.payment_info.transfer_image = fileUrl;
       order.payment_info.transfer_date = new Date();
       order.payment_info.transaction_code = transaction_code;
       order.payment_info.deposit_amount = Number(amount);
-      
-      // Chuyển trạng thái sang "Chờ xác nhận cọc"
       order.status = 'pending';
       
       order.status_history.push({
@@ -128,14 +170,10 @@ export const confirmPayment = async (req, res) => {
         changed_by: req.user.id,
         note: `Khách hàng đã gửi ảnh cọc (Mã GD: ${transaction_code || 'N/A'})`
       });
-    } 
-    // Trường hợp 2: Thanh toán Phần còn lại (Sau khi chụp/Trước khi giao ảnh)
-    else {
+    } else {
       order.payment_info.remaining_transfer_image = fileUrl;
-      order.payment_info.remaining_status = 'pending'; // Chờ duyệt
-      order.payment_info.remaining_paid_at = new Date(); // Tạm lưu thời gian gửi
-
-      // Chuyển trạng thái sang "Chờ duyệt thanh toán cuối"
+      order.payment_info.remaining_status = 'pending'; 
+      order.payment_info.remaining_paid_at = new Date();
       order.status = 'final_payment_pending';
       
       order.status_history.push({
@@ -163,7 +201,7 @@ export const confirmPayment = async (req, res) => {
   }
 };
 
-// 📢 Gửi khiếu nại (Khách hàng)
+// 📢 Gửi khiếu nại
 export const submitComplaint = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -178,7 +216,7 @@ export const submitComplaint = async (req, res) => {
   }
 };
 
-// ⭐ Gửi đánh giá (Khách hàng)
+// ⭐ Gửi đánh giá (Backward Compatibility)
 export const submitReview = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -197,14 +235,14 @@ export const submitReview = async (req, res) => {
 export const resolveComplaint = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status, response } = req.body; // status: 'resolved' | 'rejected'
+    const { status, response } = req.body; 
     const adminId = req.user.id;
 
     const result = await orderService.resolveComplaint(orderId, status, response, adminId);
     
     res.json({ 
         success: true, 
-        message: status === 'resolved' ? "Đã chấp nhận khiếu nại (Cộng lỗi vào gói)" : "Đã từ chối khiếu nại",
+        message: status === 'resolved' ? "Đã chấp nhận khiếu nại" : "Đã từ chối khiếu nại",
         data: result 
     });
   } catch (error) {
@@ -212,24 +250,21 @@ export const resolveComplaint = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 export const getAllOrders = async (req, res) => {
   try {
-    // Lấy tất cả, sắp xếp mới nhất trước
-    // .populate kết nối sang bảng Khách Hàng và Gói Dịch Vụ để lấy tên
-    const orders = await Orders.find()
-      .populate("customer_id", "full_name email phone") // Thay 'full_name' bằng tên trường thật trong bangKhachHang
-      .populate("service_package_id", "name price")     // Thay 'name' bằng tên trường thật trong ServicePackage
+    const orders = await Order.find()
+      .populate("customer_id", "full_name email phone")
+      .populate("service_package_id", "name price")
       .sort({ createdAt: -1 });
 
-    res.json({ 
-        success: true,
-        data: orders 
-    });
+    res.json({ success: true, data: orders });
   } catch (error) {
     console.error("Get all orders error:", error);
     res.status(500).json({ message: "Lỗi server khi lấy danh sách đơn!" });
   }
 };
+
 export default {
   createOrder,
   getMyOrders,

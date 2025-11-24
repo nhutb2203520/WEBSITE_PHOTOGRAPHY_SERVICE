@@ -19,17 +19,16 @@ const orderApi = {
   calculateTravelFee: (packageId, lat, lng) =>
     axiosUser.post(`${ORDER_URL}/calculate-travel-fee`, { packageId, lat, lng }),
 
-  // ✅ XÁC NHẬN THANH TOÁN (ĐÃ SỬA LỖI 400)
+  // ✅ XÁC NHẬN THANH TOÁN
   confirmPayment: (orderId, formData) => {
     return axiosUser.post(`${ORDER_URL}/${orderId}/confirm-payment`, formData, {
       headers: { 
-        // QUAN TRỌNG: Đặt là undefined để trình duyệt tự động thêm boundary
         "Content-Type": undefined 
       }
     });
   },
 
-  // 📷 Upload ảnh bằng chứng (nếu dùng riêng)
+  // 📷 Upload ảnh bằng chứng
   uploadPaymentProof: (orderId, formData) => 
     axiosUser.post(`${ORDER_URL}/${orderId}/upload-proof`, formData, {
       headers: { 
@@ -37,13 +36,24 @@ const orderApi = {
       }
     }),
 
-  // ✅ MỚI: Gửi khiếu nại
+  // ✅ Gửi khiếu nại
   submitComplaint: (orderId, reason) => 
     axiosUser.post(`${ORDER_URL}/${orderId}/complaint`, { reason }),
 
-  // ✅ MỚI: Gửi đánh giá
-  submitReview: (orderId, rating, comment) => 
-    axiosUser.post(`${ORDER_URL}/${orderId}/review`, { rating, comment }),
+  // ✅ [REVIEW] Tạo đánh giá mới
+  createReview: (formData) => {
+    // Lưu ý: formData cần chứa: order_id, rating, comment, images
+    return axiosUser.post('/reviews', formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  // ✅ [REVIEW] Sửa đánh giá
+  updateReview: (reviewId, formData) => {
+    return axiosUser.put(`/reviews/${reviewId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 export default orderApi;
