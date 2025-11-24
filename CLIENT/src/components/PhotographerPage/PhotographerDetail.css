@@ -1,8 +1,8 @@
-/* PhotographerDetail.css */
-
+/* --- Global Layout --- */
 .photographer-detail-page {
     min-height: 100vh;
     background: #f9fafb;
+    padding-bottom: 60px;
 }
 
 .container {
@@ -11,20 +11,63 @@
     padding: 0 20px;
 }
 
-/* Loading & Error States */
-.loading-state,
-.error-state {
+.loading-container,
+.error-container,
+.empty-state {
     text-align: center;
-    padding: 60px 20px;
-    font-size: 1.1rem;
+    padding: 80px 0;
     color: #6b7280;
+    font-size: 1.1rem;
 }
 
-/* Cover Section */
-.photographer-cover {
-    position: relative;
-    height: 400px;
+.spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #9333ea;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 1s infinite linear;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.btn-back {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+/* =========================================
+   ✅ NEW HEADER STYLES (CARD LAYOUT)
+   ========================================= */
+
+/* 1. Profile Card Container */
+.photographer-profile-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     overflow: hidden;
+    /* Đảm bảo ảnh bìa không bị tràn ra ngoài */
+    margin-top: 30px;
+    /* Khoảng cách với header */
+    border: 1px solid #e5e7eb;
+}
+
+/* 2. Cover Banner */
+.photographer-cover-banner {
+    position: relative;
+    height: 500px;
+    /* Chiều cao ảnh bìa */
+    background: #e5e7eb;
 }
 
 .cover-image {
@@ -33,148 +76,169 @@
     object-fit: cover;
 }
 
-.cover-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-    padding: 40px 0 30px;
-}
-
-/* Profile */
-.photographer-profile {
-    display: flex;
-    align-items: flex-end;
-    gap: 20px;
+/* 3. Info Section */
+.photographer-info-section {
+    padding: 0 30px 30px 30px;
+    /* Padding xung quanh */
     position: relative;
 }
 
-.profile-avatar {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    border: 5px solid white;
-    object-fit: cover;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.profile-info {
-    flex: 1;
-    color: white;
-    padding-bottom: 10px;
-}
-
-.profile-info h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 10px;
-}
-
-.profile-meta {
+.photographer-profile-compact {
     display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
 }
 
-.rating-display {
+/* Avatar (Kéo lên đè ảnh bìa) */
+.profile-avatar-compact {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 4px solid white;
+    margin-top: -65px;
+    /* Kéo lên một nửa chiều cao */
+    margin-bottom: 15px;
+    background: white;
+}
+
+/* Tên */
+.photographer-profile-compact h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+}
+
+/* Meta Info */
+.profile-meta-compact {
     display: flex;
     align-items: center;
-    gap: 5px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    padding: 5px 12px;
-    border-radius: 20px;
+    justify-content: center;
+    gap: 10px;
+    color: #6b7280;
+}
+
+.rating-display-compact {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
 }
 
 .rating-number {
     font-weight: 700;
+    color: #fbbf24;
 }
 
-.rating-count {
-    opacity: 0.9;
+.meta-divider {
+    color: #d1d5db;
 }
 
-.meta-item {
+.meta-item-compact {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
 }
 
-.btn-favorite {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border: none;
-    width: 50px;
-    height: 50px;
+/* Favorite Button (Góc phải) */
+.btn-favorite-compact {
+    position: absolute;
+    top: 20px;
+    /* Khoảng cách từ trên xuống trong phần info */
+    right: 0;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
+    border: 1px solid #e5e7eb;
+    background: white;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: 0.2s;
-    margin-bottom: 10px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.btn-favorite:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
+.btn-favorite-compact:hover {
+    background: #f9fafb;
+    transform: scale(1.05);
 }
 
-/* Stats Section */
+/* --- Stats Bar --- */
 .photographer-stats {
     background: white;
     border-bottom: 1px solid #e5e7eb;
-    padding: 30px 0;
+    padding: 25px 0;
+    margin-top: 30px;
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
 }
 
 .stat-item {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 15px;
     padding: 20px;
     background: #f9fafb;
-    border-radius: 12px;
+    border-radius: 16px;
+    border: 1px solid #f3f4f6;
+    transition: transform 0.2s;
+}
+
+.stat-item:hover {
+    transform: translateY(-3px);
+    border-color: #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .stat-item svg {
-    color: #9333ea;
+    color: #8b5cf6;
+    background: white;
+    padding: 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-sizing: content-box;
 }
 
 .stat-number {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.4rem;
+    font-weight: 800;
     color: #111827;
 }
 
 .stat-label {
     font-size: 0.9rem;
     color: #6b7280;
+    font-weight: 500;
 }
 
-/* Tabs */
+/* --- Tabs --- */
 .tabs-section {
     background: white;
-    border-bottom: 2px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 50;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .tabs-nav {
     display: flex;
-    gap: 5px;
+    gap: 30px;
 }
 
 .tab-btn {
-    flex: 1;
-    padding: 15px 20px;
+    padding: 18px 5px;
     background: none;
     border: none;
     font-size: 1rem;
@@ -186,65 +250,47 @@
 }
 
 .tab-btn:hover {
-    color: #9333ea;
+    color: #8b5cf6;
 }
 
 .tab-btn.active {
-    color: #9333ea;
-    border-bottom-color: #9333ea;
+    color: #8b5cf6;
+    border-bottom-color: #8b5cf6;
 }
 
-/* Tab Content */
 .tab-content {
     padding: 40px 0;
 }
 
-/* About Tab */
+/* --- About & Contact --- */
 .about-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 30px;
+    gap: 40px;
 }
 
 .about-main h3 {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     margin-bottom: 15px;
     color: #111827;
 }
 
-.about-main p {
-    color: #6b7280;
-    line-height: 1.6;
-    margin-bottom: 30px;
-}
-
-.specialties-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
 .specialty-tag {
-    background: linear-gradient(135deg, #9333ea, #ec4899);
-    color: white;
+    background: #f3f4f6;
+    color: #4b5563;
     padding: 8px 16px;
     border-radius: 20px;
     font-size: 0.9rem;
     font-weight: 500;
+    margin-right: 10px;
 }
 
-/* Contact Card */
 .contact-card {
     background: white;
-    border-radius: 16px;
     padding: 25px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.contact-card h3 {
-    font-size: 1.2rem;
-    margin-bottom: 20px;
-    color: #111827;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .contact-item {
@@ -256,194 +302,348 @@
     color: #6b7280;
 }
 
-.contact-item:last-of-type {
-    border-bottom: none;
-}
-
-.contact-item svg {
-    color: #9333ea;
-}
-
 .btn-contact {
     width: 100%;
-    background: linear-gradient(135deg, #9333ea, #ec4899);
+    background: #111827;
     color: white;
     border: none;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: 600;
+    padding: 14px;
+    border-radius: 10px;
+    margin-top: 20px;
     cursor: pointer;
-    margin-top: 15px;
+    font-weight: 600;
     transition: 0.2s;
 }
 
 .btn-contact:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(147, 51, 234, 0.3);
+    background: #4338ca;
 }
 
-/* Packages Grid */
+/* --- PACKAGES GRID --- */
 .packages-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
+    gap: 30px;
 }
 
 .package-card {
     background: white;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transition: 0.3s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 .package-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .package-image {
+    position: relative;
     height: 200px;
-    overflow: hidden;
+    background: #e5e7eb;
 }
 
 .package-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: 0.3s;
+    transition: 0.5s;
 }
 
 .package-card:hover .package-image img {
-    transform: scale(1.1);
+    transform: scale(1.05);
+}
+
+.package-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
+.favorite-btn-small {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    alignItems: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
 }
 
 .package-body {
     padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
 }
 
-.package-body h4 {
-    font-size: 1.2rem;
+.package-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 8px;
-    color: #111827;
 }
 
-.package-description {
-    color: #6b7280;
-    font-size: 0.9rem;
-    margin-bottom: 12px;
-    line-height: 1.4;
+.package-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    line-height: 1.3;
 }
 
 .package-rating {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
+    background: #fffbeb;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid #fef3c7;
     font-size: 0.85rem;
-    color: #6b7280;
-    margin-bottom: 15px;
+    font-weight: 600;
+    color: #4b5563;
 }
 
-.package-services {
+.package-description {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 15px;
+    height: 42px;
+    overflow: hidden;
+    line-height: 1.5;
+}
+
+.package-services-list {
     list-style: none;
     padding: 0;
     margin-bottom: 20px;
 }
 
-.package-services li {
-    padding: 8px 0;
-    color: #6b7280;
+.package-services-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 0.9rem;
-    border-bottom: 1px solid #f3f4f6;
+    color: #4b5563;
+    margin-bottom: 6px;
 }
 
-.package-services li:before {
-    content: "✓ ";
+.package-services-list li svg {
     color: #10b981;
-    font-weight: bold;
-    margin-right: 8px;
 }
 
-.package-footer {
+.package-footer-info {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
+    margin-top: auto;
 }
 
 .package-price {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
-    color: #111827;
+    color: #059669;
 }
 
-.btn-book {
-    background: linear-gradient(135deg, #9333ea, #ec4899);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+.package-stats-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.booking-count-text {
+    font-size: 0.8rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.complaint-text {
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.complaint-text.safe {
+    color: #9ca3af;
+}
+
+.complaint-text.danger {
+    color: #ef4444;
+}
+
+.card-divider {
+    height: 1px;
+    background: #f3f4f6;
+    margin: 15px 0;
+}
+
+.photographer-mini-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.photographer-mini-profile img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e5e7eb;
+}
+
+.photographer-mini-profile span {
+    font-size: 0.9rem;
     font-weight: 600;
-    cursor: pointer;
+    color: #374151;
+}
+
+.btn-view {
+    display: block;
+    text-align: center;
+    background: #8b5cf6;
+    color: white;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
     transition: 0.2s;
 }
 
-.btn-book:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+.btn-view:hover {
+    background: #7c3aed;
 }
 
-/* Portfolio Grid */
-.portfolio-grid {
+/* --- PORTFOLIO GRID --- */
+.portfolio-grid-layout {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 50px;
+    margin-bottom: 30px;
 }
 
-.portfolio-item {
-    position: relative;
-    aspect-ratio: 4/3;
+.portfolio-card {
+    background: white;
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
 }
 
-.portfolio-item img {
+.portfolio-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.portfolio-card-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    background-color: #f3f4f6;
+}
+
+.portfolio-card-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: 0.3s;
+    transition: transform 0.5s ease;
 }
 
-.portfolio-overlay {
+.portfolio-card:hover .portfolio-card-image img {
+    transform: scale(1.08);
+}
+
+.portfolio-count-badge {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-    padding: 20px;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
     color: white;
-    opacity: 0;
-    transition: 0.3s;
-}
-
-.portfolio-item:hover .portfolio-overlay {
-    opacity: 1;
-}
-
-.portfolio-item:hover img {
-    transform: scale(1.1);
-}
-
-.portfolio-overlay h4 {
-    font-size: 1.1rem;
-    margin-bottom: 5px;
-}
-
-.portfolio-info {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.9rem;
+    gap: 4px;
+    backdrop-filter: blur(2px);
+}
+
+.portfolio-card-body {
+    padding: 12px 15px;
+}
+
+.portfolio-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 5px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.portfolio-date {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+/* Load More Button */
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed #e5e7eb;
+}
+
+.btn-load-more {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-load-more:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
+    transform: translateY(-1px);
 }
 
 /* Reviews */
@@ -452,46 +652,24 @@
     border-radius: 16px;
     padding: 30px;
     margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.rating-overview {
-    display: flex;
-    align-items: center;
-    gap: 20px;
+    border: 1px solid #e5e7eb;
 }
 
 .rating-big {
-    font-size: 3rem;
-    font-weight: 700;
+    font-size: 3.5rem;
+    font-weight: 800;
     color: #111827;
-}
-
-.stars-display {
-    display: flex;
-    gap: 3px;
-    margin-bottom: 5px;
-}
-
-.rating-text {
-    color: #6b7280;
-    font-size: 0.9rem;
-}
-
-/* Reviews List */
-.reviews-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    margin-right: 20px;
 }
 
 .review-item {
     background: white;
-    border-radius: 12px;
     padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
     display: flex;
     gap: 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 15px;
 }
 
 .review-avatar {
@@ -501,82 +679,85 @@
     object-fit: cover;
 }
 
-.review-content {
-    flex: 1;
-}
-
 .review-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .review-header h4 {
+    font-weight: 600;
+    margin-bottom: 2px;
     font-size: 1rem;
-    color: #111827;
-    margin-bottom: 3px;
 }
 
-.review-date {
-    font-size: 0.85rem;
-    color: #9ca3af;
-}
-
-.review-stars {
-    display: flex;
-    gap: 2px;
-}
-
-.review-comment {
-    color: #6b7280;
-    line-height: 1.6;
-}
-
-/* Responsive */
+/* RESPONSIVE */
 @media (max-width: 1024px) {
-    .stats-grid {
+
+    .stats-grid,
+    .packages-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .portfolio-grid-layout {
+        grid-template-columns: repeat(3, 1fr);
     }
 
     .about-grid {
         grid-template-columns: 1fr;
     }
-
-    .packages-grid,
-    .portfolio-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
 }
 
 @media (max-width: 768px) {
-    .photographer-cover {
-        height: 300px;
+    .photographer-cover-banner {
+        height: 200px;
     }
 
-    .profile-avatar {
+    .profile-avatar-compact {
         width: 100px;
         height: 100px;
+        margin-top: -50px;
     }
 
-    .profile-info h1 {
+    .photographer-profile-compact h1 {
         font-size: 1.5rem;
     }
 
-    .stats-grid {
-        grid-template-columns: 1fr;
+    .btn-favorite-compact {
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
     }
 
     .tabs-nav {
         overflow-x: auto;
+        padding-bottom: 5px;
     }
 
     .tab-btn {
         white-space: nowrap;
     }
 
-    .packages-grid,
-    .portfolio-grid {
+    .packages-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-grid-layout {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .photographer-info-section {
+        padding: 0 20px 20px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .portfolio-grid-layout {
         grid-template-columns: 1fr;
     }
 }

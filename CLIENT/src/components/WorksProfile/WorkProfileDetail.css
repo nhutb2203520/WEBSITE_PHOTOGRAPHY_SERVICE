@@ -1,0 +1,402 @@
+/* ============ LOADING & ERROR ============ */
+.loading-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #f1f3f5;
+    border-top-color: #495057;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.error-msg {
+    text-align: center;
+    padding: 60px 20px;
+    color: #868e96;
+    font-size: 1.1rem;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============ MAIN CONTAINER ============ */
+.wpd-container {
+    padding-left: 250px;
+    padding-top: 110px;
+    padding-bottom: 80px;
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+
+/* ============ BACK BUTTON ============ */
+.wpd-back button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: #333;
+    margin-bottom: 25px;
+    transition: all 0.2s ease;
+}
+
+.wpd-back button:hover {
+    color: #000;
+    transform: translateX(-2px);
+}
+
+
+/* ============ HEADER CARD ============ */
+.wpd-header-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: #fff;
+    padding: 50px 35px;
+    border-radius: 18px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    margin-bottom: 40px;
+}
+
+/* 1. AVATAR (Top) */
+.wpd-avatar {
+    margin-bottom: 15px;
+    /* Khoảng cách vừa phải với tên tác giả */
+}
+
+.wpd-avatar img {
+    width: 130px;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.wpd-avatar-placeholder {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: #e7e7e7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #adb5bd;
+}
+
+/* 2. META INFO (Middle) */
+.wpd-meta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    /* Tách biệt với Tiêu đề lớn bên dưới */
+    color: #666;
+    /* Màu xám nhẹ cho thông tin phụ */
+}
+
+.wpd-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.divider {
+    font-size: 20px;
+    color: #dee2e6;
+}
+
+/* 3. TITLE (Bottom) */
+.wpd-title {
+    font-size: 38px;
+    margin-bottom: 15px;
+    font-weight: 800;
+    color: #212529;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    /* Làm tiêu đề trông mạnh mẽ hơn */
+}
+
+/* 4. DESCRIPTION */
+.wpd-desc {
+    font-size: 16px;
+    line-height: 1.7;
+    color: #495057;
+    max-width: 750px;
+    margin: 0 auto;
+}
+
+
+/* ============ GALLERY TITLE ============ */
+.wpd-gallery-wrapper {
+    margin-bottom: 40px;
+}
+
+.wpd-gallery-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #212529;
+    padding-left: 5px;
+    border-left: 4px solid #333;
+    line-height: 1.2;
+}
+
+
+/* ============ MASONRY GRID ============ */
+.wpd-masonry {
+    column-count: 4;
+    column-gap: 20px;
+}
+
+.wpd-item {
+    break-inside: avoid;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #eee;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.wpd-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.wpd-item img {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+}
+
+/* Hover Overlay */
+.wpd-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.wpd-item:hover .wpd-overlay {
+    opacity: 1;
+}
+
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1400px) {
+    .wpd-masonry {
+        column-count: 3;
+    }
+}
+
+@media (max-width: 1200px) {
+    .wpd-container {
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-top: 100px;
+    }
+
+    .wpd-masonry {
+        column-count: 3;
+    }
+}
+
+@media (max-width: 900px) {
+    .wpd-masonry {
+        column-count: 2;
+    }
+
+    .wpd-title {
+        font-size: 28px;
+    }
+
+    .wpd-avatar img {
+        width: 110px;
+        height: 110px;
+    }
+}
+
+@media (max-width: 600px) {
+    .wpd-container {
+        padding-top: 80px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .wpd-masonry {
+        column-count: 1;
+    }
+
+    .wpd-header-card {
+        padding: 30px 20px;
+    }
+
+    .wpd-title {
+        font-size: 24px;
+    }
+
+    .wpd-avatar img {
+        width: 100px;
+        height: 100px;
+    }
+
+    .wpd-meta {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .divider {
+        display: none;
+    }
+}
+
+/* ============ LIGHTBOX ============ */
+.wpd-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.wpd-lb-close {
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.wpd-lb-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(90deg);
+}
+
+.wpd-lb-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.wpd-lb-nav:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.wpd-lb-nav.prev {
+    left: 40px;
+}
+
+.wpd-lb-nav.next {
+    right: 40px;
+}
+
+.wpd-lb-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 85vw;
+    max-height: 90vh;
+}
+
+.wpd-lb-image {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.wpd-lb-counter {
+    margin-top: 20px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 1px;
+}
+
+/* Lightbox Mobile */
+@media (max-width: 768px) {
+    .wpd-lb-nav {
+        width: 45px;
+        height: 45px;
+    }
+
+    .wpd-lb-nav.prev {
+        left: 15px;
+    }
+
+    .wpd-lb-nav.next {
+        right: 15px;
+    }
+
+    .wpd-lb-close {
+        top: 15px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+    }
+}

@@ -139,31 +139,17 @@ router.post(
 );
 
 // ================== PHOTOGRAPHER ROUTES ==================
-// 🆕 Get all photographers
-router.get("/photographers", async (req, res) => {
-  try {
-    const photographers = await KhachHang.find(
-      { isPhotographer: true },
-      "TenDangNhap HoTen Avatar CoverImage Email SDT DiaChi isPhotographer"
-    ).lean();
 
-    console.log(`✅ Found ${photographers.length} photographers`);
-    
-    res.status(200).json(photographers);
-  } catch (error) {
-    console.error("❌ Error fetching photographers:", error);
-    res.status(500).json({ message: "Lỗi máy chủ khi lấy danh sách photographer" });
-  }
-});
+// 🆕 Get all photographers with stats (SỬ DỤNG CONTROLLER MỚI)
+router.get("/photographers", khachHangController.getAllPhotographers);
 
-// ✅ FIX: Get photographer by username
+// ✅ Get photographer by username
 router.get("/photographers/username/:username", async (req, res) => {
   try {
     const { username } = req.params;
     
     console.log(`🔍 Searching for photographer with username: ${username}`);
     
-    // ✅ FIX: Use correct model name and field
     const photographer = await KhachHang.findOne({ 
       TenDangNhap: username,
       isPhotographer: true 
@@ -188,7 +174,7 @@ router.get("/photographers/username/:username", async (req, res) => {
   }
 });
 
-// ✅ OPTIONAL: Get photographer by ID (fallback)
+// ✅ Get photographer by ID (fallback)
 router.get("/photographers/id/:id", async (req, res) => {
   try {
     const { id } = req.params;

@@ -4,7 +4,7 @@ const worksProfileSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "KhachHang",
+      ref: "bangKhachHang",
       required: true,
     },
     title: {

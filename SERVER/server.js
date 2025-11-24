@@ -7,9 +7,10 @@ import { fileURLToPath } from "url";
 import connectDB from "./src/config/mongoDb.js";
 
 // ✅ CRITICAL: Import models index TRƯỚC routes để đăng ký tất cả schemas
+// Điều này giúp tránh lỗi MissingSchemaError
 import './src/models/index.js';
 
-// Import routes
+// ============ IMPORT ROUTES ============
 import authRoutes from "./src/routes/auth.route.js";
 import khachHangRoutes from "./src/routes/khachhang.route.js";
 import uploadRoutes from "./src/routes/upload.route.js";
@@ -18,10 +19,15 @@ import servicePackageRoutes from "./src/routes/servicePackage.route.js";
 import orderRoute from "./src/routes/order.route.js";
 import paymentMethodRoutes from "./src/routes/paymentMethod.route.js";
 import adminRoute from "./src/routes/admin.route.js";
+import serviceFeeRoutes from "./src/routes/servicefree.route.js";
+
+// ✅ [MỚI] Import Review Route để sửa lỗi 404 api/reviews
+import reviewRoutes from "./src/routes/review.route.js";
+
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
-import serviceFeeRoutes from "./src/routes/servicefree.route.js";
-// ✅ Load environment
+
+// ✅ Load environment variables
 dotenv.config();
 
 // ✅ Config __dirname cho ES Modules
@@ -52,20 +58,31 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Serve static files (avatar, cover, works, packages, qrcodes, orders...)
-// Sử dụng path.join để đường dẫn chính xác trên mọi hệ điều hành
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ============ ROUTES ============
+// ============ ROUTES REGISTRATION ============
+
+// 1. Auth & Users
 app.use("/api/auth", authRoutes);
 app.use("/api/khachhang", khachHangRoutes);
+
+// 2. Uploads & Profiles
 app.use("/api/upload", uploadRoutes);
-app.use("/api/worksprofile", worksProfileRoutes);
+app.use("/api/worksprofile", worksProfileRoutes); // 👉 Đã chứa route /user/:userId
+
+// 3. Services & Orders
 app.use('/api/service-packages', servicePackageRoutes);
 app.use("/api/orders", orderRoute);
+app.use("/api/service-fees", serviceFeeRoutes);
+
+// 4. Payments & Admin
 app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/admin", adminRoute);
-app.use("/api/service-fees", serviceFeeRoutes);
-// ✅ Get current user profile
+
+// 5. ✅ [MỚI] Reviews (Sửa lỗi 404)
+app.use("/api/reviews", reviewRoutes);
+
+// 6. Direct Controller Routes
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 
 // ============ HEALTH CHECK ============
@@ -74,7 +91,6 @@ app.get("/", (req, res) => {
     message: '🎨 Photography Service API đang hoạt động!',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    server_path: __dirname,
     endpoints: {
       auth: '/api/auth',
       customers: '/api/khachhang',
@@ -82,8 +98,7 @@ app.get("/", (req, res) => {
       worksProfile: '/api/worksprofile',
       servicePackages: '/api/service-packages',
       orders: '/api/orders',
-      paymentMethods: '/api/payment-methods',
-      myProfile: '/api/my-profile'
+      reviews: '/api/reviews', // ✅ Endpoint mới
     }
   });
 });

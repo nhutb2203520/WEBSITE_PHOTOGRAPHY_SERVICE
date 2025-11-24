@@ -1,26 +1,22 @@
-// SERVER/src/models/index.js
-// ✅ File này đảm bảo tất cả models được load theo đúng thứ tự
-
+// src/models/index.js
 import mongoose from 'mongoose';
 
-// ✅ CRITICAL: Import KhachHang TRƯỚC vì các models khác reference đến nó
-// Đảm bảo đúng tên file model của bạn
+// ✅ Import KhachHang TRƯỚC
 import KhachHangModel from './khachhang.model.js';
 
-// ✅ Import ServicePackage (phụ thuộc vào KhachHang)
+// ✅ Import ServicePackage
 import ServicePackageModel from './servicePackage.model.js';
 
-// ✅ Import Review (phụ thuộc vào ServicePackage và KhachHang)
+// ✅ Import Review
 import ReviewModel from './review.model.js';
 
-// ✅ Import các models khác nếu có (theo đúng thứ tự dependency)
-// import OrderModel from './order.model.js';
-// import BookingModel from './booking.model.js';
-// import WorksProfileModel from './worksProfile.model.js';
+// ✅ Import PaymentMethod
 import PaymentMethodModel from './paymentmethod.model.js';
-// ✅ Export named exports để dễ dàng import
-// Sử dụng model name CHÍNH XÁC từ schema
-export const KhachHang = mongoose.models.bangKhachHang || KhachHangModel;
+import WorksProfileModel from './worksprofile.model.js'; 
+
+// Export named exports
+// ✅ SỬA: Sử dụng mongoose.models.KhachHang thay vì bangKhachHang
+export const KhachHang = mongoose.models.KhachHang || KhachHangModel;
 export const ServicePackage = mongoose.models.ServicePackage || ServicePackageModel;
 export const Review = mongoose.models.Review || ReviewModel;
 export const PaymentMethod = mongoose.models.PaymentMethod || PaymentMethodModel;

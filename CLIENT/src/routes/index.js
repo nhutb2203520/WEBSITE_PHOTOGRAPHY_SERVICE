@@ -47,20 +47,24 @@ const routes = [
     path: '/order-service',
     component: lazy(() => import('../components/Order/OrderService'))
   },
-  // ✅ NEW: Payment Route (Trang thanh toán)
+  // ✅ Payment Route
   {
     path: '/payment',
-    // Lưu ý: Hãy đảm bảo đường dẫn import đúng với nơi bạn lưu file PaymentServicePackage
     component: lazy(() => import('../components/Payment/PaymentServicePackage'))
   },
   {
     path: '/my-packages',
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
-  // ✅ My Orders Route (Xem đơn hàng đã đặt)
+  // ✅ My Orders Route
   {
     path: '/my-orders',
     component: lazy(() => import('../components/Order/MyOrder'))
+  },
+  // ✅ FIX LỖI: Trỏ đúng về thư mục PhotographerPage
+  {
+    path: '/workprofile/:id',
+    component: lazy(() => import('../components/WorksProfile/WorkProfileDetail'))
   },
   {
     path: '/activity',
@@ -70,6 +74,8 @@ const routes = [
     path: '/about-web',
     component: lazy(() => import('../components/AboutWeb/AboutWeb'))
   },
+  
+  // --- ADMIN ROUTES ---
   {
     path: '/admin-page',
     component: lazy(() => import('../admin/AdminPage/AdminPage'))
@@ -90,7 +96,6 @@ const routes = [
     path: '/admin/order-manage',
     component: lazy(() => import('../admin/AdminPage/OrderManage'))
   },
-
 ];
 
 export default routes;

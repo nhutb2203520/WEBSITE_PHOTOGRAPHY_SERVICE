@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Heart } from 'lucide-react';
+import { Star, Heart, Package, MessageSquare } from 'lucide-react'; // Import thêm icon cho đẹp
 import './Photographer.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
@@ -24,20 +24,17 @@ export default function Photographer() {
 
         const mapped = data.map(ph => ({
           id: ph._id,
-          // ✅ FIX: Use TenDangNhap if it exists, otherwise use _id
           username: ph.TenDangNhap || ph._id,
           name: ph.HoTen || 'Chưa cập nhật',
           avatar: ph.Avatar || '/default-avatar.png',
           cover: ph.CoverImage || '/default-cover.jpg',
-          rating: ph.rating || (Math.random() * 1 + 4).toFixed(1),
-          reviews: ph.reviews || Math.floor(Math.random() * 100) + 1,
-          packages: ph.packages || Math.floor(Math.random() * 7) + 1,
+          rating: ph.rating,      
+          reviews: ph.reviews,    
+          packages: ph.packages,  
         }));
-
-        console.log('✅ Mapped photographers:', mapped);
         setPhotographers(mapped);
       } catch (err) {
-        console.error('❌ Lỗi khi tải danh sách photographer:', err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -49,11 +46,10 @@ export default function Photographer() {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
-  // Filter và Sort
+  // Filter & Sort Logic
   let filtered = photographers.filter(ph => 
     ph.name.toLowerCase().includes(search.toLowerCase())
   );
-
   if (ratingOrder) {
     filtered = filtered.sort((a, b) => 
       ratingOrder === 'asc' ? a.rating - b.rating : b.rating - a.rating
@@ -65,20 +61,13 @@ export default function Photographer() {
     );
   }
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <Sidebar />
-        <div className="photographers-page">
-          <div className="container">
-            <div className="loading-state">Đang tải danh sách photographer...</div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+  if (loading) return (
+    <>
+      <Header /><Sidebar />
+      <div className="photographers-page"><div className="container"><div className="loading-state"><div className="spinner"></div></div></div></div>
+      <Footer />
+    </>
+  );
 
   return (
     <>
@@ -89,80 +78,79 @@ export default function Photographer() {
         <section className="photographers">
           <div className="container">
             <div className="section-header">
-              <h2>Danh sách Photographer</h2>
-              <p>Chọn photographer phù hợp với nhu cầu của bạn</p>
+              <h2>Tìm kiếm Nhiếp ảnh gia</h2>
+              <p>Khám phá những tài năng hàng đầu cho bộ ảnh của bạn</p>
             </div>
 
-            {/* Search & Filters */}
+            {/* Filter Bar */}
             <div className="search-filter">
-              <input
-                type="text"
-                placeholder="Tìm kiếm theo tên..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <input type="text" placeholder="Tìm tên nhiếp ảnh gia..." value={search} onChange={(e) => setSearch(e.target.value)} />
               <select value={ratingOrder} onChange={(e) => setRatingOrder(e.target.value)}>
-                <option value="">Số sao</option>
-                <option value="asc">Thấp → Cao</option>
-                <option value="desc">Cao → Thấp</option>
+                <option value="">Sắp xếp theo đánh giá</option>
+                <option value="desc">Đánh giá cao nhất</option>
+                <option value="asc">Đánh giá thấp nhất</option>
               </select>
               <select value={packagesOrder} onChange={(e) => setPackagesOrder(e.target.value)}>
-                <option value="">Số gói</option>
-                <option value="asc">Thấp → Cao</option>
-                <option value="desc">Cao → Thấp</option>
+                <option value="">Sắp xếp theo gói dịch vụ</option>
+                <option value="desc">Nhiều gói nhất</option>
+                <option value="asc">Ít gói nhất</option>
               </select>
             </div>
 
             {/* Grid */}
             <div className="photographers-grid">
               {filtered.length === 0 ? (
-                <div className="no-results">Không tìm thấy photographer nào!</div>
+                <div className="no-results">Không tìm thấy kết quả nào.</div>
               ) : (
                 filtered.map((ph) => (
                   <div key={ph.id} className="photographer-card">
-                    <div className="photographer-image">
-                      <img src={ph.cover} alt={ph.name} />
-
-                      <button className="favorite-btn" onClick={() => toggleFavorite(ph.id)}>
-                        <Heart
-                          className={favorites.includes(ph.id) ? 'favorited' : ''}
-                          fill={favorites.includes(ph.id) ? '#ef4444' : 'none'}
-                          color={favorites.includes(ph.id) ? '#ef4444' : '#6b7280'}
-                        />
+                    
+                    {/* Phần Ảnh Bìa */}
+                    <div className="card-header">
+                      <img src={ph.cover} alt="Cover" className="card-cover" onError={(e) => e.target.src = '/default-cover.jpg'} />
+                      <button className="btn-favorite" onClick={() => toggleFavorite(ph.id)}>
+                        <Heart size={20} className={favorites.includes(ph.id) ? 'active' : ''} fill={favorites.includes(ph.id) ? '#ef4444' : 'rgba(0,0,0,0.5)'} color={favorites.includes(ph.id) ? '#ef4444' : '#fff'} />
                       </button>
                     </div>
 
-                    <div className="photographer-content">
-                      <div className="photographer-info">
-                        <img src={ph.avatar} alt={ph.name} className="photographer-avatar" />
-                        <span className="photographer-name">{ph.name}</span>
+                    {/* Phần Avatar đè lên */}
+                    <div className="card-avatar-wrapper">
+                         <img src={ph.avatar} alt="Avatar" className="card-avatar" onError={(e) => e.target.src = '/default-avatar.png'} />
+                    </div>
+
+                    {/* Phần Nội Dung */}
+                    <div className="card-body">
+                      <h3 className="card-name">{ph.name}</h3>
+                      
+                      {/* Thống kê: Sao | Đánh giá | Gói */}
+                      <div className="card-stats">
+                        <div className="stat-pill rating">
+                           <Star size={14} fill="#fbbf24" color="#fbbf24"/>
+                           <span>{ph.rating}</span>
+                        </div>
+                        <div className="stat-pill">
+                           <MessageSquare size={14} />
+                           <span>{ph.reviews}</span>
+                        </div>
+                        <div className="stat-pill">
+                           <Package size={14} />
+                           <span>{ph.packages}</span>
+                        </div>
                       </div>
 
-                      <div className="photographer-rating">
-                        <Star className="star-icon" fill="#fbbf24" color="#fbbf24" />
-                        <span className="rating-number">{ph.rating}</span>
-                        <span className="rating-count">({ph.reviews} đánh giá)</span>
-                        <span className="rating-count">• {ph.packages} gói</span>
+                      <div className="card-footer">
+                        <Link to={`/photographer/${ph.username}`} className="btn-view-profile">
+                          Xem hồ sơ
+                        </Link>
                       </div>
-
-                      {/* ✅ Navigate with username */}
-                      <Link 
-                        to={`/photographer/${ph.username}`} 
-                        className="btn-view"
-                        onClick={() => console.log('✅ Navigating to username:', ph.username)}
-                      >
-                        Xem chi tiết
-                      </Link>
                     </div>
                   </div>
                 ))
               )}
             </div>
-
           </div>
         </section>
       </div>
-
       <Footer />
     </>
   );

@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  Star,
-  Heart,
-  MapPin,
-  Mail,
-  Phone,
-  Award,
-  Camera,
-  Package,
-  Image as ImageIcon
+  Star, Heart, MapPin, Mail, Phone,
+  Camera, Package, Image as ImageIcon, CheckCircle2,
+  AlertTriangle, ChevronDown
 } from 'lucide-react';
 
 import './PhotographerDetail.css';
@@ -21,176 +15,115 @@ export default function PhotographerDetail() {
   const { username } = useParams();
   const navigate = useNavigate();
 
+  // --- STATE ---
   const [photographer, setPhotographer] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [portfolio, setPortfolio] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('about');
   const [isFavorited, setIsFavorited] = useState(false);
 
-  // Mock data cho packages
-  const packages = [
-    {
-      id: 1,
-      name: 'Gói Chụp Cưới',
-      description: 'Gói chụp ảnh cưới cao cấp với đội ngũ chuyên nghiệp',
-      price: 300,
-      services: ['Chụp ngoại cảnh', 'Chụp studio', 'Dựng video hậu kỳ', 'Album 40 ảnh'],
-      image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600&h=400&fit=crop',
-      rating: 4.9,
-      reviews: 45
-    },
-    {
-      id: 2,
-      name: 'Gói Chụp Sự Kiện',
-      description: 'Chụp ảnh sự kiện chuyên nghiệp, lưu giữ mọi khoảnh khắc đẹp',
-      price: 250,
-      services: ['Chụp toàn cảnh sự kiện', 'Ảnh hậu trường', 'USB ảnh gốc'],
-      image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=600&h=400&fit=crop',
-      rating: 4.8,
-      reviews: 67
-    },
-    {
-      id: 3,
-      name: 'Gói Chụp Gia Đình',
-      description: 'Lưu giữ khoảnh khắc gia đình ấm áp và hạnh phúc',
-      price: 200,
-      services: ['Chụp ngoại cảnh', 'Chỉnh sửa 30 ảnh', 'In album'],
-      image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop',
-      rating: 5.0,
-      reviews: 89
-    }
-  ];
+  // Phân trang
+  const [visibleWorks, setVisibleWorks] = useState(8);    
+  const [visiblePackages, setVisiblePackages] = useState(6); 
 
-  // Mock portfolio data
-  const portfolio = [
-    { id: 1, title: 'Wedding Collection', image: 'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=600&h=400&fit=crop', images: 12 },
-    { id: 2, title: 'Portrait Series', image: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=400&fit=crop', images: 8 },
-    { id: 3, title: 'Fashion Editorial', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&h=400&fit=crop', images: 15 },
-    { id: 4, title: 'Event Coverage', image: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=600&h=400&fit=crop', images: 20 },
-    { id: 5, title: 'Family Moments', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop', images: 10 },
-    { id: 6, title: 'Concept Art', image: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&h=400&fit=crop', images: 18 }
-  ];
+  // --- HELPER FUNCTIONS ---
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('http')) return img;
+    return `http://localhost:5000${img}`;
+  };
 
-  // Mock reviews data
-  const reviews = [
-    {
-      id: 1,
-      user: 'Nguyễn Thị Mai',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      rating: 5,
-      date: '2 tuần trước',
-      comment: 'Photographer rất chuyên nghiệp, ảnh đẹp, tư vấn nhiệt tình. Rất hài lòng với gói chụp cưới!'
-    },
-    {
-      id: 2,
-      user: 'Trần Văn Hoàng',
-      avatar: 'https://i.pravatar.cc/150?img=2',
-      rating: 5,
-      date: '1 tháng trước',
-      comment: 'Chụp ảnh gia đình rất đẹp, các góc chụp đều ấn tượng. Sẽ giới thiệu cho bạn bè.'
-    },
-    {
-      id: 3,
-      user: 'Lê Thu Hà',
-      avatar: 'https://i.pravatar.cc/150?img=3',
-      rating: 4,
-      date: '2 tháng trước',
-      comment: 'Dịch vụ tốt, giá cả hợp lý. Ảnh được giao đúng hẹn.'
-    }
-  ];
+  const formatPriceRange = (dichVu) => {
+    if (!dichVu || dichVu.length === 0) return "Liên hệ";
+    const prices = dichVu.map(s => Number(s.Gia)).filter(p => p > 0);
+    if (prices.length === 0) return "Liên hệ";
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    if (min === max) return `${min.toLocaleString("vi-VN")} đ`;
+    return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} đ`;
+  };
 
+  const handleLoadMoreWorks = () => setVisibleWorks(prev => prev + 8);
+  const handleLoadMorePackages = () => setVisiblePackages(prev => prev + 6);
+
+  // --- FETCH DATA ---
   useEffect(() => {
-    const fetchPhotographerDetail = async () => {
+    const fetchAllData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        console.log('🔍 Fetching photographer with username:', username);
 
-        // ✅ FIX: Correct API endpoint
-        const res = await fetch(`http://localhost:5000/api/khachhang/photographers/username/${username}`);
-        
-        if (!res.ok) {
-          if (res.status === 404) {
-            throw new Error('Photographer not found');
-          }
-          throw new Error(`API Error: ${res.status}`);
-        }
+        const phRes = await fetch(`http://localhost:5000/api/khachhang/photographers/username/${username}`);
+        if (!phRes.ok) throw new Error('Không tìm thấy nhiếp ảnh gia.');
+        const phData = await phRes.json();
+        const photographerId = phData._id;
 
-        const data = await res.json();
-        console.log('✅ Photographer data received:', data);
+        const [pkgRes, workRes, revRes] = await Promise.all([
+          fetch(`http://localhost:5000/api/service-packages`), 
+          fetch(`http://localhost:5000/api/worksprofile/user/${photographerId}`),
+          fetch(`http://localhost:5000/api/reviews?photographerId=${photographerId}`) 
+        ]);
 
-        setPhotographer({
-          username: data.TenDangNhap || username,
-          id: data._id,
-          name: data.HoTen || 'Chưa cập nhật',
-          avatar: data.Avatar || '/default-avatar.png',
-          cover: data.CoverImage || '/default-cover.jpg',
-          email: data.Email || 'email@example.com',
-          phone: data.SDT || 'Chưa cập nhật',
-          address: data.DiaChi || 'Việt Nam',
-          bio: data.Bio || 'Photographer chuyên nghiệp với nhiều năm kinh nghiệm',
-          experience: data.Experience || '5+ năm',
-          specialties: data.Specialties || ['Wedding', 'Portrait', 'Event'],
-          rating: data.rating || 4.9,
-          reviews: data.reviews || 156,
-          packages: data.packages || 8,
-          totalWorks: data.totalWorks || 250
+        const pkgJson = pkgRes.ok ? await pkgRes.json() : [];
+        const workJson = workRes.ok ? await workRes.json() : [];
+        const revJson = revRes.ok ? await revRes.json() : [];
+
+        let allPackages = Array.isArray(pkgJson) ? pkgJson : (pkgJson.data || pkgJson.packages || []);
+        let myWorks = Array.isArray(workJson) ? workJson : (workJson.works || []);
+        let myReviews = Array.isArray(revJson) ? revJson : (revJson.reviews || []);
+
+        const myPackages = allPackages.filter(p => {
+             const pId = (typeof p.PhotographerId === 'object' && p.PhotographerId !== null) 
+                ? p.PhotographerId._id 
+                : p.PhotographerId;
+             return pId === photographerId;
         });
 
+        setPhotographer({
+          ...phData,
+          rating: phData.rating || 5.0,
+          reviewsCount: myReviews.length || 0,
+          packagesCount: myPackages.length,
+          bio: phData.Bio || `Xin chào, tôi là ${phData.HoTen}.`,
+          specialties: phData.Specialties || ['Wedding', 'Portrait', 'Event']
+        });
+
+        setPackages(myPackages);
+        setPortfolio(myWorks);
+        setReviews(myReviews);
+
       } catch (err) {
-        console.error('❌ Error fetching photographer:', err);
+        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (username) {
-      fetchPhotographerDetail();
-    }
+    if (username) fetchAllData();
   }, [username]);
 
-  const toggleFavorite = () => {
-    setIsFavorited(!isFavorited);
-  };
+  const toggleFavorite = () => setIsFavorited(!isFavorited);
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <Sidebar />
-        <div className="photographer-detail-page">
-          <div className="container">
-            <div className="loading-state">Đang tải thông tin photographer...</div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+  if (loading) return (
+    <>
+      <Header /><Sidebar />
+      <div className="photographer-detail-page"><div className="container loading-container"><div className="spinner"></div></div></div>
+      <Footer />
+    </>
+  );
 
-  if (error || !photographer) {
-    return (
-      <>
-        <Header />
-        <Sidebar />
-        <div className="photographer-detail-page">
-          <div className="container">
-            <div className="error-state">
-              <h3>❌ Không tìm thấy photographer</h3>
-              <p>Username: {username}</p>
-              <p>Error: {error}</p>
-              <button onClick={() => navigate('/photographers')} className="btn-back">
-                Quay lại danh sách
-              </button>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+  if (error || !photographer) return (
+    <>
+      <Header /><Sidebar />
+      <div className="photographer-detail-page"><div className="container error-container"><h3>❌ {error}</h3><button onClick={() => navigate('/photographers')} className="btn-back">Quay lại</button></div></div>
+      <Footer />
+    </>
+  );
 
   return (
     <>
@@ -199,40 +132,56 @@ export default function PhotographerDetail() {
 
       <div className="photographer-detail-page">
 
-        {/* COVER & PROFILE */}
-        <div className="photographer-cover">
-          <img src={photographer.cover} alt={photographer.name} className="cover-image" />
+        {/* ✅ NEW: WRAPPER CARD CHO PROFILE */}
+        <div className="container photographer-profile-card">
+          
+          {/* 1. COVER IMAGE BANNER */}
+          <div className="photographer-cover-banner">
+            <img 
+              src={getImageUrl(photographer.CoverImage) || '/default-cover.jpg'} 
+              alt="Cover" 
+              className="cover-image" 
+              onError={(e) => e.target.src = '/default-cover.jpg'}
+            />
+          </div>
 
-          <div className="cover-overlay">
-            <div className="container">
-              <div className="photographer-profile">
-                <img src={photographer.avatar} alt={photographer.name} className="profile-avatar" />
+          {/* 2. INFO SECTION */}
+          <div className="photographer-info-section">
+            <div className="photographer-profile-compact">
+              
+              {/* Avatar (Sẽ dùng CSS để đưa lên đè ảnh bìa) */}
+              <img 
+                src={getImageUrl(photographer.Avatar) || '/default-avatar.png'} 
+                alt="Avatar" 
+                className="profile-avatar-compact" 
+                onError={(e) => e.target.src = '/default-avatar.png'}
+              />
 
-                <div className="profile-info">
-                  <h1>{photographer.name}</h1>
+              {/* Nút Favorite */}
+              <button className={`btn-favorite-compact ${isFavorited ? 'active' : ''}`} onClick={toggleFavorite}>
+                <Heart size={22} fill={isFavorited ? '#ef4444' : 'none'} color={isFavorited ? '#ef4444' : '#6b7280'} />
+              </button>
 
-                  <div className="profile-meta">
-                    <div className="rating-display">
-                      <Star fill="#fbbf24" color="#fbbf24" size={20} />
-                      <span className="rating-number">{photographer.rating}</span>
-                      <span className="rating-count">({photographer.reviews} đánh giá)</span>
-                    </div>
+              {/* Tên */}
+              <h1>{photographer.HoTen}</h1>
 
-                    <div className="meta-item">
-                      <MapPin size={16} />
-                      <span>{photographer.address}</span>
-                    </div>
-                  </div>
+              {/* Meta Info */}
+              <div className="profile-meta-compact">
+                <div className="rating-display-compact">
+                  <Star fill="#fbbf24" color="#fbbf24" size={18} />
+                  <span className="rating-number">{Number(photographer.rating).toFixed(1)}</span>
+                  <span className="rating-count">({photographer.reviewsCount} đánh giá)</span>
                 </div>
-
-                <button className="btn-favorite" onClick={toggleFavorite}>
-                  <Heart
-                    fill={isFavorited ? '#ef4444' : 'none'}
-                    color={isFavorited ? '#ef4444' : '#fff'}
-                    size={24}
-                  />
-                </button>
+                {photographer.DiaChi && (
+                  <>
+                    <span className="meta-divider">•</span>
+                    <div className="meta-item-compact">
+                      <MapPin size={16} /> <span>{photographer.DiaChi}</span>
+                    </div>
+                  </>
+                )}
               </div>
+
             </div>
           </div>
         </div>
@@ -241,211 +190,136 @@ export default function PhotographerDetail() {
         <div className="photographer-stats">
           <div className="container">
             <div className="stats-grid">
-              <div className="stat-item">
-                <Camera size={24} />
-                <div>
-                  <div className="stat-number">{photographer.totalWorks}+</div>
-                  <div className="stat-label">Tác phẩm</div>
-                </div>
-              </div>
-
-              <div className="stat-item">
-                <Package size={24} />
-                <div>
-                  <div className="stat-number">{photographer.packages}</div>
-                  <div className="stat-label">Gói dịch vụ</div>
-                </div>
-              </div>
-
-              <div className="stat-item">
-                <Award size={24} />
-                <div>
-                  <div className="stat-number">{photographer.experience}</div>
-                  <div className="stat-label">Kinh nghiệm</div>
-                </div>
-              </div>
-
-              <div className="stat-item">
-                <Star size={24} />
-                <div>
-                  <div className="stat-number">{photographer.rating}/5.0</div>
-                  <div className="stat-label">Đánh giá</div>
-                </div>
-              </div>
+              <div className="stat-item"><Camera size={24} /><div><div className="stat-number">{portfolio.length}</div><div className="stat-label">Tác phẩm</div></div></div>
+              <div className="stat-item"><Package size={24} /><div><div className="stat-number">{packages.length}</div><div className="stat-label">Gói dịch vụ</div></div></div>
+              <div className="stat-item"><Star size={24} /><div><div className="stat-number">{Number(photographer.rating).toFixed(1)}/5</div><div className="stat-label">Xếp hạng</div></div></div>
             </div>
           </div>
         </div>
 
-        {/* TAB NAVIGATION */}
+        {/* TABS */}
         <div className="tabs-section">
           <div className="container">
             <div className="tabs-nav">
-              <button
-                className={`tab-btn ${activeTab === 'about' ? 'active' : ''}`}
-                onClick={() => setActiveTab('about')}
-              >
-                Giới thiệu
-              </button>
-
-              <button
-                className={`tab-btn ${activeTab === 'packages' ? 'active' : ''}`}
-                onClick={() => setActiveTab('packages')}
-              >
-                Gói dịch vụ
-              </button>
-
-              <button
-                className={`tab-btn ${activeTab === 'portfolio' ? 'active' : ''}`}
-                onClick={() => setActiveTab('portfolio')}
-              >
-                Hồ sơ tác phẩm
-              </button>
-
-              <button
-                className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
-                onClick={() => setActiveTab('reviews')}
-              >
-                Đánh giá
-              </button>
+              {['about', 'packages', 'portfolio', 'reviews'].map(tab => (
+                  <button key={tab} className={`tab-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                    {tab === 'about' && 'Giới thiệu'}
+                    {tab === 'packages' && 'Gói dịch vụ'}
+                    {tab === 'portfolio' && 'Hồ sơ tác phẩm'}
+                    {tab === 'reviews' && 'Đánh giá'}
+                  </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* TAB CONTENT */}
+        {/* CONTENT */}
         <div className="tab-content">
           <div className="container">
 
-            {/* About Tab */}
+            {/* ABOUT */}
             {activeTab === 'about' && (
-              <div className="about-content">
-                <div className="about-grid">
-                  <div className="about-main">
-                    <h3>Giới thiệu</h3>
-                    <p>{photographer.bio}</p>
-                    
-                    <h3>Chuyên môn</h3>
-                    <div className="specialties-tags">
-                      {photographer.specialties.map((specialty, index) => (
-                        <span key={index} className="specialty-tag">{specialty}</span>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="about-sidebar">
-                    <div className="contact-card">
-                      <h3>Thông tin liên hệ</h3>
-                      <div className="contact-item">
-                        <Mail size={18} />
-                        <span>{photographer.email}</span>
-                      </div>
-                      <div className="contact-item">
-                        <Phone size={18} />
-                        <span>{photographer.phone}</span>
-                      </div>
-                      <div className="contact-item">
-                        <MapPin size={18} />
-                        <span>{photographer.address}</span>
-                      </div>
-                      <button className="btn-contact">Liên hệ ngay</button>
-                    </div>
+              <div className="about-grid">
+                <div className="about-main">
+                  <h3>Giới thiệu</h3><p style={{whiteSpace: 'pre-line'}}>{photographer.bio}</p>
+                  <h3>Chuyên môn</h3>
+                  <div className="specialties-tags">{photographer.specialties?.map((tag, idx) => <span key={idx} className="specialty-tag">{tag}</span>)}</div>
+                </div>
+                <div className="about-sidebar">
+                  <div className="contact-card">
+                    <h3>Thông tin liên hệ</h3>
+                    <div className="contact-item"><Mail size={18} /> <span>{photographer.Email}</span></div>
+                    <div className="contact-item"><Phone size={18} /> <span>{photographer.SoDienThoai || 'Chưa cập nhật'}</span></div>
+                    <div className="contact-item"><MapPin size={18} /> <span>{photographer.DiaChi || 'Việt Nam'}</span></div>
+                    <button className="btn-contact">Liên hệ ngay</button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Packages Tab */}
+            {/* PACKAGES */}
             {activeTab === 'packages' && (
-              <div className="packages-content">
+              <div className="packages-section">
                 <div className="packages-grid">
-                  {packages.map(pkg => (
-                    <div key={pkg.id} className="package-card">
+                  {packages.length > 0 ? packages.slice(0, visiblePackages).map(pkg => (
+                    <div key={pkg._id} className="package-card">
                       <div className="package-image">
-                        <img src={pkg.image} alt={pkg.name} />
+                        <img src={getImageUrl(pkg.AnhBia || pkg.Images?.[0])} alt={pkg.TenGoi} onError={(e) => e.target.src = '/default-package.jpg'}/>
+                        <div className="package-badge">{pkg.LoaiGoi || 'Other'}</div>
+                        <button className="favorite-btn-small"><Heart size={18} color="white" /></button>
                       </div>
                       <div className="package-body">
-                        <h4>{pkg.name}</h4>
-                        <p className="package-description">{pkg.description}</p>
-                        
-                        <div className="package-rating">
-                          <Star fill="#fbbf24" color="#fbbf24" size={16} />
-                          <span>{pkg.rating}</span>
-                          <span>({pkg.reviews} đánh giá)</span>
+                        <div className="package-header-row">
+                          <h3 className="package-name">{pkg.TenGoi}</h3>
+                          <div className="package-rating"><Star className="star-icon" fill="#fbbf24" color="#fbbf24" size={14} /><span>{(pkg.DanhGia || 0).toFixed(1)}</span><span className="review-count">({pkg.SoLuotDanhGia || 0})</span></div>
                         </div>
-
-                        <ul className="package-services">
-                          {pkg.services.map((service, idx) => (
-                            <li key={idx}>{service}</li>
-                          ))}
-                        </ul>
-
-                        <div className="package-footer">
-                          <span className="package-price">${pkg.price}</span>
-                          <button className="btn-book">Đặt ngay</button>
+                        <div className="package-location-row"><MapPin size={14} /><span>{pkg.baseLocation?.city || pkg.baseLocation?.address || 'Toàn quốc'}</span></div>
+                        <p className="package-description">{pkg.MoTa?.substring(0, 100)}...</p>
+                        <ul className="package-services-list">{pkg.DichVu?.slice(0, 2).map((dv, i) => (<li key={i}><CheckCircle2 size={12} /> {typeof dv === 'string' ? dv : dv.name}</li>))}</ul>
+                        <div className="package-footer-info">
+                           <span className="package-price">{formatPriceRange(pkg.DichVu)}</span>
+                           <div className="package-stats-col">
+                              <span className="booking-count-text"><Camera size={14} /> {pkg.SoLuongDaDat || 0} lượt đặt</span>
+                              {pkg.SoLuongKhieuNai > 0 ? (<span className="complaint-text danger"><AlertTriangle size={14} /> {pkg.SoLuongKhieuNai} khiếu nại</span>) : (<span className="complaint-text safe"><AlertTriangle size={14} /> 0 khiếu nại</span>)}
+                           </div>
                         </div>
+                        <div className="card-divider"></div>
+                        <div className="photographer-mini-profile"><img src={getImageUrl(photographer.Avatar)} alt="Avatar" onError={(e)=>e.target.src='/default-avatar.png'}/><span>{photographer.HoTen}</span></div>
+                        <Link to={`/package/${pkg._id}`} className="btn-view">Xem chi tiết</Link>
                       </div>
                     </div>
-                  ))}
+                  )) : <div className="empty-state" style={{gridColumn: '1 / -1'}}><Package size={48} style={{margin:'auto', color:'#ccc'}}/><p>Chưa có gói dịch vụ.</p></div>}
                 </div>
+                {visiblePackages < packages.length && (<div className="load-more-container"><button className="btn-load-more" onClick={handleLoadMorePackages}>Xem thêm gói dịch vụ <ChevronDown size={16} /></button></div>)}
               </div>
             )}
 
-            {/* Portfolio Tab */}
+            {/* PORTFOLIO */}
             {activeTab === 'portfolio' && (
-              <div className="portfolio-content">
-                <div className="portfolio-grid">
-                  {portfolio.map(work => (
-                    <div key={work.id} className="portfolio-item">
-                      <img src={work.image} alt={work.title} />
-                      <div className="portfolio-overlay">
-                        <h4>{work.title}</h4>
-                        <div className="portfolio-info">
-                          <ImageIcon size={16} />
-                          <span>{work.images} ảnh</span>
-                        </div>
+              <div className="portfolio-section">
+                <div className="portfolio-grid-layout">
+                  {portfolio.length > 0 ? portfolio.slice(0, visibleWorks).map(work => (
+                    <div key={work._id} className="portfolio-card" onClick={() => navigate(`/workprofile/${work._id}`)}>
+                      <div className="portfolio-card-image">
+                        <img src={getImageUrl(work.images?.[0])} alt={work.title} onError={(e) => e.target.src = '/default-work.jpg'}/>
+                        <div className="portfolio-count-badge"><ImageIcon size={14} /> {work.images?.length}</div>
+                      </div>
+                      <div className="portfolio-card-body">
+                        <h4 className="portfolio-title">{work.title}</h4>
+                        <span className="portfolio-date">{new Date(work.createdAt).toLocaleDateString('vi-VN')}</span>
                       </div>
                     </div>
-                  ))}
+                  )) : <div className="empty-state" style={{gridColumn: '1 / -1'}}><ImageIcon size={48} style={{margin: '0 auto 10px', color:'#e5e7eb'}}/><p>Chưa có tác phẩm nào.</p></div>}
                 </div>
+                {visibleWorks < portfolio.length && (<div className="load-more-container"><button className="btn-load-more" onClick={handleLoadMoreWorks}>Xem thêm tác phẩm <ChevronDown size={16} /></button></div>)}
               </div>
             )}
 
-            {/* Reviews Tab */}
+            {/* REVIEWS */}
             {activeTab === 'reviews' && (
               <div className="reviews-content">
                 <div className="reviews-summary">
                   <div className="rating-overview">
-                    <div className="rating-big">{photographer.rating}</div>
-                    <div>
-                      <div className="stars-display">
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <Star key={star} fill="#fbbf24" color="#fbbf24" size={20} />
-                        ))}
-                      </div>
-                      <div className="rating-text">{photographer.reviews} đánh giá</div>
-                    </div>
+                     <div className="rating-big">{Number(photographer.rating).toFixed(1)}</div>
+                     <div>
+                        <div className="stars-display">{[1,2,3,4,5].map(s => <Star key={s} size={20} fill={s <= Math.round(photographer.rating) ? "#fbbf24" : "#e5e7eb"} color="#e5e7eb"/>)}</div>
+                        <div className="rating-text">Dựa trên {reviews.length} đánh giá</div>
+                     </div>
                   </div>
                 </div>
-
                 <div className="reviews-list">
-                  {reviews.map(review => (
-                    <div key={review.id} className="review-item">
-                      <img src={review.avatar} alt={review.user} className="review-avatar" />
+                  {reviews.length > 0 ? reviews.map((review, index) => (
+                    <div key={index} className="review-item">
+                      <img src={getImageUrl(review.CustomerId?.Avatar)} alt="User" className="review-avatar" onError={(e)=>e.target.src='/default-avatar.png'}/>
                       <div className="review-content">
-                        <div className="review-header">
-                          <div>
-                            <h4>{review.user}</h4>
-                            <span className="review-date">{review.date}</span>
-                          </div>
-                          <div className="review-stars">
-                            {[...Array(review.rating)].map((_, i) => (
-                              <Star key={i} fill="#fbbf24" color="#fbbf24" size={16} />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="review-comment">{review.comment}</p>
+                         <div className="review-header">
+                            <h4>{review.CustomerId?.HoTen || 'Ẩn danh'}</h4>
+                            <div className="review-stars">{[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < review.Rating ? "#fbbf24" : "#e5e7eb"} color="#e5e7eb"/>)}</div>
+                         </div>
+                         <p className="review-comment">{review.Comment}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : <div className="empty-state"><p>Chưa có đánh giá nào.</p></div>}
                 </div>
               </div>
             )}
@@ -453,7 +327,6 @@ export default function PhotographerDetail() {
           </div>
         </div>
       </div>
-
       <Footer />
     </>
   );

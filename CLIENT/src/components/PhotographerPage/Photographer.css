@@ -1,7 +1,9 @@
-/* Photographer.css */
+/* --- Global Layout --- */
 .photographers-page {
     min-height: 100vh;
-    background-color: #f9fafb;
+    background-color: #f3f4f6; /* Màu nền xám nhẹ hiện đại */
+    padding: 40px 0 80px;
+    font-family: 'Inter', sans-serif;
 }
 
 .container {
@@ -10,181 +12,235 @@
     padding: 0 20px;
 }
 
+/* --- Section Header --- */
 .section-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
 }
 
 .section-header h2 {
-    font-size: 2.5rem;
-    font-weight: 700;
+    font-size: 2.2rem;
+    font-weight: 800;
     color: #111827;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
 }
 
 .section-header p {
     color: #6b7280;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
 }
 
-/* Search & Filter */
+/* --- Search Filter Bar --- */
 .search-filter {
     display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
     justify-content: center;
-    margin-bottom: 30px;
+    gap: 16px;
+    margin-bottom: 50px;
+    flex-wrap: wrap;
 }
 
-.search-filter input,
-.search-filter select {
-    padding: 10px 15px;
-    border-radius: 8px;
+.search-filter input, .search-filter select {
+    padding: 12px 20px;
+    border-radius: 12px;
     border: 1px solid #e5e7eb;
-    font-size: 1rem;
+    background: white;
+    font-size: 0.95rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    min-width: 220px;
 }
 
-.search-filter input:focus,
-.search-filter select:focus {
+.search-filter input:focus, .search-filter select:focus {
     outline: none;
-    border-color: #9333ea;
+    border-color: #6366f1; /* Màu tím indigo */
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
-/* Grid */
+/* --- Grid System --- */
 .photographers-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    /* 4 ô/ngang */
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
 }
 
-/* Card */
+/* --- CARD DESIGN (Phần quan trọng nhất) --- */
 .photographer-card {
     background: white;
-    border-radius: 16px;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.04);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
-    height: 360px;
 }
 
 .photographer-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.photographer-image {
+/* 1. Header (Cover Image) */
+.card-header {
+    height: 160px;
     position: relative;
-    height: 200px;
     overflow: hidden;
+    background-color: #e5e7eb;
 }
 
-.photographer-image img {
+.card-cover {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s;
+    transition: transform 0.5s;
 }
 
-.photographer-card:hover .photographer-image img {
+.photographer-card:hover .card-cover {
     transform: scale(1.05);
 }
 
-/* Favorite */
-.favorite-btn {
+/* Nút Tim */
+.btn-favorite {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 50%;
+    top: 15px;
+    right: 15px;
+    background: rgba(0,0,0,0.2);
+    backdrop-filter: blur(4px);
     border: none;
-    padding: 6px;
-    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-/* Content */
-.photographer-content {
-    padding: 15px 20px;
-    flex: 1;
+.btn-favorite:hover {
+    background: white;
+    transform: scale(1.1);
+}
+.btn-favorite:hover svg { fill: #ef4444; stroke: #ef4444; }
+
+/* 2. Avatar Wrapper (Đè lên ảnh bìa) */
+.card-avatar-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: -50px; /* Kéo Avatar lên trên */
+    position: relative;
+    z-index: 10;
+}
+
+.card-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: white;
+}
+
+/* 3. Body */
+.card-body {
+    padding: 15px 25px 25px;
+    text-align: center;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-}
-
-.photographer-name {
-    font-weight: 600;
-    font-size: 1rem;
-    color: #111827;
-}
-
-.photographer-info {
-    display: flex;
     align-items: center;
+    flex: 1;
+}
+
+.card-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 10px 0 15px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* 4. Stats Pill (Gom nhóm đẹp mắt) */
+.card-stats {
+    display: flex;
     gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
-.photographer-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid #e5e7eb;
-}
-
-.photographer-rating {
+.stat-pill {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.9rem;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4b5563;
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
+}
+
+.stat-pill.rating {
+    background-color: #fffbeb; /* Vàng nhạt */
+    color: #b45309; /* Vàng đậm */
+    border-color: #fcd34d;
+}
+
+/* 5. Footer (Button) */
+.card-footer {
+    width: 100%;
+    margin-top: auto;
+}
+
+.btn-view-profile {
+    display: block;
+    width: 100%;
+    padding: 12px 0;
+    border-radius: 12px;
+    background-color: #111827; /* Màu đen sang trọng */
+    color: white;
+    text-align: center;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-view-profile:hover {
+    background-color: #4f46e5; /* Đổi màu xanh tím khi hover */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(79, 70, 229, 0.3);
+}
+
+/* Loading & Empty States */
+.loading-state, .no-results {
+    width: 100%;
+    text-align: center;
+    padding: 60px;
+    font-size: 1.1rem;
     color: #6b7280;
 }
-
-.star-icon {
-    width: 16px;
-    height: 16px;
-    color: #fbbf24;
+.spinner {
+    width: 40px; height: 40px; 
+    border: 4px solid #e5e7eb; 
+    border-top-color: #4f46e5; 
+    border-radius: 50%; 
+    animation: spin 1s infinite;
+    margin: 0 auto;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* Responsive */
-@media (max-width: 1280px) {
-    .photographers-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (max-width: 1024px) {
-    .photographers-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
+/* Mobile */
+@media (max-width: 640px) {
     .photographers-grid {
         grid-template-columns: 1fr;
     }
-}
-/* Search & Filters */
-.search-filter {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 30px;
-}
-
-.search-filter input,
-.search-filter select {
-    padding: 10px 15px;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    font-size: 1rem;
-}
-
-.search-filter input:focus,
-.search-filter select:focus {
-    outline: none;
-    border-color: #9333ea;
 }
