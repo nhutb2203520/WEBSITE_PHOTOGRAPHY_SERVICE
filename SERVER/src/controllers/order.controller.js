@@ -101,10 +101,11 @@ export const getMyOrders = async (req, res) => {
     try {
         const userId = req.user._id || req.user.id;
 
+        // 1. Lấy danh sách đơn hàng
         const orders = await Order.find({ customer_id: userId })
             .populate({
                 path: "service_package_id",
-                select: "TenGoi AnhBia Gia"
+                select: "TenGoi AnhBia Gia LoaiGoi"
             })
             .populate({
                 path: "photographer_id",
@@ -113,10 +114,24 @@ export const getMyOrders = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
+        // 2. [MỚI] Kiểm tra xem mỗi đơn hàng đã có Album chưa
+        const ordersWithAlbumStatus = await Promise.all(orders.map(async (order) => {
+            // Tìm Album tương ứng với Order ID
+            const album = await Album.findOne({ order_id: order._id }).select('_id status');
+            
+            return {
+                ...order.toObject(),
+                // Cờ báo hiệu đã có album hay chưa
+                has_album: !!album, 
+                // Nếu cần biết ID album để link tới
+                album_id: album?._id 
+            };
+        }));
+
         res.status(200).json({
             success: true,
             message: "Danh sách đơn hàng của bạn",
-            data: orders
+            data: ordersWithAlbumStatus // Trả về danh sách đã có cờ has_album
         });
 
     } catch (error) {

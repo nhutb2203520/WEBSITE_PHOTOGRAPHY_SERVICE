@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Copy, ArrowLeft, Download, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import { Copy, ArrowLeft, Image as ImageIcon, CheckCircle2, Loader2 } from "lucide-react";
 import "./SelectionPhotoManage.css";
-import axiosUser from "../../apis/axiosUser"; // Sử dụng axiosUser để có token
+import axiosUser from "../../apis/axiosUser"; 
+
+// --- IMPORT LAYOUT COMPONENTS ---
+import Header from "../Header/Header";
+import Sidebar from "../Sidebar/Sidebar";
+import Footer from "../Footer/Footer";
 
 const SelectionPhotoManage = () => {
   const { orderId } = useParams();
@@ -12,22 +17,32 @@ const SelectionPhotoManage = () => {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [albumInfo, setAlbumInfo] = useState(null);
+  const [copying, setCopying] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Backend route getAlbum hỗ trợ tìm bằng orderId (như đã cấu hình ở các bước trước)
+        setLoading(true);
         const res = await axiosUser.get(`/albums/${orderId}`);
-        if (res.data?.data) {
-          const album = res.data.data;
-          setAlbumInfo(album);
-          // Lọc ra các ảnh có is_selected = true
-          const selected = album.photos.filter(p => p.is_selected);
-          setPhotos(selected);
+        
+        // Logic xử lý data an toàn
+        let albumData = null;
+        if (res.data && res.data.data) albumData = res.data.data;
+        else if (res.data && res.data._id) albumData = res.data;
+        else if (res.data) albumData = res.data;
+
+        if (albumData) {
+          setAlbumInfo(albumData);
+          if (albumData.photos && Array.isArray(albumData.photos)) {
+              const selected = albumData.photos.filter(p => p.is_selected === true);
+              setPhotos(selected);
+          } else {
+              setPhotos([]);
+          }
         }
       } catch (error) {
-        console.error("Fetch album error:", error);
-        toast.error("Lỗi tải dữ liệu album.");
+        console.error("Fetch error:", error);
+        toast.error("Không thể tải dữ liệu");
       } finally {
         setLoading(false);
       }
@@ -35,80 +50,156 @@ const SelectionPhotoManage = () => {
     fetchData();
   }, [orderId]);
 
-  // Tính năng Copy tên file để paste vào Lightroom
-  const copyFilenames = () => {
+  const copyFilenames = async () => {
     if (photos.length === 0) return;
-    // Tạo chuỗi tên file, bạn có thể chỉnh dấu phân cách (; hoặc , hoặc xuống dòng \n)
-    const filenames = photos.map(p => p.filename || p.url.split('/').pop()).join('; ');
+    setCopying(true);
     
-    navigator.clipboard.writeText(filenames)
-      .then(() => toast.success("Đã copy danh sách tên file!"))
-      .catch(() => toast.error("Lỗi copy."));
+    try {
+      const filenames = photos.map(p => p.filename || p.url.split('/').pop()).join('; ');
+      await navigator.clipboard.writeText(filenames);
+      toast.success("✓ Đã copy danh sách tên file", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } catch (error) {
+      toast.error("Lỗi khi copy");
+    } finally {
+      setTimeout(() => setCopying(false), 500);
+    }
   };
 
-  if (loading) return <div className="pm-loading">Đang tải danh sách chọn...</div>;
+  const getImgUrl = (url) => url.startsWith('http') ? url : `http://localhost:5000${url}`;
 
   return (
-    <div className="pm-container">
-        <div className="pm-header">
-            <div className="pm-header-left">
-                <button onClick={() => navigate(-1)} className="pm-back-btn"><ArrowLeft size={18}/> Quay lại</button>
-                <div>
-                    <h2>Danh sách khách chọn ({photos.length} ảnh)</h2>
-                    <p className="pm-sub-info">Đơn hàng: #{albumInfo?.order_id || orderId}</p>
-                </div>
-            </div>
-            
-            <div className="pm-actions">
-                <button className="btn-copy" onClick={copyFilenames} disabled={photos.length === 0}>
-                    <Copy size={16}/> Copy Tên File
-                </button>
-            </div>
-        </div>
+    <div className="layout-wrapper">
+        <Header />
 
-        {photos.length === 0 ? (
-            <div className="pm-empty">
-                <ImageIcon size={48}/>
-                <p>Khách hàng chưa chọn ảnh nào.</p>
+        <div className="layout-body">
+            <div className="layout-sidebar">
+                <Sidebar />
             </div>
-        ) : (
-            <div className="pm-list">
-                <div className="pm-table-header">
-                    <span>Hình ảnh</span>
-                    <span>Tên file</span>
-                    <span>Trạng thái</span>
-                </div>
-                <div className="pm-table-body">
-                    {photos.map((photo) => (
-                        <div key={photo._id} className="pm-row">
-                            <div className="pm-thumb">
-                                <img 
-                                    src={photo.url.startsWith('http') ? photo.url : `http://localhost:5000${photo.url}`} 
-                                    alt="thumb" 
-                                />
-                            </div>
-                            <div className="pm-name">
-                                {photo.filename || photo.url.split('/').pop()}
-                            </div>
-                            <div className="pm-status">
-                                <span className="badge-selected"><CheckCircle2 size={12}/> Selected</span>
-                            </div>
+
+            <main className="layout-content">
+                <div className="pm-container">
+                    {loading ? (
+                        <div className="pm-loading">
+                            <Loader2 size={40} className="spinner"/> 
+                            <span>Đang tải dữ liệu...</span>
                         </div>
-                    ))}
+                    ) : (
+                        <>
+                            <div className="pm-header">
+                                <button onClick={() => navigate(-1)} className="pm-back-btn">
+                                    <ArrowLeft size={18}/> Quay lại
+                                </button>
+                                
+                                <div className="pm-header-content">
+                                    <div className="pm-header-left">
+                                        <h2>
+                                            Danh sách khách chọn
+                                            {photos.length > 0 && (
+                                                <span className="photo-count-badge">
+                                                    {photos.length}
+                                                </span>
+                                            )}
+                                        </h2>
+                                        <div className="pm-order-info">
+                                            <span>
+                                                Đơn hàng: <span className="order-id">#{albumInfo?.order_id || orderId}</span>
+                                            </span>
+                                            {albumInfo?.customer_name && (
+                                                <>
+                                                    <span className="divider"></span>
+                                                    <span>Khách hàng: {albumInfo.customer_name}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <button 
+                                        className="btn-copy" 
+                                        onClick={copyFilenames} 
+                                        disabled={photos.length === 0 || copying}
+                                    >
+                                        {copying ? (
+                                            <>
+                                                <Loader2 size={16} className="spinner"/>
+                                                Đang copy...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy size={16}/>
+                                                Copy tên file
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {photos.length === 0 ? (
+                                <div className="pm-empty">
+                                    <div className="pm-empty-icon">
+                                        <ImageIcon size={40} strokeWidth={1.5}/>
+                                    </div>
+                                    <h3>Chưa có ảnh được chọn</h3>
+                                    <p>Khách hàng chưa chọn ảnh nào hoặc chưa gửi danh sách cho thợ</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="pm-list">
+                                        <div className="pm-table-header">
+                                            <span>Hình ảnh</span>
+                                            <span>Tên file</span>
+                                            <span>Trạng thái</span>
+                                        </div>
+                                        <div className="pm-table-body">
+                                            {photos.map((photo, index) => (
+                                                <div 
+                                                    key={photo._id} 
+                                                    className="pm-row"
+                                                    style={{
+                                                        animation: `fadeInUp 0.3s ease ${index * 0.03}s both`
+                                                    }}
+                                                >
+                                                    <div className="pm-thumb">
+                                                        <img 
+                                                            src={getImgUrl(photo.url)} 
+                                                            alt={`Photo ${index + 1}`} 
+                                                            loading="lazy" 
+                                                        />
+                                                    </div>
+                                                    <div className="pm-name">
+                                                        {photo.filename || photo.url.split('/').pop()}
+                                                    </div>
+                                                    <div className="pm-status">
+                                                        <span className="badge-selected">
+                                                            <CheckCircle2 size={14}/>
+                                                            Selected
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="pm-raw-text">
+                                        <h4>Chuỗi tên file (Dùng cho Search Lightroom)</h4>
+                                        <textarea 
+                                            readOnly 
+                                            value={photos.map(p => p.filename || p.url.split('/').pop()).join('; ')}
+                                            onClick={(e) => e.target.select()} 
+                                            placeholder="Danh sách tên file..."
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
                 </div>
-            </div>
-        )}
-        
-        {/* Khung chứa text tên file để thợ nhìn nhanh */}
-        {photos.length > 0 && (
-            <div className="pm-raw-text">
-                <h4>Chuỗi tên file (Dùng cho Search Lightroom):</h4>
-                <textarea 
-                    readOnly 
-                    value={photos.map(p => p.filename || p.url.split('/').pop()).join('; ')}
-                />
-            </div>
-        )}
+                
+                <Footer />
+            </main>
+        </div>
     </div>
   );
 };

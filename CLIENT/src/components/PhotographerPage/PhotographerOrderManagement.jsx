@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -6,12 +6,13 @@ import {
   Calendar, MapPin, Clock, DollarSign,
   Search, CheckCircle, XCircle, Eye,
   Briefcase, Image as ImageIcon, FolderOpen,
-  CheckSquare // Icon cho nút xem file
+  CheckSquare
 } from 'lucide-react';
 
-import orderApi from '../../apis/OrderService';
+import orderApi from '../../apis/orderService'; // Kiểm tra lại tên file import đúng (OrderService hay orderService)
 import Header from '../../components/Header/Header';
 import Sidebar from '../../components/Sidebar/Sidebar';
+import Footer from '../../components/Footer/Footer';
 import './PhotographerOrderManagement.css';
 
 export default function PhotographerOrderManagement() {
@@ -25,13 +26,12 @@ export default function PhotographerOrderManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, income: 0 });
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
+  // 1. Hàm tải dữ liệu (dùng useCallback để tái sử dụng)
+  const fetchOrders = useCallback(async () => {
     try {
-      setLoading(true);
+      // Chỉ hiện loading lần đầu, những lần refresh ngầm không hiện loading toàn trang
+      if (orders.length === 0) setLoading(true); 
+      
       const res = await orderApi.getPhotographerOrders();
       const data = res.data?.data || res.data || [];
       setOrders(data);
@@ -42,7 +42,7 @@ export default function PhotographerOrderManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orders.length]);
 
   const calculateStats = (data) => {
     const pending = data.filter(o => o.status === 'pending' || o.status === 'pending_payment').length;
@@ -51,19 +51,36 @@ export default function PhotographerOrderManagement() {
     setStats({ total: data.length, pending, confirmed, income });
   };
 
+  // 2. Effect: Tải dữ liệu khi mount VÀ khi cửa sổ được focus lại (khi ấn nút Quay lại)
+  useEffect(() => {
+    fetchOrders();
+
+    // Sự kiện này giúp tự động refresh data khi bạn quay lại từ trang khác
+    const onFocus = () => fetchOrders();
+    window.addEventListener("focus", onFocus);
+    
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchOrders]);
+
   // --- HÀM XỬ LÝ SỰ KIỆN ---
 
   const handleDeliverAlbum = (order) => {
+      // Logic:
+      // - Nếu đã có album (has_album = true) -> Chuyển sang trang xem ảnh khách chọn
+      // - Nếu chưa có -> Chuyển sang trang Upload/Quản lý Album (File PhotographerAlbumManager bạn vừa làm)
+      
       if (order.has_album) {
+          // Điều hướng đến trang quản lý file chọn (File SelectionPhotoManage.js)
           navigate(`/orders/${order.order_id}/manage-selection`);
       } else {
-          navigate(`/albums/detail/${order.order_id}`);
+          // ✅ FIX: Điều hướng đến trang PhotographerAlbumManager mới
+          // Dùng order.order_id hoặc order._id tùy vào cách bạn config route
+          navigate(`/photographer/album-manager/${order.order_id}`);
       }
   };
 
-  // ✅ CẬP NHẬT: Chuyển đến trang quản lý chi tiết (PhotographerAlbumManager)
   const handleViewDetail = (orderId) => {
-    // Điều hướng đến trang mới chúng ta sắp tạo
+    // Xem chi tiết đơn hàng (Cũng dẫn đến trang quản lý album để xem thông tin)
     navigate(`/photographer/album-manager/${orderId}`);
   };
 
@@ -82,8 +99,8 @@ export default function PhotographerOrderManagement() {
     else if (filterStatus === 'cancelled') matchesStatus = ['cancelled', 'refund_pending'].includes(order.status);
 
     const customerName = order.customer_id?.HoTen || "Khách vãng lai";
-    const orderId = order.order_id || "";
-    const matchesSearch = orderId.toLowerCase().includes(searchTerm.toLowerCase()) || customerName.toLowerCase().includes(searchTerm.toLowerCase());
+    const orderCode = order.order_id || "";
+    const matchesSearch = orderCode.toLowerCase().includes(searchTerm.toLowerCase()) || customerName.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesStatus && matchesSearch;
   });
@@ -125,12 +142,15 @@ export default function PhotographerOrderManagement() {
   };
 
   return (
-    <>
+    <div className="layout-wrapper">
       <Header />
-      <div style={{ display: 'flex' }}>
-        <Sidebar />
-        <div className="photographer-order-page" style={{ flex: 1 }}>
-          <div className="container">
+      <div className="layout-body">
+        <div className="layout-sidebar">
+             <Sidebar />
+        </div>
+        
+        <div className="photographer-order-page layout-content">
+          <div className="pam-container">
 
             {/* === HEADER SECTION === */}
             <div className="page-header">
@@ -141,7 +161,7 @@ export default function PhotographerOrderManagement() {
 
               <div className="search-box-wrapper">
                 <div className="search-box">
-                  <Search size={20} className="search-icon" />
+        
                   <input
                     type="text"
                     placeholder="Tìm mã đơn, tên khách..."
@@ -183,10 +203,10 @@ export default function PhotographerOrderManagement() {
             </div>
 
             {/* List */}
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: 40 }}>Loading...</div>
+            {loading && orders.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>Đang tải danh sách...</div>
             ) : filteredOrders.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40 }}>Không có đơn nào.</div>
+              <div style={{ textAlign: 'center', padding: 40 }}>Không tìm thấy đơn hàng nào.</div>
             ) : (
               <div className="orders-grid">
                 {filteredOrders.map(order => (
@@ -215,7 +235,6 @@ export default function PhotographerOrderManagement() {
                     </div>
 
                     <div className="order-actions">
-                      {/* ✅ Button này giờ sẽ dẫn đến trang PhotographerAlbumManager */}
                       <button className="btn-action btn-view" onClick={() => handleViewDetail(order.order_id || order._id)}>
                         <Eye size={16} /> Chi tiết
                       </button>
@@ -245,6 +264,7 @@ export default function PhotographerOrderManagement() {
           </div>
         </div>
       </div>
-    </>
+      <Footer />
+    </div>
   );
 }

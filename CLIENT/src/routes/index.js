@@ -1,7 +1,9 @@
 import { lazy } from 'react';
 
 const routes = [
-  // --- HOME & AUTH ---
+  // ==============================
+  // 1. HOME & AUTHENTICATION
+  // ==============================
   {
     path: '/',
     component: lazy(() => import('../components/HomePageCustomer/HomePageCustomer'))
@@ -23,12 +25,15 @@ const routes = [
     component: lazy(() => import('../components/Account/MyAccount'))
   },
 
-  // --- PHOTOGRAPHER MANAGEMENT ---
+  // ==============================
+  // 2. PHOTOGRAPHER MANAGEMENT
+  // ==============================
   {
     path: '/photographer/orders-manage',
     component: lazy(() => import('../components/PhotographerPage/PhotographerOrderManagement'))
   },
   {
+    // Route này dành cho danh sách Album (nếu có trang quản lý chung)
     path: '/photographer/albums-manage',
     component: lazy(() => import('../components/Album/PhotographerAlbumManager')) 
   },
@@ -41,7 +46,9 @@ const routes = [
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
 
-  // --- PUBLIC PHOTOGRAPHER PAGES ---
+  // ==============================
+  // 3. PUBLIC PAGES (Tim tho, Xem goi)
+  // ==============================
   {
     path: '/photographers',
     component: lazy(() => import('../components/PhotographerPage/Photographer'))
@@ -50,8 +57,6 @@ const routes = [
     path: '/photographer/:username',
     component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
   },
-
-  // --- SERVICES & PACKAGES ---
   {
     path: '/service-package',
     component: lazy(() => import('../components/ServicePakage/ServicePakage'))
@@ -61,7 +66,9 @@ const routes = [
     component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
   },
 
-  // --- ORDERS & PAYMENT ---
+  // ==============================
+  // 4. ORDERS & PAYMENT (CUSTOMER)
+  // ==============================
   {
     path: '/order-service',
     component: lazy(() => import('../components/Order/OrderService'))
@@ -74,30 +81,34 @@ const routes = [
     path: '/my-orders',
     component: lazy(() => import('../components/Order/MyOrder'))
   },
-  
-  //album
+
+  // ==============================
+  // 5. ALBUM & SELECTION FLOW (NEW)
+  // ==============================
   {
+    // Khách hàng: Xem chi tiết Album (Slide ảnh, Tải ảnh)
     path: '/albums/detail/:orderId',
     component: lazy(() => import('../components/Album/Album')) 
   },
   {
-    // Dành cho KHÁCH HÀNG vào chọn ảnh
+    // Khách hàng: Giao diện chọn ảnh để gửi cho thợ (SelectionPhoto.jsx)
     path: '/orders/:orderId/select-photos',
     component: lazy(() => import('../components/Album/SelectionPhoto')) 
-},
-{
-    // Dành cho PHOTOGRAPHER xem danh sách đã chọn
+  },
+  {
+    // Photographer: Xem danh sách ảnh khách đã chọn (SelectionPhotoManage.jsx)
     path: '/orders/:orderId/manage-selection',
     component: lazy(() => import('../components/Album/SelectionPhotoManage')) 
-},
-{
-    // Dành cho PHOTOGRAPHER xem đơn hàng +album ảnh
+  },
+  {
+    // Photographer: Quản lý, Upload ảnh, Xóa ảnh của 1 đơn hàng (PhotographerAlbumManager.jsx)
     path: '/photographer/album-manager/:orderId',
     component: lazy(() => import('../components/Album/PhotographerAlbumManager')) 
-},
+  },
 
-
-  // --- GENERAL PAGES ---
+  // ==============================
+  // 6. GENERAL PAGES
+  // ==============================
   {
     path: '/workprofile/:id',
     component: lazy(() => import('../components/WorksProfile/WorkProfileDetail'))
@@ -110,8 +121,10 @@ const routes = [
     path: '/about-web',
     component: lazy(() => import('../components/AboutWeb/AboutWeb'))
   },
-  
-  // --- ADMIN ROUTES ---
+
+  // ==============================
+  // 7. ADMIN ROUTES
+  // ==============================
   {
     path: '/admin-page',
     component: lazy(() => import('../admin/AdminPage/AdminPage'))
@@ -133,7 +146,9 @@ const routes = [
     component: lazy(() => import('../admin/AdminPage/OrderManage'))
   },
 
-  // --- 404 NOT FOUND ---
+  // ==============================
+  // 8. 404 NOT FOUND
+  // ==============================
   {
     path: '*',
     component: lazy(() => import('../NotFound'))
