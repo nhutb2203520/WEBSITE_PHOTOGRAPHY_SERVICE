@@ -50,8 +50,6 @@ export const createOrder = async (req, res) => {
         }
     }
 
-    // --- BƯỚC 3: KIỂM TRA LỊCH CÁ NHÂN / BÁO BẬN (Schedule Collection) ---
-    // ✅ Fix: Check cả type 'personal' và 'busy' trong khoảng thời gian ngày đó
     if (photographer_id) {
         const conflictSchedule = await Schedule.findOne({
             photographerId: photographer_id,
@@ -61,7 +59,7 @@ export const createOrder = async (req, res) => {
 
         if (conflictSchedule) {
             return res.status(409).json({ 
-                message: `Nhiếp ảnh gia có lịch cá nhân/báo bận vào ngày này ("${conflictSchedule.title}"). Vui lòng chọn ngày khác.` 
+                message: `Nhiếp ảnh gia có lịch cá nhân/báo bận vào ngày này. Vui lòng chọn ngày khác.` 
             });
         }
     }

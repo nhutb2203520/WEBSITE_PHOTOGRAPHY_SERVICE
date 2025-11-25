@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Calendar, Clock, MapPin, User, Phone, Mail, Package, FileText,
   CheckCircle, AlertCircle, DollarSign, Camera, ArrowLeft, Map,
-  Check, Truck, Navigation, Loader, Search, AlertTriangle
+  Check, Truck, Navigation, Loader, Search, AlertTriangle, 
+  CalendarX // Icon cho modal trùng lịch
 } from 'lucide-react';
 import './OrderService.css';
 import { useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
+import { toast } from 'react-toastify'; 
+
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
 import Sidebar from '../Sidebar/Sidebar';
@@ -19,16 +21,21 @@ export default function OrderServices() {
   const location = useLocation();
   const { user } = useSelector(state => state.user || {});
 
-  // Bỏ state packages vì không cần danh sách chọn nữa
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // ✅ STATE QUẢN LÝ PHÍ DI CHUYỂN
+  // STATE QUẢN LÝ PHÍ DI CHUYỂN
   const [travelFee, setTravelFee] = useState(null);
   const [calculatingFee, setCalculatingFee] = useState(false);
   const [customerCoords, setCustomerCoords] = useState({ lat: null, lng: null });
   const [isSearchingAddress, setIsSearchingAddress] = useState(false); 
+
+  // STATE QUẢN LÝ MODAL TRÙNG LỊCH
+  const [conflictModal, setConflictModal] = useState({
+    isOpen: false,
+    message: ''
+  });
 
   const todayISODate = new Date().toISOString().split('T')[0];
 
@@ -61,17 +68,16 @@ export default function OrderServices() {
       return;
     }
 
-    // Kiểm tra nếu không có packageId gửi sang thì báo lỗi quay về
     if (location.state?.packageId) {
       setFormData(prev => ({ ...prev, packageId: location.state.packageId }));
       loadSelectedPackage(location.state.packageId);
     } else {
       toast.error("Vui lòng chọn gói dịch vụ trước!");
-      navigate('/service-package'); // Quay về trang danh sách gói
+      navigate('/service-package');
     }
   }, [user, navigate, location]);
 
-  // ✅ TỰ ĐỘNG TÍNH PHÍ KHI CÓ TỌA ĐỘ (Debounce 800ms)
+  // TỰ ĐỘNG TÍNH PHÍ KHI CÓ TỌA ĐỘ
   useEffect(() => {
     const timer = setTimeout(() => {
       if (formData.packageId && customerCoords.lat && customerCoords.lng) {
@@ -114,7 +120,6 @@ export default function OrderServices() {
       const response = await servicePackageApi.getPackageById(packageId);
       if (response) {
         setSelectedPackage(response);
-        // Lấy số ngày thực hiện
         let duration = response.ThoiGianThucHien;
         if (typeof duration === 'string') {
            const match = duration.match(/\d+/);
@@ -133,8 +138,6 @@ export default function OrderServices() {
       setLoading(false);
     }
   };
-
-  // Đã xóa hàm fetchPackages vì không cần load list nữa
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -165,8 +168,6 @@ export default function OrderServices() {
       console.error("❌ Lỗi tính ngày hoàn thành:", error);
     }
   };
-
-  // Đã xóa hàm handlePackageSelect vì không cho chọn lại
 
   const handleServiceToggle = (serviceIndex) => {
     setFormData(prev => {
@@ -244,7 +245,7 @@ export default function OrderServices() {
     if (!link) return null;
     
     if (link.includes("goo.gl") || link.includes("maps.app")) {
-      toast.warning("Link rút gọn không chứa tọa độ. Vui lòng dùng nút 'Tìm từ địa chỉ' hoặc copy link đầy đủ trên thanh trình duyệt.");
+      toast.warning("Link rút gọn không chứa tọa độ. Vui lòng dùng nút 'Tìm từ địa chỉ' hoặc copy link đầy đủ.");
       return null;
     }
 
@@ -289,7 +290,6 @@ export default function OrderServices() {
   const validateForm = () => {
     const errors = {};
     if (!formData.customerName.trim()) errors.customerName = "Vui lòng nhập họ tên";
-    // Không cần check packageId vì đã bắt buộc từ useEffect
     if (!formData.bookingDate) errors.bookingDate = "Vui lòng chọn ngày";
     if (!formData.startTime) errors.startTime = "Vui lòng chọn giờ";
     if (!formData.address) errors.address = "Vui lòng nhập địa chỉ";
@@ -302,7 +302,7 @@ export default function OrderServices() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return toast.error("Vui lòng kiểm tra lại thông tin");
+    if (!validateForm()) return toast.warning("Vui lòng kiểm tra lại thông tin bắt buộc");
 
     try {
       setSubmitting(true);
@@ -313,6 +313,7 @@ export default function OrderServices() {
 
       const orderData = {
         service_package_id: formData.packageId,
+        package_name: selectedPackage?.TenGoi,
         photographer_id: selectedPackage?.PhotographerId?._id || null,
         booking_date: formData.bookingDate,
         start_time: formData.startTime,
@@ -357,8 +358,18 @@ export default function OrderServices() {
 
     } catch (error) {
       console.error("Create Order Error:", error);
-      const msg = error.response?.data?.message || "Lỗi khi tạo đơn hàng";
-      toast.error(msg);
+      
+      // 🛑 XỬ LÝ LỖI TRÙNG LỊCH BẰNG MODAL 🛑
+      if (error.response && error.response.status === 409) {
+          // Bật Modal thay vì hiển thị Toast
+          setConflictModal({
+            isOpen: true,
+            message: error.response.data.message || "Khung giờ này đã có lịch đặt. Vui lòng chọn thời gian khác!"
+          });
+      } else {
+          const msg = error.response?.data?.message || "Lỗi khi tạo đơn hàng";
+          toast.error(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -369,7 +380,6 @@ export default function OrderServices() {
          : img.startsWith("http") ? img
          : `http://localhost:5000/${img.replace(/^\/+/, "")}`;
 
-  // ✅ HÀM RENDER PHÍ DI CHUYỂN
   const renderTravelFeeSection = () => {
     if (calculatingFee) {
       return (
@@ -464,7 +474,6 @@ export default function OrderServices() {
                 <div className="form-section">
                   <div className="section-header"><Package /> <h2>Thông tin dịch vụ</h2></div>
                   
-                  {/* ✅ SỬA LẠI: CHỈ HIỂN THỊ TÊN GÓI (READONLY) */}
                   <div className="form-group">
                     <label>Gói dịch vụ</label>
                     <input 
@@ -475,7 +484,6 @@ export default function OrderServices() {
                     />
                   </div>
                   
-                  {/* Dịch vụ con */}
                   {selectedPackage?.DichVu?.length > 0 && (
                     <div className="form-group">
                         <label>Chọn dịch vụ thêm</label>
@@ -516,7 +524,6 @@ export default function OrderServices() {
                     <div className="form-group"><label>Tỉnh/Thành phố</label><input name="city" value={formData.city} onChange={handleInputChange} placeholder="Ví dụ: Cần Thơ" /></div>
                   </div>
 
-                  {/* NÚT TỰ ĐỘNG TÌM TỌA ĐỘ */}
                   <div className="geo-actions">
                     <button 
                       type="button" 
@@ -541,7 +548,6 @@ export default function OrderServices() {
                     </small>
                   </div>
 
-                  {/* HIỂN THỊ TỌA ĐỘ */}
                   {customerCoords.lat && customerCoords.lng && (
                     <div className="info-box success">
                       <MapPin size={18} />
@@ -551,7 +557,6 @@ export default function OrderServices() {
                     </div>
                   )}
 
-                  {/* ✅ HIỂN THỊ PHÍ DI CHUYỂN */}
                   {renderTravelFeeSection()}
                 </div>
 
@@ -603,6 +608,35 @@ export default function OrderServices() {
           )}
         </div>
       </div>
+
+      {/* ✅ MODAL TRÙNG LỊCH */}
+      {conflictModal.isOpen && (
+        <div className="modal-overlay-custom" onClick={() => setConflictModal({ ...conflictModal, isOpen: false })}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            
+            <div className="modal-icon-area">
+               <CalendarX size={36} color="#ea580c" strokeWidth={2} />
+            </div>
+
+            <h3 className="modal-title">Rất tiếc, lịch đã kín!</h3>
+            
+            <p className="modal-desc">
+              {conflictModal.message}
+            </p>
+
+            <div className="modal-footer">
+              <button 
+                className="modal-btn-action" 
+                onClick={() => setConflictModal({ ...conflictModal, isOpen: false })}
+              >
+                Đã hiểu, tôi sẽ chọn ngày khác
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );
