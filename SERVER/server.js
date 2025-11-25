@@ -21,6 +21,7 @@ import paymentMethodRoutes from "./src/routes/paymentMethod.route.js";
 import adminRoute from "./src/routes/admin.route.js";
 import serviceFeeRoutes from "./src/routes/servicefree.route.js";
 import scheduleRoutes from "./src/routes/schedule.route.js";
+import albumRoute from "./src/routes/album.route.js";
 // ✅ [MỚI] Import Review Route để sửa lỗi 404 api/reviews
 import reviewRoutes from "./src/routes/review.route.js";
 import khachHangController from "./src/controllers/khachhang.controller.js";
@@ -82,6 +83,8 @@ app.use("/api/admin", adminRoute);
 app.use("/api/reviews", reviewRoutes);
 //lịch trình
 app.use("/api/schedule", scheduleRoutes);
+//album
+app.use("/api/albums", albumRoute);
 // 6. Direct Controller Routes
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 

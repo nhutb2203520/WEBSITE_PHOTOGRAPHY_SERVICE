@@ -23,11 +23,14 @@ const routes = [
     component: lazy(() => import('../components/Account/MyAccount'))
   },
 
-  // --- PHOTOGRAPHER MANAGEMENT (STATIC ROUTES - PHẢI ĐẶT TRƯỚC ROUTE ĐỘNG) ---
-  // ⚠️ Đưa các trang quản lý của Photographer lên trên cùng để tránh xung đột
+  // --- PHOTOGRAPHER MANAGEMENT ---
   {
     path: '/photographer/orders-manage',
     component: lazy(() => import('../components/PhotographerPage/PhotographerOrderManagement'))
+  },
+  {
+    path: '/photographer/albums-manage',
+    component: lazy(() => import('../components/Album/PhotographerAlbumManager')) 
   },
   {
     path: '/photographer/schedule',
@@ -43,7 +46,6 @@ const routes = [
     path: '/photographers',
     component: lazy(() => import('../components/PhotographerPage/Photographer'))
   },
-  // ⚠️ Route động :username phải đặt SAU các route /photographer/khác
   {
     path: '/photographer/:username',
     component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
@@ -72,6 +74,22 @@ const routes = [
     path: '/my-orders',
     component: lazy(() => import('../components/Order/MyOrder'))
   },
+  
+  //album
+  {
+    path: '/albums/detail/:orderId',
+    component: lazy(() => import('../components/Album/Album')) 
+  },
+  {
+    // Dành cho KHÁCH HÀNG vào chọn ảnh
+    path: '/orders/:orderId/select-photos',
+    component: lazy(() => import('../components/Album/SelectionPhoto')) 
+},
+{
+    // Dành cho PHOTOGRAPHER xem danh sách đã chọn
+    path: '/orders/:orderId/manage-selection',
+    component: lazy(() => import('../components/Album/SelectionPhotoManage')) 
+},
 
   // --- GENERAL PAGES ---
   {
@@ -109,7 +127,7 @@ const routes = [
     component: lazy(() => import('../admin/AdminPage/OrderManage'))
   },
 
-  // --- 404 NOT FOUND (Nên để cuối cùng) ---
+  // --- 404 NOT FOUND ---
   {
     path: '*',
     component: lazy(() => import('../NotFound'))

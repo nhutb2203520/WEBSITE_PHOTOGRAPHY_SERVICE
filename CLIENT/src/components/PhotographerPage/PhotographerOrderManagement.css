@@ -1,8 +1,8 @@
 /* ==============================================================================
-   LAYOUT CHUNG
+   1. LAYOUT CHUNG
    ============================================================================== */
 .photographer-order-page {
-    background-color: #f3f4f6;
+    background-color: #f8fafc; /* Màu nền sáng nhẹ hiện đại */
     min-height: 100vh;
     padding: 30px 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -14,7 +14,9 @@
     padding: 0 20px;
 }
 
-/* HEADER */
+/* ==============================================================================
+   2. HEADER & SEARCH
+   ============================================================================== */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -46,20 +48,21 @@
 
 .search-box input {
     width: 100%;
-    padding: 10px 10px 10px 40px;
+    padding: 10px 10px 10px 40px; /* Padding trái để chừa chỗ cho icon */
     border-radius: 8px;
     border: 1px solid #e5e7eb;
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s ease;
+    background-color: white;
 }
 
 .search-box input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    border-color: #4f46e5; /* Màu tím indigo */
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* ==============================================================================
-   STATS CARDS (Thống kê nhanh)
+   3. STATS CARDS (Thống kê)
    ============================================================================== */
 .stats-grid {
     display: grid;
@@ -72,26 +75,17 @@
     background: white;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
     gap: 15px;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .stat-card:hover {
     transform: translateY(-2px);
-}
-
-.stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .stat-info h3 {
@@ -99,17 +93,18 @@
     font-weight: 700;
     color: #1f2937;
     margin: 0;
+    line-height: 1.2;
 }
 
 .stat-info p {
     font-size: 13px;
     color: #6b7280;
-    margin: 0;
+    margin: 4px 0 0 0;
     font-weight: 500;
 }
 
 /* ==============================================================================
-   FILTER TABS
+   4. FILTER TABS (Bộ lọc trạng thái)
    ============================================================================== */
 .filter-tabs {
     display: flex;
@@ -134,18 +129,19 @@
 }
 
 .tab-btn:hover {
-    background-color: #f9fafb;
+    background-color: #f3f4f6;
+    color: #111827;
 }
 
 .tab-btn.active {
-    background: #3b82f6;
+    background: #4f46e5; /* Indigo */
     color: white;
-    border-color: #3b82f6;
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    border-color: #4f46e5;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
 }
 
 /* ==============================================================================
-   ORDER LIST (Grid Cards)
+   5. ORDER LIST (Danh sách đơn hàng)
    ============================================================================== */
 .orders-grid {
     display: grid;
@@ -157,14 +153,13 @@
     background: white;
     border-radius: 16px;
     padding: 24px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     border: 1px solid #e5e7eb;
     display: grid;
-    grid-template-columns: 80px 1fr 150px 180px;
-    /* Ảnh - Info - Giá - Action */
+    grid-template-columns: 80px 1fr 150px 180px; /* Cấu trúc 4 cột */
     gap: 24px;
     align-items: center;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .order-card:hover {
@@ -172,6 +167,7 @@
     border-color: #d1d5db;
 }
 
+/* Ảnh đại diện đơn hàng */
 .order-img {
     width: 80px;
     height: 80px;
@@ -204,7 +200,7 @@
     gap: 6px;
 }
 
-/* Cột giá */
+/* Cột giá tiền */
 .order-price-col {
     text-align: right;
     display: flex;
@@ -216,9 +212,9 @@
 .price-tag {
     font-size: 18px;
     font-weight: 800;
-    color: #3b82f6;
+    color: #4f46e5;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .deposit-tag {
@@ -264,7 +260,9 @@
     color: #dc2626;
 }
 
-/* Actions */
+/* ==============================================================================
+   6. ACTIONS (Nút bấm)
+   ============================================================================== */
 .order-actions {
     display: flex;
     flex-direction: column;
@@ -273,7 +271,7 @@
 
 .btn-action {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
@@ -283,7 +281,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
+    text-decoration: none;
 }
 
 .btn-view {
@@ -296,13 +295,13 @@
 }
 
 .btn-accept {
-    background: #3b82f6;
+    background: #4f46e5; /* Indigo */
     color: white;
 }
 
 .btn-accept:hover {
-    background: #2563eb;
-    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3);
+    background: #4338ca;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
 }
 
 .btn-reject {
@@ -316,16 +315,17 @@
 }
 
 /* ==============================================================================
-   RESPONSIVE
+   7. RESPONSIVE DESIGN
    ============================================================================== */
+
+/* Tablet & Màn hình nhỏ */
 @media (max-width: 1024px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 
     .order-card {
-        grid-template-columns: 1fr;
-        /* Chuyển thành 1 cột dọc */
+        grid-template-columns: 1fr; /* Chuyển thành 1 cột dọc */
         text-align: center;
         gap: 15px;
         padding: 20px;
@@ -352,11 +352,16 @@
         align-items: center;
         flex-direction: row;
         justify-content: center;
-        gap: 10px;
+        gap: 15px;
+        padding: 15px 0;
+        border-top: 1px solid #f3f4f6;
+        border-bottom: 1px solid #f3f4f6;
+        width: 100%;
     }
 
     .order-actions {
         flex-direction: row;
+        width: 100%;
     }
 
     .btn-action {
@@ -364,6 +369,7 @@
     }
 }
 
+/* Mobile */
 @media (max-width: 640px) {
     .stats-grid {
         grid-template-columns: 1fr;
@@ -377,8 +383,17 @@
     .search-box {
         width: 100%;
     }
+    
+    .filter-tabs {
+        padding-bottom: 10px;
+    }
 
     .order-actions {
         flex-direction: column;
+    }
+    
+    .order-price-col {
+        flex-direction: column;
+        gap: 5px;
     }
 }
