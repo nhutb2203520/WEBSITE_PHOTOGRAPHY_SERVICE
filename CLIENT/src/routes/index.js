@@ -1,10 +1,7 @@
 import { lazy } from 'react';
 
 const routes = [
-  {
-    path: '*',
-    component: lazy(() => import('../NotFound'))
-  },
+  // --- HOME & AUTH ---
   {
     path: '/',
     component: lazy(() => import('../components/HomePageCustomer/HomePageCustomer'))
@@ -25,43 +22,58 @@ const routes = [
     path: '/my-account',
     component: lazy(() => import('../components/Account/MyAccount'))
   },
+
+  // --- PHOTOGRAPHER MANAGEMENT (STATIC ROUTES - PHẢI ĐẶT TRƯỚC ROUTE ĐỘNG) ---
+  // ⚠️ Đưa các trang quản lý của Photographer lên trên cùng để tránh xung đột
   {
-    path: '/photographers',
-    component: lazy(() => import('../components/PhotographerPage/Photographer'))
+    path: '/photographer/orders-manage',
+    component: lazy(() => import('../components/PhotographerPage/PhotographerOrderManagement'))
   },
   {
-    path: '/photographer/:username',
-    component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
-  },
-  {
-    path: '/service-package',
-    component: lazy(() => import('../components/ServicePakage/ServicePakage'))
-  },
-  // ✅ Service Package Detail Route
-  {
-    path: '/package/:id',
-    component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
-  },
-  // ✅ Order Service Route
-  {
-    path: '/order-service',
-    component: lazy(() => import('../components/Order/OrderService'))
-  },
-  // ✅ Payment Route
-  {
-    path: '/payment',
-    component: lazy(() => import('../components/Payment/PaymentServicePackage'))
+    path: '/photographer/schedule',
+    component: lazy(() => import('../components/PhotographerPage/Schedule'))
   },
   {
     path: '/my-packages',
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
-  // ✅ My Orders Route
+
+  // --- PUBLIC PHOTOGRAPHER PAGES ---
+  {
+    path: '/photographers',
+    component: lazy(() => import('../components/PhotographerPage/Photographer'))
+  },
+  // ⚠️ Route động :username phải đặt SAU các route /photographer/khác
+  {
+    path: '/photographer/:username',
+    component: lazy(() => import('../components/PhotographerPage/PhotographerDetail'))
+  },
+
+  // --- SERVICES & PACKAGES ---
+  {
+    path: '/service-package',
+    component: lazy(() => import('../components/ServicePakage/ServicePakage'))
+  },
+  {
+    path: '/package/:id',
+    component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
+  },
+
+  // --- ORDERS & PAYMENT ---
+  {
+    path: '/order-service',
+    component: lazy(() => import('../components/Order/OrderService'))
+  },
+  {
+    path: '/payment',
+    component: lazy(() => import('../components/Payment/PaymentServicePackage'))
+  },
   {
     path: '/my-orders',
     component: lazy(() => import('../components/Order/MyOrder'))
   },
-  // ✅ FIX LỖI: Trỏ đúng về thư mục PhotographerPage
+
+  // --- GENERAL PAGES ---
   {
     path: '/workprofile/:id',
     component: lazy(() => import('../components/WorksProfile/WorkProfileDetail'))
@@ -96,12 +108,12 @@ const routes = [
     path: '/admin/order-manage',
     component: lazy(() => import('../admin/AdminPage/OrderManage'))
   },
-  {
-    path: '/photographer/schedule',
-    component: lazy(() => import('../components/PhotographerPage/Schedule'))
-  },
-  
 
+  // --- 404 NOT FOUND (Nên để cuối cùng) ---
+  {
+    path: '*',
+    component: lazy(() => import('../NotFound'))
+  },
 ];
 
 export default routes;

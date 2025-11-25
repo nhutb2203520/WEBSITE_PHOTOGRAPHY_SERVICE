@@ -5,13 +5,16 @@ const orderApi = {
   // 📦 Tạo đơn hàng mới
   createOrder: (data) => axiosUser.post(`${ORDER_URL}`, data),
   
-  // 📋 Lấy danh sách đơn hàng của tôi
+  // 📋 Lấy danh sách đơn hàng của tôi (Dành cho KHÁCH HÀNG)
   getMyOrders: () => axiosUser.get(`${ORDER_URL}/my-orders`),
+
+  // 📸 [MỚI] Lấy danh sách đơn hàng (Dành riêng cho PHOTOGRAPHER)
+  getPhotographerOrders: () => axiosUser.get(`${ORDER_URL}/photographer/list`),
   
   // 🔍 Lấy chi tiết đơn hàng
   getOrderDetail: (orderId) => axiosUser.get(`${ORDER_URL}/${orderId}`),
   
-  // 🔄 Cập nhật trạng thái (Dành cho luồng xử lý khác nếu cần)
+  // 🔄 Cập nhật trạng thái (Dành cho Photographer/Admin xác nhận/hủy/hoàn thành)
   updateOrderStatus: (orderId, status, note = "") =>
     axiosUser.put(`${ORDER_URL}/${orderId}/status`, { status, note }),
 
@@ -19,7 +22,7 @@ const orderApi = {
   calculateTravelFee: (packageId, lat, lng) =>
     axiosUser.post(`${ORDER_URL}/calculate-travel-fee`, { packageId, lat, lng }),
 
-  // ✅ XÁC NHẬN THANH TOÁN
+  // ✅ XÁC NHẬN THANH TOÁN (Có upload ảnh)
   confirmPayment: (orderId, formData) => {
     return axiosUser.post(`${ORDER_URL}/${orderId}/confirm-payment`, formData, {
       headers: { 
@@ -28,7 +31,7 @@ const orderApi = {
     });
   },
 
-  // 📷 Upload ảnh bằng chứng
+  // 📷 Upload ảnh bằng chứng (API phụ nếu cần tách riêng)
   uploadPaymentProof: (orderId, formData) => 
     axiosUser.post(`${ORDER_URL}/${orderId}/upload-proof`, formData, {
       headers: { 

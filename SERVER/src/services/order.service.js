@@ -119,14 +119,11 @@ export const createOrder = async (params) => {
     status: "pending_payment"
   });
   
-  // ❌ ĐÃ XÓA: Không tăng lượt đặt ở đây nữa
-  // await pkg.incrementBooking(); 
-
   return newOrder;
 };
 
 // ✅ HÀM CẬP NHẬT TRẠNG THÁI & LOGIC TỰ ĐỘNG
-export const updateOrderStatus = async (orderId, status, userId = null, note = "") => {
+export const updateOrderStatus = async (orderId, status, userId = null, note = "", extraData = {}) => {
   if (!VALID_STATUSES.includes(status)) throw new Error(`Trạng thái không hợp lệ: ${status}`);
   
   let order = await Orders.findOne({ order_id: orderId });
@@ -135,9 +132,8 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
 
   // --- LOGIC TỰ ĐỘNG ---
 
-  // 1. Admin xác nhận đơn hàng (confirmed) -> Tăng lượt đặt cho gói dịch vụ
+  // 1. Admin xác nhận đơn hàng (confirmed) -> Tăng lượt đặt
   if (status === 'confirmed' && order.status !== 'confirmed') {
-      // ✅ MỚI: Chỉ tăng khi đơn được xác nhận
       await ServicePackage.findByIdAndUpdate(
           order.service_package_id, 
           { $inc: { SoLuongDaDat: 1 } }
@@ -158,11 +154,16 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
       note = note || `Đã thanh toán đủ. Hạn chót giao ảnh: ${deadline.toLocaleDateString('vi-VN')}`;
   }
 
-  // 3. Photographer giao hàng (delivered) -> Check trễ hạn
+  // 3. Photographer giao hàng (delivered) -> Cần có link sản phẩm
   if (status === 'delivered') {
       order.delivery_info.delivered_at = new Date();
       
-      // Nếu ngày giao > deadline -> Đánh dấu trễ
+      // Nếu có link ảnh được gửi kèm (extraData)
+      if (extraData.product_link) {
+          order.delivery_info.product_link = extraData.product_link;
+      }
+
+      // Check trễ hạn
       if (order.delivery_info.deadline && new Date() > order.delivery_info.deadline) {
           order.delivery_info.status = 'late';
           note += " (Giao trễ hạn - Khách có quyền khiếu nại)";
@@ -270,7 +271,11 @@ export const submitReview = async (orderId, rating, comment, userId) => {
 export const getOrdersByCustomer = async (cid) => Orders.find({ customer_id: cid }).populate("service_package_id").sort({ createdAt: -1 });
 
 export const getOrderByOrderId = async (oid) => {
-    let order = await Orders.findOne({ order_id: oid }).populate("service_package_id").populate("payment_info.payment_method_id");
+    // populate photographer_id để lấy tên thợ nếu cần
+    let order = await Orders.findOne({ order_id: oid })
+        .populate("service_package_id")
+        .populate({path: "photographer_id", model: "bangKhachHang", select: "HoTen"});
+        
     if(!order) order = await Orders.findById(oid).populate("service_package_id");
     return order;
 };

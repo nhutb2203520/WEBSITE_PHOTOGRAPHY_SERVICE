@@ -13,8 +13,7 @@ import {
   Search,
   XCircle,
   DollarSign,
-  Clock,
-  Wallet // ✅ Đã thêm Wallet vào đây để sửa lỗi
+  Wallet // ✅ Icon Wallet
 } from "lucide-react";
 
 import paymentMethodService from "../../apis/paymentMethodService";
@@ -37,6 +36,7 @@ export default function PaymentManage() {
     "pending": "info",                  // Khách đã chuyển cọc -> Cần Admin duyệt
     "confirmed": "success",             // Đã cọc -> Chờ chụp/Thanh toán nốt
     "final_payment_pending": "purple",  // Khách đã chuyển khoản cuối -> Chờ duyệt
+    "processing": "blue",               // ✅ MỚI: Đã thanh toán đủ -> Đang hậu kỳ
     "completed": "success",             // Hoàn thành
     "cancelled": "danger"
   };
@@ -46,6 +46,7 @@ export default function PaymentManage() {
     "pending": "Chờ duyệt cọc",
     "confirmed": "Đã cọc (Chờ chụp)",
     "final_payment_pending": "Chờ duyệt TT cuối",
+    "processing": "Đang xử lý (Hậu kỳ)", // ✅ MỚI
     "completed": "Hoàn thành",
     "cancelled": "Đã hủy"
   };
@@ -88,7 +89,6 @@ export default function PaymentManage() {
       const rawOrders = ordersRes.data?.data || ordersRes.data || [];
 
       const formattedOrders = rawOrders.map((order) => {
-        // Vẫn lấy thông tin để hiển thị trong Modal hoặc Search (ẩn khỏi bảng)
         const customerName = order.customer_id?.HoTen || order.customer_id?.full_name || "Khách hàng";
         
         const deposit = order.deposit_required || 0;
@@ -109,7 +109,7 @@ export default function PaymentManage() {
         return {
           id: order._id,
           displayId: order.order_id,
-          customer: customerName, // Giữ lại để search
+          customer: customerName,
           
           totalAmount: formatCurrency(total),
           depositAmount: formatCurrency(deposit),
@@ -123,9 +123,9 @@ export default function PaymentManage() {
         };
       });
 
-      // Sắp xếp
+      // Sắp xếp ưu tiên các đơn cần duyệt lên đầu
       const sortedOrders = formattedOrders.sort((a, b) => {
-         const priority = { 'pending': 1, 'final_payment_pending': 1, 'confirmed': 3, 'completed': 4, 'cancelled': 5 };
+         const priority = { 'pending': 1, 'final_payment_pending': 1, 'confirmed': 3, 'processing': 4, 'completed': 5, 'cancelled': 6 };
          return (priority[a.rawStatus] || 99) - (priority[b.rawStatus] || 99);
       });
 
@@ -139,7 +139,7 @@ export default function PaymentManage() {
     }
   };
 
-  // --- LOGIC XÁC NHẬN ---
+  // --- LOGIC XÁC NHẬN (ĐÃ FIX) ---
   const openConfirmModal = (order) => {
     setSelectedOrder(order);
     setModalOpen(true);
@@ -156,8 +156,9 @@ export default function PaymentManage() {
          nextStatus = "confirmed";
          message = "Đã xác nhận tiền cọc thành công!";
       } else if (selectedOrder.rawStatus === "final_payment_pending") {
-         nextStatus = "completed";
-         message = "Đã xác nhận thanh toán đủ. Đơn hàng hoàn thành!";
+         // ✅ FIX: Chuyển sang 'processing' để hệ thống tính deadline và cho thợ làm ảnh
+         nextStatus = "processing"; 
+         message = "Đã xác nhận thanh toán đủ. Đơn hàng chuyển sang giai đoạn hậu kỳ!";
       } else {
          toast.warning("Trạng thái không hợp lệ.");
          return;
@@ -173,6 +174,8 @@ export default function PaymentManage() {
       
       toast.success(message);
       setModalOpen(false);
+      
+      // Refresh lại data để đảm bảo đồng bộ
       fetchData(); 
 
     } catch (error) {
@@ -278,7 +281,6 @@ export default function PaymentManage() {
                 <div className="card-header">
                   <strong className="card-title">
                     <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                        {/* ✅ Đã import Wallet, không còn lỗi nữa */}
                         <Wallet size={18} className="text-blue-600"/>
                         {m.fullName || "Tài khoản mới"}
                     </div>
@@ -388,7 +390,8 @@ export default function PaymentManage() {
                         </button>
                       ) : (
                         <span className="text-muted text-xs italic">
-                            {p.rawStatus === 'completed' ? 'Đã hoàn tất' : '-'}
+                            {p.rawStatus === 'completed' ? 'Đã hoàn tất' : 
+                             p.rawStatus === 'processing' ? 'Đang hậu kỳ' : '-'}
                         </span>
                       )}
                     </td>
@@ -426,9 +429,14 @@ export default function PaymentManage() {
                       </div>
                   </div>
 
+                  {/* ✅ FIX: Hiển thị đúng trạng thái sẽ chuyển đến */}
                   <p className="text-sm text-gray-500 italic">
-                      Hành động này sẽ chuyển trạng thái sang:
-                      <strong> {selectedOrder.rawStatus === 'pending' ? '"Đã cọc"' : '"Hoàn thành"'} </strong>
+                      Hành động này sẽ chuyển trạng thái sang: <br/>
+                      <strong> 
+                        {selectedOrder.rawStatus === 'pending' 
+                            ? '"Đã cọc" (Sẵn sàng chụp)' 
+                            : '"Đang xử lý" (Bắt đầu hậu kỳ & Giao hàng)'} 
+                      </strong>
                   </p>
               </div>
 

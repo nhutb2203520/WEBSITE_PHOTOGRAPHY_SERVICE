@@ -38,15 +38,22 @@ const upload = multer({
 
 // ==================== DEFINING ROUTES ====================
 
+// 1. Tính phí & Tạo đơn
 router.post("/calculate-travel-fee", verifyTokenUser, orderController.calculateTravelFee);
 router.post("/", verifyTokenUser, orderController.createOrder);
 
-// ✅ QUAN TRỌNG: Route này gọi controller getMyOrders mới
+// 2. Route dành cho KHÁCH HÀNG (Xem đơn mình đặt)
 router.get("/my-orders", verifyTokenUser, orderController.getMyOrders);
 
+// 3. ✅ Route dành riêng cho PHOTOGRAPHER (Xem đơn mình nhận)
+router.get("/photographer/list", verifyTokenUser, orderController.getMyOrdersPhotographer);
+router.get("/photographer/detail/:orderId", verifyTokenUser, orderController.getOrderDetailPhotographer);
+
+// 4. Chi tiết & Cập nhật trạng thái chung
 router.get("/:orderId", verifyTokenUser, orderController.getOrderDetail);
 router.put("/:orderId/status", verifyTokenUser, orderController.updateOrderStatus);
 
+// 5. Xác nhận thanh toán (Upload ảnh)
 router.post(
   '/:orderId/confirm-payment',
   verifyTokenUser, 
@@ -54,6 +61,7 @@ router.post(
   orderController.confirmPayment
 );
 
+// 6. Khiếu nại & Đánh giá
 router.post("/:orderId/complaint", verifyTokenUser, orderController.submitComplaint);
 router.post("/:orderId/review", verifyTokenUser, orderController.submitReview);
 router.put("/:orderId/resolve-complaint", verifyTokenUser, orderController.resolveComplaint);

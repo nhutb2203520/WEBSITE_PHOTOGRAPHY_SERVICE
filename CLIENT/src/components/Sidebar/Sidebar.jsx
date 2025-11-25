@@ -31,7 +31,7 @@ export default function Sidebar() {
 
   // Menu bổ sung cho Photographer (Đã tách riêng Lịch & Đơn)
   const photographerMenuItems = [
-    { path: '/photographer/orders', icon: <CalendarCheck size={24} />, label: 'Quản lý đơn đặt', badge: 'NEW' },
+    { path: '/photographer/orders-manage', icon: <CalendarCheck size={24} />, label: 'Quản lý đơn đặt', badge: 'NEW' },
     { path: '/photographer/schedule', icon: <CalendarDays size={24} />, label: 'Lịch trình', badge: null },
     { path: '/photographer/my-services', icon: <Package size={24} />, label: 'Quản lý gói chụp', badge: null },
   ];
