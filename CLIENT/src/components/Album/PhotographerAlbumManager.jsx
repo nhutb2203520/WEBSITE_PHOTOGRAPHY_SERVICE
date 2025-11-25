@@ -1,207 +1,339 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Image as ImageIcon, Calendar, User, ArrowRight, UploadCloud, Eye } from 'lucide-react';
-import axiosUser from '../../apis/axiosUser';
-import Header from '../Header/Header';
-import Sidebar from '../Sidebar/Sidebar';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import './Album.css'; 
+import { 
+    ArrowLeft, Calendar, MapPin, Clock, User, Package, 
+    UploadCloud, Trash2, Edit2, Save, X, Image as ImageIcon 
+} from 'lucide-react';
+
+// Import API
+import albumApi from '../../apis/albumApi'; // Hoặc đường dẫn tới file albumApi bạn gửi
+import orderApi from '../../apis/orderService';
+import './PhotographerAlbumManager.css';
 
 export default function PhotographerAlbumManager() {
+    const { orderId } = useParams();
     const navigate = useNavigate();
-    const [albums, setAlbums] = useState([]);
+    const fileInputRef = useRef(null);
+
+    // State
+    const [order, setOrder] = useState(null);
+    const [album, setAlbum] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    
-    // State form tạo mới (Job ngoài)
-    const [newAlbumData, setNewAlbumData] = useState({ title: '', client_name: '', description: '' });
+    const [uploading, setUploading] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ title: '', description: '' });
 
     useEffect(() => {
-        fetchMyAlbums();
-    }, []);
+        fetchData();
+    }, [orderId]);
 
-    const fetchMyAlbums = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            const res = await axiosUser.get('/albums/my-albums'); // API lấy danh sách album của thợ
-            // Lưu ý: Backend cần trả về cả những đơn hàng CHƯA CÓ album (để hiện nút Giao ảnh)
-            // Nếu backend chỉ trả về album đã tạo, bạn cần gọi thêm API lấy danh sách đơn hàng.
-            
-            // Giả sử API này trả về list mixed (Album đã tạo + Đơn hàng chưa tạo album)
-            // Hoặc bạn phải tự merge ở frontend. 
-            // Ở đây tôi giả định data trả về là danh sách ALBUM ĐÃ TẠO.
-            setAlbums(res.data?.data || []);
+            console.log("🚀 Bắt đầu tải dữ liệu cho đơn:", orderId);
+
+            // Gọi song song API
+            const [orderRes, albumRes] = await Promise.all([
+                orderApi.getOrderDetail(orderId).catch((err) => {
+                    console.error("Lỗi Order:", err);
+                    return null;
+                }),
+                albumApi.getAlbumDetail(orderId).catch((err) => {
+                    console.warn("Lỗi Album (có thể chưa có):", err);
+                    return null;
+                })
+            ]);
+
+            // --- XỬ LÝ ORDER ---
+            if (orderRes) {
+                // Kiểm tra linh hoạt cấu trúc trả về (có thể qua interceptor hoặc không)
+                const orderData = orderRes.data?.data || orderRes.data || orderRes;
+                setOrder(orderData);
+            }
+
+            // --- XỬ LÝ ALBUM (QUAN TRỌNG) ---
+            console.log("📦 Raw Album Response:", albumRes); // Xem log này trên Chrome Console (F12)
+
+            let finalAlbumData = null;
+
+            if (albumRes) {
+                // Trường hợp 1: Axios chuẩn (response.data.data) -> Backend trả về { success: true, data: {...} }
+                if (albumRes.data && albumRes.data.data) {
+                    finalAlbumData = albumRes.data.data;
+                } 
+                // Trường hợp 2: Axios Interceptor đã lấy data (res.data) -> Backend trả về { success: true, data: {...} }
+                else if (albumRes.success === true && albumRes.data) {
+                    finalAlbumData = albumRes.data;
+                }
+                // Trường hợp 3: Backend trả về object Album trực tiếp (ít gặp nhưng đề phòng)
+                else if (albumRes.data && albumRes.data._id) {
+                    finalAlbumData = albumRes.data;
+                }
+            }
+
+            if (finalAlbumData) {
+                console.log("✅ Đã set Album vào State:", finalAlbumData);
+                setAlbum(finalAlbumData);
+                setEditData({ 
+                    title: finalAlbumData.title || '', 
+                    description: finalAlbumData.description || '' 
+                });
+            } else {
+                console.warn("⚠️ Không tìm thấy data album hợp lệ trong response.");
+                setAlbum(null);
+            }
+
         } catch (error) {
-            console.error(error);
-            toast.error("Lỗi tải danh sách album");
+            console.error("❌ Lỗi tải dữ liệu tổng quát:", error);
+            toast.error("Không thể tải thông tin chi tiết.");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCreateFreelance = async () => {
-        if(!newAlbumData.title) return toast.warning("Nhập tên album!");
+    // 1. Upload ảnh
+    const handleFileChange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        files.forEach(file => formData.append('photos', file));
+        
+        if (!album) {
+            formData.append('title', `Album đơn hàng #${order?.order_id}`);
+            formData.append('description', `Ảnh chụp cho khách hàng ${order?.customer_id?.HoTen || ''}`);
+        }
+
         try {
-            await axiosUser.post('/albums/freelance', newAlbumData);
-            toast.success("Tạo album thành công!");
-            setShowCreateModal(false);
-            setNewAlbumData({ title: '', client_name: '', description: '' });
-            fetchMyAlbums(); 
+            setUploading(true);
+            // Sử dụng albumApi
+            const res = await albumApi.uploadPhotos(orderId, formData);
+            
+            toast.success(`Đã tải lên ${files.length} ảnh thành công!`);
+            setAlbum(res.data.data);
+            setEditData({ title: res.data.data.title, description: res.data.data.description });
+            
+            if(fileInputRef.current) fileInputRef.current.value = '';
         } catch (error) {
-            toast.error("Lỗi tạo album");
+            console.error(error);
+            toast.error("Lỗi khi tải ảnh lên.");
+        } finally {
+            setUploading(false);
         }
     };
 
-    // Xử lý điều hướng thông minh
-    const handleAction = (item) => {
-        // Nếu item là một Album đã tồn tại
-        if (item._id && item.photos) {
-             // Dùng order_id nếu có (để URL đẹp), không thì dùng _id
-             const idParam = item.type === 'order' ? item.order_id : item._id;
-             navigate(`/albums/detail/${idParam}`);
-        } 
-        // Nếu item là một Đơn hàng chưa có Album (Giả sử bạn merge list)
-        else if (item.order_id) {
-             navigate(`/albums/detail/${item.order_id}`); // Trang Album.jsx sẽ tự hiện form tạo
+    // 2. Xóa 1 ảnh
+    const handleDeletePhoto = async (photoId) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
+        try {
+            await albumApi.deletePhoto(orderId, photoId);
+            
+            setAlbum(prev => ({
+                ...prev,
+                photos: prev.photos.filter(p => p._id !== photoId)
+            }));
+            toast.success("Đã xóa ảnh.");
+        } catch (error) {
+            toast.error("Lỗi khi xóa ảnh.");
         }
     };
+
+    // 3. Cập nhật thông tin
+    const handleSaveInfo = async () => {
+        try {
+            await albumApi.updateAlbumInfo(orderId, editData);
+            setAlbum(prev => ({ ...prev, ...editData }));
+            setIsEditing(false);
+            toast.success("Cập nhật thông tin thành công!");
+        } catch (error) {
+            toast.error("Lỗi cập nhật thông tin.");
+        }
+    };
+
+    // 4. Xóa toàn bộ Album
+    const handleDeleteAlbum = async () => {
+        if (!window.confirm("CẢNH BÁO: Xóa album sẽ mất toàn bộ ảnh. Bạn chắc chắn không?")) return;
+        try {
+            await albumApi.deleteAlbum(orderId);
+            setAlbum(null);
+            toast.success("Đã xóa album thành công.");
+        } catch (error) {
+            toast.error("Lỗi khi xóa album.");
+        }
+    };
+
+    if (loading) return <div className="pam-loading">Đang tải dữ liệu...</div>;
+    if (!order) return <div className="pam-error">Không tìm thấy đơn hàng!</div>;
 
     return (
-        <>
-            <Header />
-            <div style={{ display: 'flex' }}>
-                <Sidebar />
-                <div style={{ flex: 1, padding: '30px', background: '#f8fafc', minHeight: '100vh' }}>
-                    
-                    <div className="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Kho Album Ảnh</h1>
-                            <p className="text-gray-500 text-sm mt-1">Quản lý tất cả album khách hàng và job ngoài</p>
-                        </div>
-                        <button 
-                            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-md transition-all"
-                            onClick={() => setShowCreateModal(true)}
-                        >
-                            <Plus size={20} /> Tạo Job Ngoài
-                        </button>
-                    </div>
+        <div className="pam-container">
+            <div className="pam-header">
+                <button onClick={() => navigate(-1)} className="btn-back">
+                    <ArrowLeft size={20} /> Quay lại
+                </button>
+                <h1>Chi tiết quản lý đơn hàng</h1>
+            </div>
 
-                    {/* Modal Tạo Nhanh */}
-                    {showCreateModal && (
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-xl w-96 shadow-2xl animate-fade-in">
-                                <h3 className="text-lg font-bold mb-4 text-gray-800">Tạo Album Job Ngoài</h3>
-                                <div className="space-y-3">
-                                    <input 
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none" 
-                                        placeholder="Tên Album (VD: Kỷ yếu lớp 12A)"
-                                        value={newAlbumData.title}
-                                        onChange={e => setNewAlbumData({...newAlbumData, title: e.target.value})}
-                                    />
-                                    <input 
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none" 
-                                        placeholder="Tên khách hàng (VD: Chị Lan)"
-                                        value={newAlbumData.client_name}
-                                        onChange={e => setNewAlbumData({...newAlbumData, client_name: e.target.value})}
-                                    />
-                                    <textarea 
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none" 
-                                        placeholder="Mô tả..."
-                                        rows={3}
-                                        value={newAlbumData.description}
-                                        onChange={e => setNewAlbumData({...newAlbumData, description: e.target.value})}
-                                    />
+            <div className="pam-content">
+                {/* CỘT TRÁI: THÔNG TIN */}
+                <div className="pam-sidebar">
+                    <div className="info-card">
+                        <h3 className="card-title">Thông tin đơn hàng</h3>
+                        <div className="info-row">
+                            <span className="label">Mã đơn:</span>
+                            <span className="value highlight">#{order.order_id}</span>
+                        </div>
+                        
+                        <div className="info-group">
+                            <div className="info-item">
+                                <User size={16} className="icon"/>
+                                <div>
+                                    <p className="sub-label">Khách hàng</p>
+                                    <p className="main-text">{order.customer_id?.HoTen || "Khách vãng lai"}</p>
+                                    <p className="sub-text">{order.customer_id?.Email}</p>
                                 </div>
-                                <div className="flex justify-end gap-3 mt-6">
-                                    <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Hủy</button>
-                                    <button onClick={handleCreateFreelance} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Tạo mới</button>
+                            </div>
+                            <div className="info-item">
+                                <Package size={16} className="icon"/>
+                                <div>
+                                    <p className="sub-label">Gói dịch vụ</p>
+                                    <p className="main-text">{order.service_package_id?.TenGoi}</p>
+                                </div>
+                            </div>
+                            <div className="info-item">
+                                <Calendar size={16} className="icon"/>
+                                <div>
+                                    <p className="sub-label">Thời gian chụp</p>
+                                    <p className="main-text">
+                                        {new Date(order.booking_date).toLocaleDateString('vi-VN')} - {order.start_time}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="info-item">
+                                <MapPin size={16} className="icon"/>
+                                <div>
+                                    <p className="sub-label">Địa điểm</p>
+                                    <p className="main-text">{order.location?.district || "N/A"}</p>
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {/* Grid Album */}
-                    {loading ? (
-                        <div className="text-center py-20 text-gray-400">Đang tải dữ liệu...</div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {albums.map(album => {
-                                const hasPhotos = album.photos && album.photos.length > 0;
-                                const isOrder = album.type === 'order';
-                                
-                                return (
-                                    <div 
-                                        key={album._id} 
-                                        className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 flex flex-col"
-                                        onClick={() => handleAction(album)}
-                                    >
-                                        {/* Thumbnail Area */}
-                                        <div className="h-48 bg-gray-100 relative overflow-hidden">
-                                            {hasPhotos ? (
-                                                <img 
-                                                    src={album.photos[0].url} 
-                                                    alt="" 
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                                                />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-50">
-                                                    <UploadCloud size={40} className="mb-2 opacity-50"/>
-                                                    <span className="text-xs font-medium">Chưa có ảnh</span>
-                                                </div>
-                                            )}
-                                            
-                                            {/* Badge Loại Album */}
-                                            <span className={`absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full font-medium shadow-sm text-white ${isOrder ? 'bg-indigo-500' : 'bg-pink-500'}`}>
-                                                {isOrder ? 'Đơn hàng' : 'Freelance'}
-                                            </span>
+                        <div className="price-box">
+                            <span>Tổng tiền:</span>
+                            <span className="price-value">
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.final_amount)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-                                            {/* Overlay Action khi hover */}
-                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                <button className="bg-white text-gray-900 px-4 py-2 rounded-full font-medium flex items-center gap-2 hover:bg-gray-100 transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                                                    {hasPhotos ? <><Eye size={16}/> Xem Album</> : <><UploadCloud size={16}/> Giao Ảnh Ngay</>}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Info Area */}
-                                        <div className="p-5 flex-1 flex flex-col">
-                                            <h3 className="font-bold text-gray-800 truncate text-lg mb-1">{album.title || "Album chưa đặt tên"}</h3>
-                                            
-                                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                                                <User size={14} /> 
-                                                <span className="truncate">
-                                                    {isOrder ? (album.customer_id?.HoTen || "Khách hàng") : (album.client_name || "Khách lẻ")}
-                                                </span>
-                                            </div>
-
-                                            <div className="mt-auto flex items-center justify-between text-xs text-gray-400 pt-4 border-t border-gray-50">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Calendar size={12} /> 
-                                                    {new Date(album.createdAt).toLocaleDateString('vi-VN')}
-                                                </div>
-                                                <div className={`font-medium px-2 py-0.5 rounded ${hasPhotos ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
-                                                    {album.photos?.length || 0} ảnh
-                                                </div>
-                                            </div>
+                {/* CỘT PHẢI: ALBUM */}
+                <div className="pam-main">
+                    <div className="album-header-card">
+                        {!album ? (
+                            <div className="no-album-state">
+                                <h2>Chưa có Album ảnh</h2>
+                                <p>Hãy tải lên những bức ảnh đầu tiên để tạo Album cho đơn hàng này.</p>
+                            </div>
+                        ) : (
+                            <div className="album-info">
+                                {isEditing ? (
+                                    <div className="edit-form">
+                                        <input 
+                                            type="text" className="edit-input title"
+                                            value={editData.title}
+                                            onChange={(e) => setEditData({...editData, title: e.target.value})}
+                                            placeholder="Tên Album"
+                                        />
+                                        <textarea 
+                                            className="edit-input desc"
+                                            value={editData.description}
+                                            onChange={(e) => setEditData({...editData, description: e.target.value})}
+                                            placeholder="Mô tả album..."
+                                        />
+                                        <div className="edit-actions">
+                                            <button onClick={handleSaveInfo} className="btn-save"><Save size={16}/> Lưu</button>
+                                            <button onClick={() => setIsEditing(false)} className="btn-cancel"><X size={16}/> Hủy</button>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                    
-                    {/* Empty State */}
-                    {!loading && albums.length === 0 && (
-                        <div className="text-center py-20">
-                            <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <ImageIcon size={40} className="text-gray-400"/>
+                                ) : (
+                                    <div className="view-info">
+                                        <div className="title-row">
+                                            <h2>{album.title}</h2>
+                                            <button onClick={() => setIsEditing(true)} className="btn-icon-edit"><Edit2 size={16}/></button>
+                                        </div>
+                                        <p className="album-desc">{album.description || "Chưa có mô tả"}</p>
+                                        <p className="album-meta">
+                                            {album.photos?.length || 0} ảnh • Tạo ngày {new Date(album.createdAt).toLocaleDateString('vi-VN')}
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="album-actions-top">
+                                    <button onClick={handleDeleteAlbum} className="btn-delete-album">
+                                        <Trash2 size={16}/> Xóa Album
+                                    </button>
+                                </div>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-700">Chưa có album nào</h3>
-                            <p className="text-gray-500 mt-2">Tạo album mới hoặc chờ đơn hàng hoàn thành để bắt đầu.</p>
+                        )}
+                    </div>
+
+                    {/* Photos Grid */}
+                    <div className="photos-container">
+                        <div className="upload-zone">
+                            <input 
+                                type="file" multiple accept="image/*" 
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                style={{ display: 'none' }}
+                                id="upload-input"
+                            />
+                            <label htmlFor="upload-input" className={`upload-label ${uploading ? 'disabled' : ''}`}>
+                                {uploading ? (
+                                    <span>Đang tải lên...</span>
+                                ) : (
+                                    <>
+                                        <UploadCloud size={24}/>
+                                        <span>Thêm ảnh mới</span>
+                                    </>
+                                )}
+                            </label>
                         </div>
-                    )}
+
+                        {album && album.photos && album.photos.length > 0 ? (
+                            <div className="photo-grid">
+                                {album.photos.map((photo) => (
+                                    <div key={photo._id} className="photo-item group">
+                                        <img 
+                                            src={photo.url.startsWith('http') ? photo.url : `http://localhost:5000${photo.url}`} 
+                                            alt={photo.filename} 
+                                            loading="lazy"
+                                        />
+                                        <div className="photo-overlay">
+                                            <span className="photo-name">{photo.filename}</span>
+                                            <button 
+                                                className="btn-delete-photo" 
+                                                onClick={() => handleDeletePhoto(photo._id)}
+                                                title="Xóa ảnh này"
+                                            >
+                                                <Trash2 size={16} color="white"/>
+                                            </button>
+                                        </div>
+                                        {photo.is_selected && (
+                                            <span className="selected-badge" title="Khách đã chọn ảnh này">⭐</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="empty-photos">
+                                <ImageIcon size={48} className="text-gray-300 mb-2"/>
+                                <p>Chưa có ảnh nào trong album.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 }

@@ -2,7 +2,8 @@ import Order from "../models/order.model.js";
 import ServicePackage from "../models/servicePackage.model.js";
 import Review from "../models/review.model.js";
 import Schedule from "../models/schedule.model.js";
-import mongoose from "mongoose"; // ✅ Đã import mongoose để check ID
+import Album from "../models/album.model.js"; // ✅ Import Album để check trạng thái
+import mongoose from "mongoose"; 
 import orderService from "../services/order.service.js";
 
 // ==============================================================================
@@ -125,12 +126,13 @@ export const getMyOrders = async (req, res) => {
 };
 
 // ==============================================================================
-// 📸 [MỚI] LẤY DANH SÁCH ĐƠN CỦA PHOTOGRAPHER (Dành Riêng Cho Thợ)
+// 📸 [CẬP NHẬT] LẤY DANH SÁCH ĐƠN CỦA PHOTOGRAPHER (Kèm trạng thái Album)
 // ==============================================================================
 export const getMyOrdersPhotographer = async (req, res) => {
     try {
         const userId = req.user._id || req.user.id;
 
+        // 1. Lấy danh sách đơn hàng
         const orders = await Order.find({ photographer_id: userId })
             .populate({
                 path: "service_package_id",
@@ -143,10 +145,20 @@ export const getMyOrdersPhotographer = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
+        // 2. Kiểm tra trạng thái Album cho từng đơn hàng
+        const ordersWithAlbumStatus = await Promise.all(orders.map(async (order) => {
+            const album = await Album.findOne({ order_id: order._id }).select('_id status');
+            return {
+                ...order.toObject(),
+                has_album: !!album, // true nếu đã có album
+                album_id: album?._id
+            };
+        }));
+
         res.status(200).json({
             success: true,
             message: "Danh sách đơn hàng của thợ",
-            data: orders
+            data: ordersWithAlbumStatus
         });
     } catch (error) {
         console.error("❌ Photographer orders error:", error);
@@ -155,7 +167,7 @@ export const getMyOrdersPhotographer = async (req, res) => {
 };
 
 // ==============================================================================
-// 📸 [MỚI] LẤY CHI TIẾT ĐƠN CỦA PHOTOGRAPHER (Đã sửa lỗi CastError)
+// 📸 [MỚI] LẤY CHI TIẾT ĐƠN CỦA PHOTOGRAPHER
 // ==============================================================================
 export const getOrderDetailPhotographer = async (req, res) => {
     try {
@@ -217,7 +229,6 @@ export const getOrderDetail = async (req, res) => {
     try {
         const { orderId } = req.params;
 
-        // ✅ Logic tìm kiếm an toàn: Tránh lỗi CastError khi ID là "ORD-..."
         let query = {};
         if (mongoose.Types.ObjectId.isValid(orderId)) {
             query = { $or: [{ order_id: orderId }, { _id: orderId }] };

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Copy, ArrowLeft, Download, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import "./SelectionPhotoManage.css";
-import axiosUser from "../../apis/axiosUser";
+import axiosUser from "../../apis/axiosUser"; // Sử dụng axiosUser để có token
 
 const SelectionPhotoManage = () => {
   const { orderId } = useParams();
@@ -11,17 +11,22 @@ const SelectionPhotoManage = () => {
   
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [albumInfo, setAlbumInfo] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Backend route getAlbum hỗ trợ tìm bằng orderId (như đã cấu hình ở các bước trước)
         const res = await axiosUser.get(`/albums/${orderId}`);
         if (res.data?.data) {
-          // Chỉ lọc ra các ảnh được chọn
-          const selected = res.data.data.photos.filter(p => p.is_selected);
+          const album = res.data.data;
+          setAlbumInfo(album);
+          // Lọc ra các ảnh có is_selected = true
+          const selected = album.photos.filter(p => p.is_selected);
           setPhotos(selected);
         }
       } catch (error) {
+        console.error("Fetch album error:", error);
         toast.error("Lỗi tải dữ liệu album.");
       } finally {
         setLoading(false);
@@ -33,7 +38,7 @@ const SelectionPhotoManage = () => {
   // Tính năng Copy tên file để paste vào Lightroom
   const copyFilenames = () => {
     if (photos.length === 0) return;
-    // Tạo chuỗi tên file cách nhau bởi dấu phẩy hoặc xuống dòng
+    // Tạo chuỗi tên file, bạn có thể chỉnh dấu phân cách (; hoặc , hoặc xuống dòng \n)
     const filenames = photos.map(p => p.filename || p.url.split('/').pop()).join('; ');
     
     navigator.clipboard.writeText(filenames)
@@ -46,14 +51,18 @@ const SelectionPhotoManage = () => {
   return (
     <div className="pm-container">
         <div className="pm-header">
-            <button onClick={() => navigate(-1)} className="pm-back-btn"><ArrowLeft size={18}/> Quay lại</button>
-            <h2>Danh sách khách chọn ({photos.length} ảnh)</h2>
+            <div className="pm-header-left">
+                <button onClick={() => navigate(-1)} className="pm-back-btn"><ArrowLeft size={18}/> Quay lại</button>
+                <div>
+                    <h2>Danh sách khách chọn ({photos.length} ảnh)</h2>
+                    <p className="pm-sub-info">Đơn hàng: #{albumInfo?.order_id || orderId}</p>
+                </div>
+            </div>
+            
             <div className="pm-actions">
                 <button className="btn-copy" onClick={copyFilenames} disabled={photos.length === 0}>
                     <Copy size={16}/> Copy Tên File
                 </button>
-                {/* Nút download demo (nếu cần) */}
-                <button className="btn-download" disabled><Download size={16}/> Tải về (Zip)</button>
             </div>
         </div>
 
@@ -64,7 +73,6 @@ const SelectionPhotoManage = () => {
             </div>
         ) : (
             <div className="pm-list">
-                {/* Hiển thị dạng list để dễ nhìn tên file */}
                 <div className="pm-table-header">
                     <span>Hình ảnh</span>
                     <span>Tên file</span>
@@ -74,7 +82,10 @@ const SelectionPhotoManage = () => {
                     {photos.map((photo) => (
                         <div key={photo._id} className="pm-row">
                             <div className="pm-thumb">
-                                <img src={photo.url} alt="thumb" />
+                                <img 
+                                    src={photo.url.startsWith('http') ? photo.url : `http://localhost:5000${photo.url}`} 
+                                    alt="thumb" 
+                                />
                             </div>
                             <div className="pm-name">
                                 {photo.filename || photo.url.split('/').pop()}

@@ -90,6 +90,12 @@ const routes = [
     path: '/orders/:orderId/manage-selection',
     component: lazy(() => import('../components/Album/SelectionPhotoManage')) 
 },
+{
+    // Dành cho PHOTOGRAPHER xem đơn hàng +album ảnh
+    path: '/photographer/album-manager/:orderId',
+    component: lazy(() => import('../components/Album/PhotographerAlbumManager')) 
+},
+
 
   // --- GENERAL PAGES ---
   {

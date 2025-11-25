@@ -5,7 +5,8 @@ import { toast } from 'react-toastify';
 import {
   Calendar, MapPin, Clock, DollarSign,
   Search, CheckCircle, XCircle, Eye,
-  Briefcase, Image as ImageIcon, FolderOpen
+  Briefcase, Image as ImageIcon, FolderOpen,
+  CheckSquare // Icon cho nút xem file
 } from 'lucide-react';
 
 import orderApi from '../../apis/OrderService';
@@ -52,13 +53,18 @@ export default function PhotographerOrderManagement() {
 
   // --- HÀM XỬ LÝ SỰ KIỆN ---
 
-  const handleDeliverAlbum = (orderId) => {
-    navigate(`/albums/detail/${orderId}`);
+  const handleDeliverAlbum = (order) => {
+      if (order.has_album) {
+          navigate(`/orders/${order.order_id}/manage-selection`);
+      } else {
+          navigate(`/albums/detail/${order.order_id}`);
+      }
   };
 
+  // ✅ CẬP NHẬT: Chuyển đến trang quản lý chi tiết (PhotographerAlbumManager)
   const handleViewDetail = (orderId) => {
-    toast.info(`Xem chi tiết đơn: ${orderId}`);
-    // navigate(`/order-detail/${orderId}`);
+    // Điều hướng đến trang mới chúng ta sắp tạo
+    navigate(`/photographer/album-manager/${orderId}`);
   };
 
   const handleGoToAlbumManager = () => {
@@ -126,31 +132,32 @@ export default function PhotographerOrderManagement() {
         <div className="photographer-order-page" style={{ flex: 1 }}>
           <div className="container">
 
-            <div className="page-header" style={{ flexWrap: 'wrap', gap: '15px' }}>
+            {/* === HEADER SECTION === */}
+            <div className="page-header">
               <div className="page-title">
                 <h1>Quản lý đơn đặt</h1>
                 <p>Xin chào {user?.HoTen}, đây là danh sách các lịch chụp của bạn.</p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <button
-                  className="btn-action"
-                  style={{ background: '#fff', border: '1px solid #ddd', padding: '10px 15px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}
-                  onClick={handleGoToAlbumManager}
-                >
-                  <FolderOpen size={18} color="#4f46e5" /> Kho Album / Job Ngoài
-                </button>
-
-                <div className="search-box" style={{ position: 'relative' }}>
-                  <Search size={20} style={{ position: 'absolute', left: 10, top: 10, color: '#9ca3af' }} />
+              <div className="search-box-wrapper">
+                <div className="search-box">
+                  <Search size={20} className="search-icon" />
                   <input
                     type="text"
                     placeholder="Tìm mã đơn, tên khách..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    style={{ padding: '10px 10px 10px 40px', borderRadius: '8px', border: '1px solid #e5e7eb', minWidth: '250px' }}
                   />
                 </div>
+              </div>
+
+              <div className="header-actions">
+                <button
+                  className="btn-action btn-album-manager"
+                  onClick={handleGoToAlbumManager}
+                >
+                  <FolderOpen size={18} /> Kho Album / Job Ngoài
+                </button>
               </div>
             </div>
 
@@ -208,17 +215,26 @@ export default function PhotographerOrderManagement() {
                     </div>
 
                     <div className="order-actions">
-                      <button className="btn-action btn-view" onClick={() => handleViewDetail(order._id)}>
+                      {/* ✅ Button này giờ sẽ dẫn đến trang PhotographerAlbumManager */}
+                      <button className="btn-action btn-view" onClick={() => handleViewDetail(order.order_id || order._id)}>
                         <Eye size={16} /> Chi tiết
                       </button>
 
                       {canDeliverAlbum(order) && (
                         <button
-                          className="btn-action btn-accept"
-                          style={{ background: '#8b5cf6' }}
-                          onClick={() => handleDeliverAlbum(order.order_id || order._id)}
+                          className="btn-action"
+                          style={{ 
+                            background: order.has_album ? '#10b981' : '#8b5cf6', 
+                            color: 'white',
+                            boxShadow: order.has_album ? '0 4px 6px -1px rgba(16, 185, 129, 0.3)' : '0 4px 6px -1px rgba(139, 92, 246, 0.3)'
+                          }}
+                          onClick={() => handleDeliverAlbum(order)}
                         >
-                          <ImageIcon size={16} /> {order.status === 'delivered' ? 'Xem Album' : 'Giao Album'}
+                          {order.has_album ? (
+                              <><CheckSquare size={16}/> Xem File Chọn</>
+                          ) : (
+                              <><ImageIcon size={16}/> Giao Album</>
+                          )}
                         </button>
                       )}
                     </div>

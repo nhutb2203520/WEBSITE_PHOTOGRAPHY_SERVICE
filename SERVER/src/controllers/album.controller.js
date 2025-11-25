@@ -3,7 +3,10 @@ import albumService from "../services/album.service.js";
 import Album from "../models/album.model.js";
 import Order from "../models/order.model.js";
 
-const isMongoId = (id) => mongoose.Types.ObjectId.isValid(id);
+// ✅ FIX QUAN TRỌNG: Kiểm tra chặt chẽ ID
+// Chỉ chấp nhận chuỗi Hex 24 ký tự (0-9, a-f). 
+// Tránh trường hợp mã "ORD-29DE44A6" (12 ký tự) bị nhận nhầm là ObjectId.
+const isMongoId = (id) => mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
 
 // 1. Tạo Album Freelance
 export const createFreelanceAlbum = async (req, res) => {
@@ -20,7 +23,8 @@ export const createFreelanceAlbum = async (req, res) => {
             description: description || "",
             type: 'freelance',
             status: 'draft',
-            order_id: null
+            order_id: null,
+            photos: []
         });
 
         await newAlbum.save();
@@ -41,15 +45,12 @@ export const getMyAlbums = async (req, res) => {
     }
 };
 
-// 3. UPLOAD ẢNH (QUAN TRỌNG: SỬA LỖI VALIDATION)
+// 3. UPLOAD ẢNH
 export const uploadPhotos = async (req, res) => {
     try {
         const { id } = req.params;
         const photographerId = req.user.id || req.user._id;
         const { title, description } = req.body;
-
-        // Debug log để kiểm tra
-        console.log("🚀 Upload Controller -> User ID:", photographerId);
 
         if (!photographerId) {
             return res.status(401).json({ message: "Lỗi xác thực: Không tìm thấy ID thợ chụp ảnh" });
@@ -60,30 +61,44 @@ export const uploadPhotos = async (req, res) => {
         }
 
         let album = null;
+        
+        // 1. Tìm album (Logic an toàn với regex mới)
         if (isMongoId(id)) {
             album = await Album.findById(id);
             if (!album) album = await Album.findOne({ order_id: id });
+        } 
+        
+        // 2. Nếu chưa thấy -> Tìm thông qua Order
+        if (!album) {
+            // Tìm order theo _id (nếu là hex) hoặc order_id (nếu là string)
+            const orderQuery = isMongoId(id) ? { _id: id } : { order_id: id };
+            const order = await Order.findOne(orderQuery);
+            
+            if (order) {
+                // Dùng ObjectId thật của order để tìm album
+                album = await Album.findOne({ order_id: order._id });
+            }
         }
 
-        // Nếu chưa có album -> Gọi Service tạo mới
+        // 3. Xử lý tạo mới hoặc cập nhật
         if (!album) {
-            // ✅ Đảm bảo truyền đúng thứ tự tham số khớp với Service
             album = await albumService.uploadPhotosToAlbum(
-                id,                 // orderIdParam
-                req.files,          // files
-                photographerId,     // photographerId (Bắt buộc)
-                { title, description } // albumInfo
+                id,                 
+                req.files,          
+                photographerId,     
+                { title, description } 
             );
         } else {
-            // Nếu đã có album -> Push ảnh trực tiếp
             const newPhotos = req.files.map(file => ({
                 url: `/uploads/albums/${file.filename}`,
                 filename: file.filename,
                 is_selected: false
             }));
             album.photos.push(...newPhotos);
+            
             if (title) album.title = title;
             if (description) album.description = description;
+            
             await album.save();
         }
 
@@ -94,31 +109,58 @@ export const uploadPhotos = async (req, res) => {
     }
 };
 
-// 4. Lấy chi tiết Album
+// 4. Lấy chi tiết Album (ĐÃ FIX LỖI 500 do nhận nhầm ID)
 export const getAlbum = async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`========== DEBUG GET ALBUM ==========`);
+        console.log(`1. Input ID: ${id}`);
+        console.log(`2. Is Valid MongoID?: ${isMongoId(id)}`);
+
         let album = null;
 
+        // BƯỚC 1: Tìm trực tiếp bằng ID Album
         if (isMongoId(id)) {
             album = await Album.findById(id);
-            if (!album) album = await Album.findOne({ order_id: id });
+            console.log(`3. Search by Album ID result: ${album ? "Found" : "Not Found"}`);
+            if (!album) {
+                album = await Album.findOne({ order_id: id });
+                console.log(`4. Search by Order ObjectID result: ${album ? "Found" : "Not Found"}`);
+            }
+        }
+
+        // BƯỚC 2: Nếu chưa thấy -> Tìm thông qua Order Code (ORD-...)
+        if (!album) {
+            const orderQuery = isMongoId(id) ? { _id: id } : { order_id: id };
+            console.log("5. Order Query:", JSON.stringify(orderQuery));
+            
+            const order = await Order.findOne(orderQuery);
+            
+            if (order) {
+                console.log(`6. Order Found: _id=${order._id}, code=${order.order_id}`);
+                // Dùng ObjectId thật của Order để tìm Album
+                album = await Album.findOne({ order_id: order._id });
+                console.log(`7. Search Album by Order._id (${order._id}) result: ${album ? "Found" : "NOT FOUND"}`);
+            } else {
+                console.log("6. Order NOT FOUND with this ID/Code");
+            }
         }
 
         if (!album) {
-            const order = await Order.findOne({ order_id: id });
-            if (order) album = await Album.findOne({ order_id: order._id });
+            console.log("=> KẾT QUẢ: Không tìm thấy album nào.");
+            return res.json({ success: true, data: null, message: "Chưa có album" });
         }
 
-        if (!album) return res.json({ success: true, data: null, message: "Chưa có album" });
-
+        console.log("=> KẾT QUẢ: Đã tìm thấy Album:", album._id);
         res.json({ success: true, data: album });
+
     } catch (error) {
+        console.error("❌ Lỗi getAlbum:", error);
         res.status(500).json({ message: error.message });
     }
 };
 
-// Các hàm khác giữ nguyên, gọi qua Service hoặc xử lý đơn giản
+// Các hàm khác giữ nguyên
 export const selectPhotos = async (req, res) => {
     try {
         const result = await albumService.submitSelection(req.params.id, req.body.selectedIds);
