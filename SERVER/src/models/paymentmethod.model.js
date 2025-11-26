@@ -21,10 +21,6 @@ const paymentMethodSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
-  qrCode: {
-    type: String, // URL hoặc base64 của QR code
-    default: null
-  },
   isActive: {
     type: Boolean,
     default: true

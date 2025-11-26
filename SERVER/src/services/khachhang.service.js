@@ -151,7 +151,14 @@ class KhachHangService {
       }
 
       const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
-      const allowedFields = ["HoTen","Email","SoDienThoai","DiaChi","NgaySinh","GioiTinh","Avatar","CoverImage"];
+      
+      // ✅ CẬP NHẬT: Thêm các trường ngân hàng vào danh sách cho phép
+      const allowedFields = [
+        "HoTen", "Email", "SoDienThoai", "DiaChi", "NgaySinh", "GioiTinh", 
+        "Avatar", "CoverImage",
+        "SoTaiKhoan", "TenNganHang", "TenChuTaiKhoan", "ChiNhanhNganHang" // <--- Mới thêm
+      ];
+
       const updateData = {};
 
       allowedFields.forEach(field => {

@@ -65,5 +65,5 @@ router.post(
 router.post("/:orderId/complaint", verifyTokenUser, orderController.submitComplaint);
 router.post("/:orderId/review", verifyTokenUser, orderController.submitReview);
 router.put("/:orderId/resolve-complaint", verifyTokenUser, orderController.resolveComplaint);
-
+router.put("/orders/:orderId/settle", orderController.settleForPhotographer);
 export default router;

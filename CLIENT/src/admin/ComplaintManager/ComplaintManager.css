@@ -1,0 +1,604 @@
+/* =========================================
+   1. VARIABLES & MAIN LAYOUT
+   ========================================= */
+:root {
+    --primary-color: #4318ff;
+    /* Xanh tím chủ đạo */
+    --primary-light: rgba(67, 24, 255, 0.1);
+    --secondary-color: #6ad2ff;
+    /* Xanh dương sáng */
+
+    --success-bg: #e6fff3;
+    /* Nền xanh lá nhạt */
+    --success-text: #05cd99;
+    /* Chữ xanh lá đậm */
+
+    --warning-bg: #fff7ed;
+    /* Nền cam nhạt */
+    --warning-text: #c2410c;
+    /* Chữ cam đậm (Rust) - SỬA LỖI KHÓ ĐỌC */
+
+    --danger-bg: #fff0ee;
+    /* Nền đỏ nhạt */
+    --danger-text: #e31a1a;
+    /* Chữ đỏ đậm */
+
+    --dark-text: #2b3674;
+    /* Màu chữ chính */
+    --gray-text: #181a22;
+    /* Màu chữ phụ */
+    --bg-body: #f4f7fe;
+    /* Nền trang */
+    --bg-card: #ffffff;
+    /* Nền thẻ */
+}
+
+.admin-layout {
+    display: flex;
+    height: 100vh;
+    background-color: var(--bg-body);
+    font-family: 'DM Sans', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.admin-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    position: relative;
+}
+
+.admin-content-container {
+    padding: 30px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* =========================================
+   2. HEADER & ACTIONS (SEARCH/FILTER)
+   ========================================= */
+.page-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.page-header-flex h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--dark-text);
+    margin: 0;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Group Search + Filter */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* --- Search Box (Pill Shape) --- */
+.search-box {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid transparent;
+    border-radius: 50px;
+    /* Bo tròn hoàn toàn */
+    padding: 0 20px;
+    width: 320px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    /* Bóng rất nhẹ */
+}
+
+.search-box:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.1);
+}
+
+.search-icon {
+    color: var(--primary-color);
+    min-width: 20px;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    font-size: 14px;
+    width: 100%;
+    margin-left: 12px;
+    color: var(--dark-text);
+    background: transparent;
+    font-weight: 500;
+}
+
+.search-box input::placeholder {
+    color: var(--gray-text);
+}
+
+.clear-search {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-text);
+    padding: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.clear-search:hover {
+    color: var(--danger-text);
+}
+
+/* --- Filter Dropdown --- */
+.filter-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.filter-group svg {
+    position: absolute;
+    left: 18px;
+    color: var(--primary-color);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.filter-group select {
+    appearance: none;
+    background-color: var(--bg-card);
+    border: 1px solid transparent;
+    border-radius: 50px;
+    padding: 0 40px 0 48px;
+    height: 48px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dark-text);
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234318ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.2em 1.2em;
+}
+
+.filter-group select:hover {
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* =========================================
+   3. DATA TABLE STYLES
+   ========================================= */
+.admin-table-wrapper {
+    background: var(--bg-card);
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+    /* Để bo góc hoạt động */
+    border: none;
+    padding: 10px;
+    /* Padding nhỏ để tạo khoảng hở viền */
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.admin-table th {
+    background-color: var(--bg-card);
+    color: var(--gray-text);
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 20px 24px;
+    border-bottom: 2px solid var(--bg-body);
+    text-align: left;
+}
+
+.admin-table td {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--bg-body);
+    color: #4b5563;
+    /* Màu xám đậm trung tính mặc định */
+    font-size: 14px;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+/* --- XỬ LÝ MÀU SẮC TỪNG CỘT --- */
+
+/* 1. MÃ ĐƠN: Màu chủ đạo */
+.admin-table td:first-child {
+    color: var(--primary-color);
+    font-weight: 800;
+    font-family: monospace;
+    font-size: 15px;
+}
+
+.admin-table tr:hover td {
+    background-color: rgba(67, 24, 255, 0.02);
+    /* Hover xanh rất nhạt */
+}
+
+.truncate-text {
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--gray-text);
+}
+
+/* 2. KHÁCH HÀNG: Avatar + Tên + Email */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.avatar-sm {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border: 2px solid var(--bg-body);
+}
+
+.user-info-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    color: var(--dark-text);
+    /* Đen xanh đậm */
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.user-email {
+    color: var(--gray-text);
+    /* Xám nhạt */
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* =========================================
+   4. BADGES (STATUS) - ĐÃ SỬA LỖI MÀU SẮC
+   ========================================= */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 700;
+    /* Đậm */
+    line-height: 1;
+    text-transform: capitalize;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+/* Chờ xử lý: Nền cam nhạt - Chữ cam đậm */
+.badge-pending {
+    background-color: var(--warning-bg);
+    color: var(--warning-text);
+    border-color: #ffedd5;
+}
+
+/* Thành công: Nền xanh nhạt - Chữ xanh đậm */
+.badge-resolved {
+    background-color: var(--success-bg);
+    color: var(--success-text);
+    border-color: #d1fae5;
+}
+
+/* Từ chối: Nền đỏ nhạt - Chữ đỏ đậm */
+.badge-rejected {
+    background-color: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: #fee2e2;
+}
+
+/* Action Icon */
+.btn-icon {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-text);
+    padding: 8px;
+    border-radius: 10px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+/* =========================================
+   5. MODAL STYLES
+   ========================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(11, 20, 55, 0.6);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-content.complaint-modal-lg {
+    background: var(--bg-card);
+    width: 950px;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
+    animation: modalFadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--bg-body);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark-text);
+}
+
+.close-btn {
+    background: var(--bg-body);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: var(--danger-text);
+    color: white;
+}
+
+.modal-body-split {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    background-color: var(--bg-body);
+}
+
+/* Left Column */
+.split-left {
+    flex: 2;
+    padding: 32px;
+    overflow-y: auto;
+    border-right: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+/* Right Column */
+.split-right {
+    flex: 1.2;
+    padding: 32px;
+    background-color: var(--bg-card);
+    overflow-y: auto;
+}
+
+/* Info Box */
+.info-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.info-card h4,
+.split-right h4 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.complaint-reason-text {
+    font-size: 15px;
+    color: var(--dark-text);
+    background: var(--bg-body);
+    padding: 20px;
+    border-radius: 12px;
+    line-height: 1.6;
+    font-style: italic;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Image Grid */
+.complaint-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.complaint-images-grid img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.complaint-images-grid img:hover {
+    transform: scale(1.05);
+}
+
+/* Form Elements */
+.admin-action-form textarea {
+    width: 100%;
+    padding: 16px;
+    border: 2px solid var(--bg-body);
+    background: var(--bg-body);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--dark-text);
+    resize: vertical;
+}
+
+.admin-action-form textarea:focus {
+    outline: none;
+    background: white;
+    border-color: var(--primary-color);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.action-buttons button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-buttons button:hover {
+    transform: translateY(-2px);
+}
+
+.btn-reject {
+    background: linear-gradient(135deg, #ff6b6b, #e31a1a);
+}
+
+.btn-resolve {
+    background: linear-gradient(135deg, #05cd99, #02a87a);
+}
+
+/* Result Static */
+.admin-response-static {
+    padding: 20px;
+    border-radius: 12px;
+    background: var(--bg-body);
+}
+
+.admin-response-static.resolved {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.admin-response-static.rejected {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+}
+
+.admin-response-static p {
+    margin: 5px 0;
+}
+
+/* Order Detail Rows */
+.order-mini-detail {
+    font-size: 14px;
+}
+
+.order-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    line-height: 1.4;
+}
+
+.order-row .label {
+    color: var(--gray-text);
+    font-weight: 500;
+}
+
+.order-row .value {
+    color: var(--dark-text);
+    font-weight: 700;
+    text-align: right;
+    max-width: 60%;
+}
+
+.order-row .highlight {
+    color: var(--primary-color);
+    font-size: 16px;
+}
+
+.split-right hr {
+    border: 0;
+    border-top: 1px dashed #d1d5db;
+    margin: 20px 0;
+}

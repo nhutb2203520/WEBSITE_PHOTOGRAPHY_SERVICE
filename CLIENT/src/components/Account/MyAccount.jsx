@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Camera, Save, X, Lock, Edit2 } from 'lucide-react';
+import { Camera, Save, X, Lock, Edit2, CreditCard } from 'lucide-react'; // Thêm icon CreditCard
 import {
   getInfoUser, updateProfile, changePassword, uploadAvatar, uploadCover
 } from '../../redux/Slices/userSlice';
@@ -16,9 +16,13 @@ export default function MyAccount() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  
+  // ✅ CẬP NHẬT: Thêm các trường ngân hàng vào state
   const [formData, setFormData] = useState({
-    HoTen: '', Email: '', SoDienThoai: '', NgaySinh: '', GioiTinh: '', DiaChi: ''
+    HoTen: '', Email: '', SoDienThoai: '', NgaySinh: '', GioiTinh: '', DiaChi: '',
+    SoTaiKhoan: '', TenNganHang: '', TenChuTaiKhoan: '', ChiNhanhNganHang: ''
   });
+  
   const [passwordData, setPasswordData] = useState({
     currentPassword: '', newPassword: '', confirmPassword: ''
   });
@@ -33,7 +37,12 @@ export default function MyAccount() {
         SoDienThoai: user.SoDienThoai || '',
         NgaySinh: user.NgaySinh ? new Date(user.NgaySinh).toISOString().split('T')[0] : '',
         GioiTinh: user.GioiTinh || '',
-        DiaChi: user.DiaChi || ''
+        DiaChi: user.DiaChi || '',
+        // ✅ CẬP NHẬT: Load dữ liệu ngân hàng từ user
+        SoTaiKhoan: user.SoTaiKhoan || '',
+        TenNganHang: user.TenNganHang || '',
+        TenChuTaiKhoan: user.TenChuTaiKhoan || '',
+        ChiNhanhNganHang: user.ChiNhanhNganHang || ''
       });
     }
   }, [user]);
@@ -49,13 +58,13 @@ export default function MyAccount() {
   };
 
   const isValueChanged = (newVal, oldVal, fieldName) => {
-    if (!newVal) return false;
+    // Không check !newVal ở đây để cho phép xóa nội dung (về rỗng)
     if (fieldName === 'NgaySinh') {
       const normalizedNew = normalizeDateString(newVal);
       const normalizedOld = normalizeDateString(oldVal);
-      return normalizedNew !== normalizedOld && normalizedNew !== '';
+      return normalizedNew !== normalizedOld;
     }
-    return String(newVal).trim() !== String(oldVal || '').trim();
+    return String(newVal || '').trim() !== String(oldVal || '').trim();
   };
 
   const handleSaveProfile = async () => {
@@ -63,10 +72,18 @@ export default function MyAccount() {
     if (!user?._id) return alert('Thông tin người dùng chưa load xong!');
     try {
       const updateData = {};
-      ['HoTen', 'Email', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'DiaChi'].forEach(k => {
+      // ✅ CẬP NHẬT: Danh sách các trường cần kiểm tra thay đổi
+      const fieldsToCheck = [
+        'HoTen', 'Email', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'DiaChi',
+        'SoTaiKhoan', 'TenNganHang', 'TenChuTaiKhoan', 'ChiNhanhNganHang'
+      ];
+
+      fieldsToCheck.forEach(k => {
         if (isValueChanged(formData[k], user[k], k)) updateData[k] = formData[k];
       });
+
       if (!Object.keys(updateData).length) return alert('Bạn chưa thay đổi thông tin nào.');
+      
       await dispatch(updateProfile({ id: user._id, ...updateData })).unwrap();
       setIsEditing(false);
       dispatch(getInfoUser());
@@ -84,7 +101,11 @@ export default function MyAccount() {
       SoDienThoai: user.SoDienThoai || '',
       NgaySinh: user.NgaySinh ? new Date(user.NgaySinh).toISOString().split('T')[0] : '',
       GioiTinh: user.GioiTinh || '',
-      DiaChi: user.DiaChi || ''
+      DiaChi: user.DiaChi || '',
+      SoTaiKhoan: user.SoTaiKhoan || '',
+      TenNganHang: user.TenNganHang || '',
+      TenChuTaiKhoan: user.TenChuTaiKhoan || '',
+      ChiNhanhNganHang: user.ChiNhanhNganHang || ''
     });
   };
 
@@ -128,7 +149,6 @@ export default function MyAccount() {
 
   const isPhotographer = user?.isPhotographer;
 
-
   return (
     <>
       <Header />
@@ -157,10 +177,12 @@ export default function MyAccount() {
           </div>
 
           <div className="myaccount-content">
+            {/* THÔNG TIN CÁ NHÂN */}
+            <h3 className="section-title">Thông tin cá nhân</h3>
             <div className="form-grid">
               {['HoTen', 'Email', 'SoDienThoai', 'NgaySinh'].map(name => (
                 <div className="form-group" key={name}>
-                  <label>{name}</label>
+                  <label>{name === 'HoTen' ? 'Họ tên' : name === 'NgaySinh' ? 'Ngày sinh' : name === 'SoDienThoai' ? 'Số điện thoại' : name}</label>
                   {isEditing ? (
                     <input type={name === 'NgaySinh' ? 'date' : 'text'} name={name} value={formData[name]} onChange={handleInputChange} />
                   ) : (
@@ -188,6 +210,44 @@ export default function MyAccount() {
                   <textarea name="DiaChi" value={formData.DiaChi} onChange={handleInputChange} />
                 ) : (
                   <p>{user?.DiaChi || 'Chưa cập nhật'}</p>
+                )}
+              </div>
+            </div>
+
+            {/* ✅ CẬP NHẬT: THÔNG TIN NGÂN HÀNG */}
+            <hr className="divider" />
+            <h3 className="section-title"><CreditCard size={18} style={{marginRight: '8px', verticalAlign: 'text-bottom'}}/> Thông tin thanh toán</h3>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Tên Ngân Hàng</label>
+                {isEditing ? (
+                  <input type="text" name="TenNganHang" value={formData.TenNganHang} onChange={handleInputChange} placeholder="VD: Vietcombank" />
+                ) : (
+                  <p>{user?.TenNganHang || 'Chưa cập nhật'}</p>
+                )}
+              </div>
+              <div className="form-group">
+                <label>Số Tài Khoản</label>
+                {isEditing ? (
+                  <input type="text" name="SoTaiKhoan" value={formData.SoTaiKhoan} onChange={handleInputChange} />
+                ) : (
+                  <p>{user?.SoTaiKhoan || 'Chưa cập nhật'}</p>
+                )}
+              </div>
+              <div className="form-group">
+                <label>Tên Chủ Tài Khoản</label>
+                {isEditing ? (
+                  <input type="text" name="TenChuTaiKhoan" value={formData.TenChuTaiKhoan} onChange={handleInputChange} placeholder="Viết in hoa không dấu" />
+                ) : (
+                  <p>{user?.TenChuTaiKhoan || 'Chưa cập nhật'}</p>
+                )}
+              </div>
+              <div className="form-group">
+                <label>Chi Nhánh</label>
+                {isEditing ? (
+                  <input type="text" name="ChiNhanhNganHang" value={formData.ChiNhanhNganHang} onChange={handleInputChange} />
+                ) : (
+                  <p>{user?.ChiNhanhNganHang || 'Chưa cập nhật'}</p>
                 )}
               </div>
             </div>

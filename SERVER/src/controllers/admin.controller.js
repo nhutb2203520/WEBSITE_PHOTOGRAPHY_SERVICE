@@ -1,13 +1,14 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import adminService from "../services/admin.service.js";
-
+import KhachHang from "../models/khachhang.model.js";
 const SECRET_KEY = process.env.JWT_SECRET || "MY_SECRET_KEY_DEFAULT";
 const REFRESH_SECRET_KEY = process.env.JWT_REFRESH_SECRET || "MY_REFRESH_SECRET_KEY";
 
 // @desc    Đăng nhập admin
 // @route   POST /api/admin/login
 // @access  Public
+
 export const loginAdmin = async (req, res) => {
   try {
     const { loginKey, password } = req.body;
@@ -138,7 +139,30 @@ export const logoutAdmin = async (req, res) => {
     });
   }
 };
+export const getCustomers = async (req, res) => {
+  try {
+    const customers = await KhachHang.find({ isPhotographer: false })
+      .select("-Password -RefreshToken") // Không lấy mật khẩu
+      .sort({ createdAt: -1 });
+      
+    res.json({ success: true, data: customers });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server khi lấy danh sách khách hàng" });
+  }
+};
 
+// 2. Lấy danh sách Nhiếp ảnh gia (isPhotographer: true)
+export const getPhotographers = async (req, res) => {
+  try {
+    const photographers = await KhachHang.find({ isPhotographer: true })
+      .select("-Password -RefreshToken")
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: photographers });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server khi lấy danh sách nhiếp ảnh gia" });
+  }
+};
 export default {
   loginAdmin,
   refreshAccessToken,

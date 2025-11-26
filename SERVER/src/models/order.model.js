@@ -91,6 +91,17 @@ const orderSchema = new mongoose.Schema(
       remaining_paid_at: { type: Date, default: null } // Ngày Admin xác nhận đã trả đủ
     },
 
+    // ==================== QUYẾT TOÁN CHO THỢ ẢNH (MỚI) ====================
+    settlement_status: { 
+        type: String, 
+        default: 'pending', 
+        enum: ['pending', 'paid'] // pending: Chưa trả, paid: Đã trả lương thợ
+    },
+    settlement_date: { 
+        type: Date, 
+        default: null 
+    },
+
     // ==================== GIAO HÀNG (ALBUM ẢNH) ====================
     delivery_info: {
       deadline: { type: Date, default: null }, // Hạn chót giao ảnh (Ngày thanh toán đủ + 7 ngày)

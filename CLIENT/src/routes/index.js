@@ -1,7 +1,12 @@
 import { lazy } from 'react';
 
+// ⚠️ QUAN TRỌNG: Import trực tiếp ComplaintManager để tránh lỗi lazy load khi thiếu file dependency
+import ComplaintManager from '../admin/ComplaintManager/ComplaintManager';
+
 const routes = [
-  // ... (Giữ nguyên các route auth & photographer) ...
+  // =================================================================
+  // 🏠 HOME & AUTHENTICATION
+  // =================================================================
   {
     path: '/',
     component: lazy(() => import('../components/HomePageCustomer/HomePageCustomer'))
@@ -23,7 +28,9 @@ const routes = [
     component: lazy(() => import('../components/Account/MyAccount'))
   },
 
-  // --- PHOTOGRAPHER ---
+  // =================================================================
+  // 📸 PHOTOGRAPHER (PRIVATE AREA)
+  // =================================================================
   {
     path: '/photographer/orders-manage',
     component: lazy(() => import('../components/PhotographerPage/PhotographerOrderManagement'))
@@ -45,7 +52,9 @@ const routes = [
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
 
-  // --- PUBLIC ---
+  // =================================================================
+  // 🌏 PUBLIC INFO (SEARCH & DETAILS)
+  // =================================================================
   {
     path: '/photographers',
     component: lazy(() => import('../components/PhotographerPage/Photographer'))
@@ -63,7 +72,9 @@ const routes = [
     component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
   },
 
-  // --- ORDERS ---
+  // =================================================================
+  // 🛒 ORDERS & PAYMENT
+  // =================================================================
   {
     path: '/order-service',
     component: lazy(() => import('../components/Order/OrderService'))
@@ -77,7 +88,9 @@ const routes = [
     component: lazy(() => import('../components/Order/MyOrder'))
   },
 
-  // --- ALBUMS ---
+  // =================================================================
+  // 🖼️ ALBUMS & PHOTOS
+  // =================================================================
   {
     path: '/albums/detail/:orderId',
     component: lazy(() => import('../components/Album/Album')) 
@@ -95,7 +108,9 @@ const routes = [
     component: lazy(() => import('../components/Album/DetailAlbumManager')) 
   },
 
-  // --- GENERAL ---
+  // =================================================================
+  // ℹ️ GENERAL PAGES
+  // =================================================================
   {
     path: '/workprofile/:id',
     component: lazy(() => import('../components/WorksProfile/WorkProfileDetail'))
@@ -109,7 +124,13 @@ const routes = [
     component: lazy(() => import('../components/AboutWeb/AboutWeb'))
   },
 
-  // --- ADMIN ---
+  // =================================================================
+  // 🛡️ ADMIN DASHBOARD
+  // =================================================================
+  {
+    path: '/admin/login',
+    component: lazy(() => import('../admin/AdminPage/AdminLogin'))
+  },
   {
     path: '/admin-page',
     component: lazy(() => import('../admin/AdminPage/AdminPage'))
@@ -119,10 +140,6 @@ const routes = [
     component: lazy(() => import('../admin/AdminPage/PaymentManage'))
   },
   {
-    path: '/admin/login',
-    component: lazy(() => import('../admin/AdminPage/AdminLogin'))
-  },
-  {
     path: '/admin/service-fee',
     component: lazy(() => import('../admin/AdminPage/ServiceFeeManage'))
   },
@@ -130,13 +147,38 @@ const routes = [
     path: '/admin/order-manage',
     component: lazy(() => import('../admin/AdminPage/OrderManage'))
   },
+  
+  // ✅ [MỚI] Quản lý Khách hàng
+  {
+    path: '/admin/customer-manage',
+    // 👇 Thay đổi đường dẫn này nếu bạn lưu file ở thư mục khác
+    component: lazy(() => import('../admin/UserManage/CustomerManage')) 
+  },
 
-  // --- SHARE (NEW) ---
+  // ✅ [MỚI] Quản lý Nhiếp ảnh gia
+  {
+    path: '/admin/photographer-manage',
+    // 👇 Thay đổi đường dẫn này nếu bạn lưu file ở thư mục khác
+    component: lazy(() => import('../admin/UserManage/PhotographerManage')) 
+  },
+
+  // ✅ [FIX] Khiếu nại (Direct Import)
+  {
+    path: '/admin/complaint-manage',
+    component: ComplaintManager 
+  },
+
+  // =================================================================
+  // 🔗 SHARE (PUBLIC ALBUM)
+  // =================================================================
   {
     path: '/share/:token',
     component: lazy(() => import('../components/Album/PublicAlbumView'))
   },
 
+  // =================================================================
+  // 🚫 404 NOT FOUND
+  // =================================================================
   {
     path: '*',
     component: lazy(() => import('../NotFound'))

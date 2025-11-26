@@ -12,6 +12,14 @@ const khachHangSchema = new mongoose.Schema(
     SoDienThoai: { type: String },
     Password: { type: String },
     Email: { type: String, required: true },
+    
+    // --- Cập nhật: Thông tin ngân hàng ---
+    SoTaiKhoan: { type: String, default: "" },
+    TenNganHang: { type: String, default: "" },
+    TenChuTaiKhoan: { type: String, default: "" },
+    ChiNhanhNganHang: { type: String, default: "" },
+    // ------------------------------------
+
     Avatar: {
       type: String,
       default: "",
