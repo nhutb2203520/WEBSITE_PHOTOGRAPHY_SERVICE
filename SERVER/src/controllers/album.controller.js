@@ -160,7 +160,6 @@ export const getAlbum = async (req, res) => {
     }
 };
 
-// Các hàm khác giữ nguyên
 export const selectPhotos = async (req, res) => {
     try {
         const result = await albumService.submitSelection(req.params.id, req.body.selectedIds);

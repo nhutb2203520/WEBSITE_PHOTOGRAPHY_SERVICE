@@ -33,9 +33,15 @@ const routes = [
     component: lazy(() => import('../components/PhotographerPage/PhotographerOrderManagement'))
   },
   {
-    // Route này dành cho danh sách Album (nếu có trang quản lý chung)
-    path: '/photographer/albums-manage',
-    component: lazy(() => import('../components/Album/PhotographerAlbumManager')) 
+    // Route này dành cho chi tiết Album 
+    path: '/photographer/albums-detail',
+    component: lazy(() => import('../components/Album/DetailAlbumManager')) 
+  },
+
+  {
+    // Route này dành cho danh sách Album
+    path: '/photographer/albums-management',
+    component: lazy(() => import('../components/PhotographerPage/AlbumsManage')) 
   },
   {
     path: '/photographer/schedule',
@@ -102,8 +108,8 @@ const routes = [
   },
   {
     // Photographer: Quản lý, Upload ảnh, Xóa ảnh của 1 đơn hàng (PhotographerAlbumManager.jsx)
-    path: '/photographer/album-manager/:orderId',
-    component: lazy(() => import('../components/Album/PhotographerAlbumManager')) 
+    path: '/photographer/album-detail/:orderId',
+    component: lazy(() => import('../components/Album/DetailAlbumManager')) 
   },
 
   // ==============================

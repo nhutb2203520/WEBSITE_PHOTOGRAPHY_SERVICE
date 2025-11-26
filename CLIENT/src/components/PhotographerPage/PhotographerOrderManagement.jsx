@@ -75,17 +75,17 @@ export default function PhotographerOrderManagement() {
       } else {
           // ✅ FIX: Điều hướng đến trang PhotographerAlbumManager mới
           // Dùng order.order_id hoặc order._id tùy vào cách bạn config route
-          navigate(`/photographer/album-manager/${order.order_id}`);
+          navigate(`/photographer/album-detail/${order.order_id}`);
       }
   };
 
   const handleViewDetail = (orderId) => {
     // Xem chi tiết đơn hàng (Cũng dẫn đến trang quản lý album để xem thông tin)
-    navigate(`/photographer/album-manager/${orderId}`);
+    navigate(`/photographer/album-detail/${orderId}`);
   };
 
   const handleGoToAlbumManager = () => {
-    navigate('/photographer/albums-manage');
+    navigate('/photographer/albums-management');
   };
 
   // --- FILTER & HELPERS ---
@@ -176,7 +176,7 @@ export default function PhotographerOrderManagement() {
                   className="btn-action btn-album-manager"
                   onClick={handleGoToAlbumManager}
                 >
-                  <FolderOpen size={18} /> Kho Album / Job Ngoài
+                  <FolderOpen size={18} /> Kho Album
                 </button>
               </div>
             </div>

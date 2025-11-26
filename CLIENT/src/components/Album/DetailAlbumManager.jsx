@@ -10,12 +10,15 @@ import {
 // API & Components
 import albumApi from '../../apis/albumApi'; 
 import orderApi from '../../apis/orderService';
-import Header from '../../components/Header/Header';
-import Sidebar from '../../components/Sidebar/Sidebar';
-import Footer from '../../components/Footer/Footer';
-import './PhotographerAlbumManager.css';
+import Header from '../Header/Header';
+import Sidebar from '../Sidebar/Sidebar';
+import Footer from '../Footer/Footer';
 
-export default function PhotographerAlbumManager() {
+// ✅ SỬA LỖI TẠI ĐÂY: Thêm "./" và đảm bảo tên file CSS đúng với file bạn đang có
+// Nếu bạn vẫn dùng file css cũ, hãy đổi thành: import './PhotographerAlbumManager.css';
+import './DetailAlbumManager.css'; 
+
+export default function DetailAlbumManager() { // Đổi tên function component cho khớp tên file
     const { orderId } = useParams();
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
