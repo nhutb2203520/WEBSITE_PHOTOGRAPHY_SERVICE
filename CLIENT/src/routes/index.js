@@ -1,9 +1,7 @@
 import { lazy } from 'react';
 
 const routes = [
-  // ==============================
-  // 1. HOME & AUTHENTICATION
-  // ==============================
+  // ... (Giữ nguyên các route auth & photographer) ...
   {
     path: '/',
     component: lazy(() => import('../components/HomePageCustomer/HomePageCustomer'))
@@ -25,21 +23,16 @@ const routes = [
     component: lazy(() => import('../components/Account/MyAccount'))
   },
 
-  // ==============================
-  // 2. PHOTOGRAPHER MANAGEMENT
-  // ==============================
+  // --- PHOTOGRAPHER ---
   {
     path: '/photographer/orders-manage',
     component: lazy(() => import('../components/PhotographerPage/PhotographerOrderManagement'))
   },
   {
-    // Route này dành cho chi tiết Album 
     path: '/photographer/albums-detail',
     component: lazy(() => import('../components/Album/DetailAlbumManager')) 
   },
-
   {
-    // Route này dành cho danh sách Album
     path: '/photographer/albums-management',
     component: lazy(() => import('../components/PhotographerPage/AlbumsManage')) 
   },
@@ -52,9 +45,7 @@ const routes = [
     component: lazy(() => import('../components/PhotographerPage/Package'))
   },
 
-  // ==============================
-  // 3. PUBLIC PAGES (Tim tho, Xem goi)
-  // ==============================
+  // --- PUBLIC ---
   {
     path: '/photographers',
     component: lazy(() => import('../components/PhotographerPage/Photographer'))
@@ -72,9 +63,7 @@ const routes = [
     component: lazy(() => import('../components/ServicePakage/ServicePackageDetail'))
   },
 
-  // ==============================
-  // 4. ORDERS & PAYMENT (CUSTOMER)
-  // ==============================
+  // --- ORDERS ---
   {
     path: '/order-service',
     component: lazy(() => import('../components/Order/OrderService'))
@@ -88,33 +77,25 @@ const routes = [
     component: lazy(() => import('../components/Order/MyOrder'))
   },
 
-  // ==============================
-  // 5. ALBUM & SELECTION FLOW (NEW)
-  // ==============================
+  // --- ALBUMS ---
   {
-    // Khách hàng: Xem chi tiết Album (Slide ảnh, Tải ảnh)
     path: '/albums/detail/:orderId',
     component: lazy(() => import('../components/Album/Album')) 
   },
   {
-    // Khách hàng: Giao diện chọn ảnh để gửi cho thợ (SelectionPhoto.jsx)
     path: '/orders/:orderId/select-photos',
     component: lazy(() => import('../components/Album/SelectionPhoto')) 
   },
   {
-    // Photographer: Xem danh sách ảnh khách đã chọn (SelectionPhotoManage.jsx)
     path: '/orders/:orderId/manage-selection',
     component: lazy(() => import('../components/Album/SelectionPhotoManage')) 
   },
   {
-    // Photographer: Quản lý, Upload ảnh, Xóa ảnh của 1 đơn hàng (PhotographerAlbumManager.jsx)
     path: '/photographer/album-detail/:orderId',
     component: lazy(() => import('../components/Album/DetailAlbumManager')) 
   },
 
-  // ==============================
-  // 6. GENERAL PAGES
-  // ==============================
+  // --- GENERAL ---
   {
     path: '/workprofile/:id',
     component: lazy(() => import('../components/WorksProfile/WorkProfileDetail'))
@@ -128,9 +109,7 @@ const routes = [
     component: lazy(() => import('../components/AboutWeb/AboutWeb'))
   },
 
-  // ==============================
-  // 7. ADMIN ROUTES
-  // ==============================
+  // --- ADMIN ---
   {
     path: '/admin-page',
     component: lazy(() => import('../admin/AdminPage/AdminPage'))
@@ -152,9 +131,12 @@ const routes = [
     component: lazy(() => import('../admin/AdminPage/OrderManage'))
   },
 
-  // ==============================
-  // 8. 404 NOT FOUND
-  // ==============================
+  // --- SHARE (NEW) ---
+  {
+    path: '/share/:token',
+    component: lazy(() => import('../components/Album/PublicAlbumView'))
+  },
+
   {
     path: '*',
     component: lazy(() => import('../NotFound'))

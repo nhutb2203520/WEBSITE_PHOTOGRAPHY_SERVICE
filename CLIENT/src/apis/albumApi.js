@@ -1,49 +1,38 @@
 import axiosUser from "./axiosUser";
+import axios from "axios";
 
 const albumApi = {
-  // 1. Lấy danh sách Album của tôi (Cho Photographer quản lý)
-  getMyAlbums: () => {
-    return axiosUser.get("/albums/my-albums");
-  },
-
-  // 2. Tạo Album Job Ngoài (Freelance)
-  createFreelanceAlbum: (data) => {
-    // data: { title, client_name, description }
-    return axiosUser.post("/albums/freelance", data);
-  },
-
-  // 3. Lấy chi tiết Album (bằng Order ID hoặc Album ID)
-  getAlbumDetail: (id) => {
-    return axiosUser.get(`/albums/${id}`);
-  },
-
-  // 4. Upload ảnh vào Album (Tự tạo nếu chưa có)
+  getMyAlbums: () => axiosUser.get("/albums/my-albums"),
+  createFreelanceAlbum: (data) => axiosUser.post("/albums/freelance", data),
+  getAlbumDetail: (id) => axiosUser.get(`/albums/${id}`),
+  
+  // Upload ảnh gốc
   uploadPhotos: (id, formData) => {
     return axiosUser.post(`/albums/${id}/upload`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
   },
 
-  // 5. Khách hàng gửi lựa chọn ảnh
-  submitSelection: (id, selectedIds) => {
-    return axiosUser.put(`/albums/${id}/selection`, { selectedIds });
+  // [NEW] Giao Album (Upload ảnh chỉnh sửa)
+  deliverAlbum: (id, formData) => {
+    return axiosUser.post(`/albums/${id}/deliver`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
   },
 
-  // 6. Xóa 1 ảnh
-  deletePhoto: (id, photoId) => {
-    return axiosUser.delete(`/albums/${id}/photos/${photoId}`);
+  submitSelection: (id, selectedIds) => axiosUser.put(`/albums/${id}/selection`, { selectedIds }),
+  deletePhoto: (id, photoId) => axiosUser.delete(`/albums/${id}/photos/${photoId}`),
+  updateAlbumInfo: (id, data) => axiosUser.put(`/albums/${id}/info`, data),
+  deleteAlbum: (id) => axiosUser.delete(`/albums/${id}`),
+  createShareLink: (id) => axiosUser.post(`/albums/${id}/share`),
+  
+  getPublicAlbum: (token) => {
+    const BASE_URL = 'http://localhost:5000/api'; 
+    return axios.get(`${BASE_URL}/albums/public/${token}`);
   },
-
-  // 7. Cập nhật thông tin Album (Tiêu đề, mô tả)
-  updateAlbumInfo: (id, data) => {
-    return axiosUser.put(`/albums/${id}/info`, data);
-  },
-
-  // 8. Xóa toàn bộ Album
-  deleteAlbum: (id) => {
-    return axiosUser.delete(`/albums/${id}`);
+  submitPublicSelection: (token, selectedIds) => {
+    const BASE_URL = 'http://localhost:5000/api';
+    return axios.put(`${BASE_URL}/albums/public/${token}/selection`, { selectedIds });
   }
 };
 

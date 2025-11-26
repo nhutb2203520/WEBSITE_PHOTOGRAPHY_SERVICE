@@ -3,27 +3,30 @@ import mongoose from "mongoose";
 const photoSchema = new mongoose.Schema({
   url: { type: String, required: true },
   filename: { type: String, default: "" },
-  is_selected: { type: Boolean, default: false }, // Khách chọn để chỉnh sửa
-  customer_note: { type: String, default: "" }    // Ghi chú chỉnh sửa (VD: "Làm trắng da")
+  is_selected: { type: Boolean, default: false }, // Khách chọn
+  customer_note: { type: String, default: "" }    // Ghi chú của khách
 });
 
 const albumSchema = new mongoose.Schema(
   {
-    // --- Thay đổi quan trọng: order_id không còn required ---
     order_id: { type: mongoose.Schema.Types.ObjectId, ref: "Orders", default: null },
-    
     photographer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangThoChupAnh", required: true },
     customer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang", default: null },
     
-    // Thêm trường cho khách vãng lai (Job ngoài)
-    client_name: { type: String, default: "" }, // Tên khách job ngoài
-    client_contact: { type: String, default: "" }, // SĐT/Email (tùy chọn)
+    // Thông tin cho Job ngoài
+    client_name: { type: String, default: "" }, 
+    client_contact: { type: String, default: "" }, 
     
-    type: { type: String, enum: ['order', 'freelance'], default: 'order' }, // Loại album
+    type: { type: String, enum: ['order', 'freelance'], default: 'order' },
 
     title: { type: String, default: "Album ảnh" },
     description: { type: String, default: "" },
+    
+    // Ảnh gốc (Raw)
     photos: [photoSchema],
+
+    // [NEW] Ảnh đã chỉnh sửa (Final) - Nhiếp ảnh gia upload khi giao
+    edited_photos: [photoSchema], 
     
     status: { 
         type: String, 
@@ -31,13 +34,11 @@ const albumSchema = new mongoose.Schema(
         default: 'draft' 
     },
     
-    // Link chia sẻ công khai (cho khách không có tài khoản)
     share_token: { type: String, default: null } 
   },
   { timestamps: true }
 );
 
-// Index để tìm kiếm nhanh
 albumSchema.index({ photographer_id: 1 });
 albumSchema.index({ share_token: 1 });
 
