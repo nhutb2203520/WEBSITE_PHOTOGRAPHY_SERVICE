@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import SidebarAdmin from "../AdminPage/SidebarAdmin";
-import HeaderAdmin from "../AdminPage/HeaderAdmin";
-import { Search, Trash2, Camera, CreditCard } from "lucide-react";
+import SidebarAdmin from "../AdminPage/SidebarAdmin.jsx"; 
+import HeaderAdmin from "../AdminPage/HeaderAdmin.jsx"; 
+import { Search, Trash2, Camera } from "lucide-react";
 import "./UserManage.css"; 
 import adminUserService from "../../apis/adminUserService";
 
@@ -21,8 +21,9 @@ export default function PhotographerManage() {
     try {
       setLoading(true);
       const res = await adminUserService.getPhotographers();
-      setPhotographers(res.data?.data || []);
+      setPhotographers(res.data || []);
     } catch (error) {
+      console.error(error);
       toast.error("Lỗi tải danh sách nhiếp ảnh gia");
     } finally {
       setLoading(false);
@@ -39,6 +40,15 @@ export default function PhotographerManage() {
         toast.error("Lỗi khi xóa");
       }
     }
+  };
+
+  // ✅ Helper lấy ảnh chuẩn
+  const getAvatarUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    const cleanPath = path.replace(/\\/g, "/"); // Sửa lỗi path Windows
+    const finalPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
+    return `${API_URL}/${finalPath}`;
   };
 
   const filteredData = photographers.filter(u => 
@@ -93,8 +103,23 @@ export default function PhotographerManage() {
                     <tr key={user._id}>
                       <td>
                         <div className="user-cell">
+                          {/* Logic hiển thị Avatar + Fallback */}
                           {user.Avatar ? (
-                             <img src={`${API_URL}/${user.Avatar}`} alt="" className="user-avatar" />
+                             <>
+                                <img 
+                                    src={getAvatarUrl(user.Avatar)} 
+                                    alt="" 
+                                    className="user-avatar"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        const placeholder = e.target.parentElement.querySelector('.avatar-placeholder');
+                                        if(placeholder) placeholder.style.display = 'flex';
+                                    }} 
+                                />
+                                <div className="user-avatar avatar-placeholder" style={{display: 'none'}}>
+                                    <Camera size={20}/>
+                                </div>
+                             </>
                           ) : (
                              <div className="user-avatar"><Camera size={20}/></div>
                           )}

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import SidebarAdmin from "../AdminPage/SidebarAdmin";
-import HeaderAdmin from "../AdminPage/HeaderAdmin";
+import SidebarAdmin from "../AdminPage/SidebarAdmin.jsx"; 
+import HeaderAdmin from "../AdminPage/HeaderAdmin.jsx"; 
 import { Search, Trash2, User } from "lucide-react";
-import "./UserManage.css"; // Dùng chung CSS
-import adminUserService from "../../apis/adminUserService";
+import "./UserManage.css"; 
+import adminUserService from "../../apis/adminUserService.js";
 
-// URL ảnh mặc định hoặc từ server
 const API_URL = "http://localhost:5000"; 
 
 export default function CustomerManage() {
@@ -22,8 +21,9 @@ export default function CustomerManage() {
     try {
       setLoading(true);
       const res = await adminUserService.getCustomers();
-      setCustomers(res.data?.data || []);
+      setCustomers(res.data || []); 
     } catch (error) {
+      console.error(error);
       toast.error("Lỗi tải danh sách khách hàng");
     } finally {
       setLoading(false);
@@ -40,6 +40,28 @@ export default function CustomerManage() {
         toast.error("Lỗi khi xóa");
       }
     }
+  };
+
+  // ✅ Hàm xử lý URL ảnh: Fix lỗi đường dẫn Windows (\) và đảm bảo URL chuẩn
+  const getAvatarUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path; // Ảnh online (Google/Facebook)
+    
+    // Thay thế dấu backslash (\) thành slash (/) cho đúng chuẩn URL
+    const cleanPath = path.replace(/\\/g, "/");
+    
+    // Loại bỏ dấu / ở đầu nếu có để tránh double slash
+    const finalPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
+    
+    return `${API_URL}/${finalPath}`;
+  };
+
+  // ✅ Xử lý khi ảnh bị lỗi (404) -> Ẩn ảnh đi để hiện Avatar chữ cái
+  const handleImageError = (e) => {
+    e.target.style.display = 'none'; // Ẩn thẻ img
+    e.target.nextSibling.style.display = 'flex'; // Hiện thẻ div avatar chữ (nếu cấu trúc HTML cho phép)
+    // Tuy nhiên, cách đơn giản hơn là set lại src null ở cấp state, nhưng ở đây ta thao tác DOM trực tiếp cho nhanh
+    e.target.parentElement.classList.add('image-error'); 
   };
 
   const filteredData = customers.filter(u => 
@@ -93,11 +115,29 @@ export default function CustomerManage() {
                     <tr key={user._id}>
                       <td>
                         <div className="user-cell">
+                          {/* Logic hiển thị Avatar thông minh */}
                           {user.Avatar ? (
-                             <img src={`${API_URL}/${user.Avatar}`} alt="" className="user-avatar" />
+                             <>
+                               <img 
+                                 src={getAvatarUrl(user.Avatar)} 
+                                 alt="" 
+                                 className="user-avatar" 
+                                 onError={(e) => {
+                                    e.target.style.display = 'none'; // Ẩn ảnh lỗi
+                                    // Tìm element kế tiếp (placeholder) để hiển thị nó
+                                    const placeholder = e.target.parentElement.querySelector('.avatar-placeholder');
+                                    if(placeholder) placeholder.style.display = 'flex';
+                                 }}
+                               />
+                               {/* Placeholder ẩn sẵn, chỉ hiện khi ảnh lỗi */}
+                               <div className="user-avatar avatar-placeholder" style={{display: 'none'}}>
+                                  {user.HoTen?.charAt(0)?.toUpperCase()}
+                               </div>
+                             </>
                           ) : (
-                             <div className="user-avatar">{user.HoTen?.charAt(0)}</div>
+                             <div className="user-avatar">{user.HoTen?.charAt(0)?.toUpperCase()}</div>
                           )}
+                          
                           <div className="user-info">
                             <span className="user-name">{user.HoTen}</span>
                             <span className="user-email">{user.Email}</span>

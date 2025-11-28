@@ -182,21 +182,6 @@ export default function Login() {
             {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
 
-          {/* Divider */}
-          <div className="divider">
-            <span>HOẶC</span>
-          </div>
-
-          {/* Social Login */}
-          <div className="social-login">
-            <button type="button" className="social-btn google">
-              Đăng nhập với Google
-            </button>
-            <button type="button" className="social-btn facebook">
-              Đăng nhập với Facebook
-            </button>
-          </div>
-
           {/* Register Link */}
           <div className="form-footer">
             Chưa có tài khoản?{' '}
