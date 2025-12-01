@@ -1,0 +1,255 @@
+/* --- BỐ CỤC TRANG (LAYOUT) --- */
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f3f4f6;
+    /* Màu nền tổng thể xám nhẹ */
+}
+
+.main-layout {
+    display: flex;
+    flex: 1;
+    max-width: 1440px;
+    /* Giới hạn chiều rộng tối đa nếu cần */
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+}
+
+.sidebar-area {
+    flex-shrink: 0;
+    /* Sidebar thường có width cố định trong component của nó, 
+     nhưng ở đây ta đảm bảo nó không bị co lại */
+}
+
+.content-area {
+    flex: 1;
+    padding: 20px;
+    min-width: 0;
+    /* Fix lỗi flex item bị tràn trên một số trình duyệt */
+}
+
+/* --- CONTAINER THÔNG BÁO --- */
+.notification-container {
+    max-width: 900px;
+    margin: 0 auto;
+    /* Căn giữa trong vùng content */
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 30px;
+    min-height: 600px;
+    /* Chiều cao tối thiểu cho đẹp */
+}
+
+/* Header của box thông báo */
+.noti-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.noti-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.mark-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: white;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.mark-all-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
+}
+
+/* --- DANH SÁCH & ITEM --- */
+.noti-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.noti-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    position: relative;
+    border: 1px solid transparent;
+}
+
+.noti-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Trạng thái chưa đọc/đã đọc */
+.noti-item.unread {
+    background-color: #eff6ff;
+    /* Xanh rất nhạt */
+    border-left: 4px solid #3b82f6;
+    /* Vạch xanh bên trái */
+}
+
+.noti-item.read {
+    background-color: #ffffff;
+    border: 1px solid #f3f4f6;
+}
+
+.noti-item.read:hover {
+    background-color: #f9fafb;
+}
+
+/* Icons */
+.noti-icon-wrapper {
+    margin-right: 16px;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Màu icon */
+.icon-order {
+    color: #3b82f6;
+}
+
+.icon-payment {
+    color: #10b981;
+}
+
+.icon-album {
+    color: #8b5cf6;
+}
+
+.icon-system {
+    color: #6b7280;
+}
+
+.icon-default {
+    color: #f59e0b;
+}
+
+/* Nội dung text */
+.noti-content {
+    flex: 1;
+}
+
+.noti-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #1f2937;
+}
+
+.noti-message {
+    font-size: 14px;
+    color: #4b5563;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.noti-time {
+    font-size: 12px;
+    color: #9ca3af;
+    display: block;
+}
+
+/* Chấm đỏ chưa đọc */
+.noti-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    position: absolute;
+    top: 20px;
+    right: 16px;
+    box-shadow: 0 0 0 2px #eff6ff;
+}
+
+/* Loading & Empty states */
+.loading-noti {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #6b7280;
+    gap: 10px;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.empty-noti {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    color: #9ca3af;
+}
+
+.empty-noti p {
+    margin-top: 15px;
+    font-size: 16px;
+}
+
+/* Responsive Mobile */
+@media (max-width: 768px) {
+    .main-layout {
+        flex-direction: column;
+    }
+
+    .sidebar-area {
+        /* Trên mobile sidebar thường ẩn hoặc thành toggle menu, 
+       CSS của Sidebar component sẽ tự xử lý việc này */
+    }
+
+    .content-area {
+        padding: 10px;
+    }
+
+    .notification-container {
+        padding: 15px;
+    }
+}

@@ -7,7 +7,6 @@ import { fileURLToPath } from "url";
 import connectDB from "./src/config/mongoDb.js";
 
 // ✅ CRITICAL: Import models index TRƯỚC routes để đăng ký tất cả schemas
-// Điều này giúp tránh lỗi MissingSchemaError
 import './src/models/index.js';
 
 // ============ IMPORT ROUTES ============
@@ -23,10 +22,12 @@ import serviceFeeRoutes from "./src/routes/servicefree.route.js";
 import scheduleRoutes from "./src/routes/schedule.route.js";
 import albumRoute from "./src/routes/album.route.js";
 import complaintRoute from "./src/routes/complaint.route.js";
-// ✅ [MỚI] Import Review Route để sửa lỗi 404 api/reviews
 import reviewRoutes from "./src/routes/review.route.js";
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
+
+// ✅ [MỚI] Import Route Thông báo
+import notificationRoute from "./src/routes/notification.route.js";
 
 // ✅ Load environment variables
 dotenv.config();
@@ -46,19 +47,16 @@ app.use(cors({
   credentials: true
 }));
 
-// Tăng giới hạn body size để upload ảnh base64 nếu cần
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ============ STATIC FILES CONFIG ============
-// Đảm bảo thư mục uploads tồn tại
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log('📂 Đã tạo thư mục uploads');
 }
 
-// Serve static files (avatar, cover, works, packages, qrcodes, orders...)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ============ ROUTES REGISTRATION ============
@@ -69,7 +67,7 @@ app.use("/api/khachhang", khachHangRoutes);
 
 // 2. Uploads & Profiles
 app.use("/api/upload", uploadRoutes);
-app.use("/api/worksprofile", worksProfileRoutes); // 👉 Đã chứa route /user/:userId
+app.use("/api/worksprofile", worksProfileRoutes);
 
 // 3. Services & Orders
 app.use('/api/service-packages', servicePackageRoutes);
@@ -80,16 +78,17 @@ app.use("/api/service-fees", serviceFeeRoutes);
 app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/admin", adminRoute);
 
-// 5. ✅ [MỚI] Reviews (Sửa lỗi 404)
+// 5. Reviews, Schedule, Album, Complaint
 app.use("/api/reviews", reviewRoutes);
-//lịch trình
 app.use("/api/schedule", scheduleRoutes);
-//album
 app.use("/api/albums", albumRoute);
-//complaint
 app.use("/api/complaints", complaintRoute);
+
 // 6. Direct Controller Routes
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
+
+// 7. ✅ [MỚI] Route Thông báo
+app.use("/api/notifications", notificationRoute);
 
 // ============ HEALTH CHECK ============
 app.get("/", (req, res) => {
@@ -100,17 +99,13 @@ app.get("/", (req, res) => {
     endpoints: {
       auth: '/api/auth',
       customers: '/api/khachhang',
-      upload: '/api/upload',
-      worksProfile: '/api/worksprofile',
-      servicePackages: '/api/service-packages',
+      notifications: '/api/notifications', // ✅ Đã thêm vào docs
       orders: '/api/orders',
-      reviews: '/api/reviews', // ✅ Endpoint mới
     }
   });
 });
 
 // ============ ERROR HANDLERS ============
-// 404 Handler
 app.use((req, res) => {
   console.log('❌ 404 - Không tìm thấy:', req.method, req.originalUrl);
   res.status(404).json({ 
@@ -121,7 +116,6 @@ app.use((req, res) => {
   });
 });
 
-// Global Error Handler
 app.use((err, req, res, next) => {
   console.error('❌ Server Error:', err);
   res.status(err.status || 500).json({

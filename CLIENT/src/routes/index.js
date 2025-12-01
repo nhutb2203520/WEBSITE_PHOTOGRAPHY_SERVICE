@@ -32,6 +32,11 @@ const routes = [
     path: '/my-account',
     component: lazy(() => import('../components/Account/MyAccount'))
   },
+  // ✅ [MỚI] Trang thông báo
+  {
+    path: '/notifications',
+    component: lazy(() => import('../components/Notification/NotificationPage'))
+  },
 
   // =================================================================
   // 📸 PHOTOGRAPHER (PRIVATE AREA)

@@ -54,7 +54,7 @@ export const verifyTokenUser = (req, res, next) => {
     });
   }
 };
-
+/*
 export const verifyTokenStaff = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -80,4 +80,4 @@ export const verifyTokenStaff = (req, res, next) => {
       next();
     }
   );
-};
+}; */

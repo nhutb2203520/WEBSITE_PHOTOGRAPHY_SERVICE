@@ -9,6 +9,9 @@ import orderService from "../services/order.service.js";
 // 👇 QUAN TRỌNG: PHẢI CÓ DÒNG NÀY MỚI LẤY ĐƯỢC PHÍ SÀN
 import ServiceFee from "../models/servicefee.model.js"; 
 
+// ✅ IMPORT HÀM TẠO THÔNG BÁO
+import { createNotification } from "./notification.controller.js";
+
 // ==============================================================================
 // 📦 1. TẠO ĐƠN HÀNG MỚI
 // ==============================================================================
@@ -66,6 +69,7 @@ export const createOrder = async (req, res) => {
         const payload = { customer_id, ...req.body };
         const newOrder = await orderService.createOrder(payload);
 
+        // Tạo lịch cho khách
         await new Schedule({
             photographerId: customer_id,
             title: `Đơn hàng #${newOrder.order_id}`,
@@ -75,6 +79,7 @@ export const createOrder = async (req, res) => {
             description: `Gói: ${package_name || 'Dịch vụ chụp ảnh'}`
         }).save();
 
+        // Tạo lịch cho thợ (nếu có)
         if (newOrder.photographer_id) {
             await new Schedule({
                 photographerId: newOrder.photographer_id,
@@ -83,6 +88,26 @@ export const createOrder = async (req, res) => {
                 type: 'order',
                 orderId: newOrder._id
             }).save();
+        }
+
+        // 🔔 THÔNG BÁO: Gửi cho khách hàng
+        await createNotification({
+            userId: customer_id,
+            title: "Đặt lịch thành công!",
+            message: `Đơn hàng #${newOrder.order_id} của bạn đã được tạo. Vui lòng thanh toán cọc để giữ lịch.`,
+            type: "ORDER",
+            link: "/my-orders"
+        });
+
+        // 🔔 THÔNG BÁO: Gửi cho thợ chụp (nếu có)
+        if (newOrder.photographer_id) {
+            await createNotification({
+                userId: newOrder.photographer_id,
+                title: "Bạn có lịch chụp mới!",
+                message: `Bạn nhận được đơn hàng #${newOrder.order_id} vào ngày ${new Date(booking_date).toLocaleDateString('vi-VN')}.`,
+                type: "ORDER",
+                link: "/photographer/orders-manage"
+            });
         }
 
         res.status(201).json({
@@ -237,6 +262,41 @@ export const updateOrderStatus = async (req, res) => {
             note
         );
 
+        // 🔔 THÔNG BÁO: Gửi cho khách hàng khi trạng thái thay đổi
+        if (updated) {
+            let notiTitle = "";
+            let notiMessage = "";
+            let notiType = "ORDER";
+            let notiLink = "/my-orders";
+
+            if (status === 'confirmed') {
+                notiTitle = "Đơn hàng đã được duyệt!";
+                notiMessage = `Đơn hàng #${updated.order_id} của bạn đã được xác nhận. Hãy chuẩn bị cho buổi chụp nhé!`;
+            } else if (status === 'processing') {
+                notiTitle = "Đang xử lý ảnh";
+                notiMessage = `Buổi chụp #${updated.order_id} đã hoàn tất. Chúng tôi đang xử lý hậu kỳ ảnh.`;
+                notiType = "ALBUM";
+            } else if (status === 'delivered') {
+                notiTitle = "Ảnh của bạn đã có!";
+                notiMessage = `Album ảnh cho đơn hàng #${updated.order_id} đã hoàn thành. Xem ngay!`;
+                notiType = "ALBUM";
+                notiLink = `/albums/detail/${updated._id}`;
+            } else if (status === 'cancelled') {
+                notiTitle = "Đơn hàng bị hủy";
+                notiMessage = `Đơn hàng #${updated.order_id} đã bị hủy. Lý do: ${note || 'Không có'}`;
+            }
+
+            if (notiTitle) {
+                await createNotification({
+                    userId: updated.customer_id,
+                    title: notiTitle,
+                    message: notiMessage,
+                    type: notiType,
+                    link: notiLink
+                });
+            }
+        }
+
         res.json({ message: "Cập nhật trạng thái thành công", data: updated });
     } catch (error) {
         console.error("Update order status error:", error);
@@ -347,6 +407,15 @@ export const confirmPayment = async (req, res) => {
         }
 
         await order.save();
+
+        // 🔔 THÔNG BÁO: Gửi cho khách hàng đã xác nhận thanh toán
+        await createNotification({
+            userId: order.customer_id,
+            title: "Đã gửi xác nhận thanh toán",
+            message: `Thanh toán cho đơn hàng #${order.order_id} (Mã GD: ${transaction_code}) đang chờ Admin duyệt.`,
+            type: "PAYMENT",
+            link: "/my-orders"
+        });
 
         res.json({
             success: true,
