@@ -23,6 +23,11 @@ const routes = [
     path: '/forgot-password',
     component: lazy(() => import('../components/Account/ForgotPass'))
   },
+  // ✅ [QUAN TRỌNG] Route này BẮT BUỘC phải có để xử lý link từ email
+  {
+    path: '/reset-password/:token',
+    component: lazy(() => import('../components/Account/ResetPassword'))
+  },
   {
     path: '/my-account',
     component: lazy(() => import('../components/Account/MyAccount'))
@@ -151,14 +156,12 @@ const routes = [
   // ✅ [MỚI] Quản lý Khách hàng
   {
     path: '/admin/customer-manage',
-    // 👇 Thay đổi đường dẫn này nếu bạn lưu file ở thư mục khác
     component: lazy(() => import('../admin/UserManage/CustomerManage')) 
   },
 
   // ✅ [MỚI] Quản lý Nhiếp ảnh gia
   {
     path: '/admin/photographer-manage',
-    // 👇 Thay đổi đường dẫn này nếu bạn lưu file ở thư mục khác
     component: lazy(() => import('../admin/UserManage/PhotographerManage')) 
   },
 

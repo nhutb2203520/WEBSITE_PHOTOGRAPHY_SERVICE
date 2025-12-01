@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'react-toastify';
+import authApi from '../../apis/authUser'; // Import API thật
 import './ForgotPass.css';
 
 export default function ForgotPassword() {
@@ -18,68 +20,61 @@ export default function ForgotPassword() {
 
   const handleChange = (e) => {
     setEmail(e.target.value);
-    // Clear error when user types
-    if (errors.email) {
+    if (errors.email || errors.general) {
       setErrors({});
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-
     if (!email.trim()) {
       newErrors.email = 'Vui lòng nhập địa chỉ email';
     } else if (!validateEmail(email)) {
       newErrors.email = 'Email không hợp lệ';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // --- XỬ LÝ GỬI API THẬT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
-    
+    setErrors({}); // Reset lỗi cũ
+
     try {
-      // TODO: Call API gửi liên kết xác nhận
-      // const response = await dispatch(sendResetLink(email));
+      // Gọi API thật từ authApi
+      const response = await authApi.forgotPassword({ identifier: email });
       
-      // Giả lập API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('Sending reset link to:', email);
+      console.log('API Response:', response);
+      toast.success(response.message || "Đã gửi mail xác nhận!");
       setIsSuccess(true);
       
     } catch (error) {
       console.error('Reset password error:', error);
-      setErrors({ general: 'Không tìm thấy tài khoản với email này!' });
+      
+      // Lấy thông báo lỗi từ Backend trả về
+      const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+      
+      setErrors({ general: errorMsg });
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // --- XỬ LÝ GỬI LẠI (RESEND) ---
   const handleResend = async () => {
     setIsLoading(true);
-    
     try {
-      // TODO: Call API gửi lại liên kết
-      // const response = await dispatch(sendResetLink(email));
-      
-      // Giả lập API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Resending reset link to:', email);
-      alert('Đã gửi lại liên kết đến email của bạn!');
-      
+      await authApi.forgotPassword({ identifier: email });
+      toast.success('Đã gửi lại liên kết đến email của bạn!');
     } catch (error) {
-      console.error('Resend error:', error);
-      setErrors({ general: 'Có lỗi xảy ra. Vui lòng thử lại!' });
+      const errorMsg = error.response?.data?.message || 'Không thể gửi lại email.';
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -90,10 +85,12 @@ export default function ForgotPassword() {
       <div className="forgot-password-card">
         {/* Header */}
         <div className="forgot-password-header">
-          <Link to="/login" className="back-button">
-            <ArrowLeft size={20} />
-            <span>Quay lại đăng nhập</span>
-          </Link>
+          {!isSuccess && (
+            <Link to="/signin" className="back-button">
+              <ArrowLeft size={20} />
+              <span>Quay lại đăng nhập</span>
+            </Link>
+          )}
           
           <div className="forgot-password-logo">
             <div className={`logo-circle ${isSuccess ? 'success' : ''}`}>
@@ -107,8 +104,8 @@ export default function ForgotPassword() {
           
           <p className="forgot-password-subtitle">
             {isSuccess 
-              ? `Chúng tôi đã gửi liên kết xác nhận đến ${email}. Vui lòng kiểm tra hộp thư và nhấn vào liên kết để đặt lại mật khẩu.`
-              : 'Nhập địa chỉ email của bạn và chúng tôi sẽ gửi liên kết xác nhận để đặt lại mật khẩu'
+              ? <span>Chúng tôi đã gửi liên kết xác nhận đến <strong>{email}</strong>. Vui lòng kiểm tra hộp thư (cả mục Spam) và nhấn vào liên kết để đặt lại mật khẩu.</span>
+              : 'Nhập địa chỉ email của bạn và chúng tôi sẽ gửi liên kết xác nhận để đặt lại mật khẩu.'
             }
           </p>
         </div>
@@ -116,10 +113,10 @@ export default function ForgotPassword() {
         {/* Form */}
         {!isSuccess ? (
           <form className="forgot-password-form" onSubmit={handleSubmit}>
-            {/* General Error */}
+            {/* General Error Alert */}
             {errors.general && (
-              <div className="alert-error">
-                <AlertCircle size={20} />
+              <div className="alert-error-box">
+                <AlertCircle size={18} />
                 <span>{errors.general}</span>
               </div>
             )}
@@ -129,7 +126,7 @@ export default function ForgotPassword() {
               <label className="form-label">
                 Địa chỉ Email <span className="required">*</span>
               </label>
-              <div className="input-wrapper">
+              <div className={`input-wrapper ${errors.email ? 'error-border' : ''}`}>
                 <Mail size={20} className="input-icon" />
                 <input
                   type="email"
@@ -137,7 +134,7 @@ export default function ForgotPassword() {
                   placeholder="Nhập địa chỉ email của bạn"
                   value={email}
                   onChange={handleChange}
-                  className={`form-input ${errors.email ? 'input-error' : ''}`}
+                  className="form-input"
                   autoComplete="email"
                   autoFocus
                 />
@@ -152,10 +149,10 @@ export default function ForgotPassword() {
               className={`submit-btn ${isLoading ? 'disabled' : ''}`}
             >
               {isLoading ? (
-                <>
+                <div className="loading-content">
                   <span className="spinner"></span>
-                  <span>Đang gửi liên kết...</span>
-                </>
+                  <span>Đang gửi...</span>
+                </div>
               ) : (
                 'Gửi liên kết xác nhận'
               )}
@@ -163,46 +160,25 @@ export default function ForgotPassword() {
 
             {/* Info Box */}
             <div className="info-box">
-              <AlertCircle size={18} />
+              <AlertCircle size={18} className="info-icon" />
               <div>
                 <p className="info-title">Lưu ý:</p>
                 <ul className="info-list">
-                  <li>Liên kết xác nhận sẽ được gửi qua email</li>
-                  <li>Liên kết có hiệu lực trong vòng 10 phút</li>
-                  <li>Kiểm tra cả thư mục spam nếu không thấy email</li>
+                  <li>Liên kết có hiệu lực trong vòng 15 phút.</li>
+                  <li>Nếu không thấy email, hãy kiểm tra mục Spam/Junk.</li>
                 </ul>
               </div>
             </div>
           </form>
         ) : (
           <div className="success-content">
-            <div className="success-message-box">
-              <div className="success-icon">
-                <CheckCircle size={48} />
-              </div>
-              <h3 className="success-message-title">Liên kết đã được gửi!</h3>
-              <p className="success-message-text">
-                Chúng tôi đã gửi email chứa liên kết đặt lại mật khẩu đến <strong>{email}</strong>
-              </p>
-              <p className="success-message-note">
-                Vui lòng kiểm tra hộp thư đến của bạn và nhấn vào liên kết trong email để tiếp tục.
-              </p>
-            </div>
-
             <div className="success-actions">
               <button
                 onClick={handleResend}
                 disabled={isLoading}
-                className={`secondary-btn ${isLoading ? 'disabled' : ''}`}
+                className="secondary-btn"
               >
-                {isLoading ? (
-                  <>
-                    <span className="spinner-small"></span>
-                    <span>Đang gửi lại...</span>
-                  </>
-                ) : (
-                  'Gửi lại liên kết'
-                )}
+                {isLoading ? 'Đang gửi...' : 'Gửi lại liên kết'}
               </button>
               
               <button
@@ -210,17 +186,6 @@ export default function ForgotPassword() {
                 className="tertiary-btn"
               >
                 Quay lại đăng nhập
-              </button>
-            </div>
-
-            <div className="help-text">
-              Không nhận được email? Kiểm tra thư mục spam hoặc thử{' '}
-              <button 
-                onClick={handleResend}
-                disabled={isLoading}
-                className="resend-link"
-              >
-                gửi lại liên kết
               </button>
             </div>
           </div>
