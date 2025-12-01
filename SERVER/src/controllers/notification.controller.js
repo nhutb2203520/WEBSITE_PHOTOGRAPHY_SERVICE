@@ -13,10 +13,10 @@ export const createNotification = async ({ userId, title, message, type, link })
       link
     });
     await newNoti.save();
-    console.log(`🔔 Đã tạo thông báo cho User [${userId}]: ${title}`);
+    console.log(`🔔 [Notification] Đã tạo thông báo cho User [${userId}]: ${title}`);
     return newNoti;
   } catch (error) {
-    console.error("❌ Lỗi tạo thông báo:", error);
+    console.error("❌ [Notification] Lỗi tạo thông báo:", error);
   }
 };
 
@@ -25,8 +25,16 @@ export const createNotification = async ({ userId, title, message, type, link })
 // ==============================================================================
 export const getMyNotifications = async (req, res) => {
   try {
-    const userId = req.user.id;
+    // ✅ FIX: Lấy ID an toàn hơn (chấp nhận cả id và _id từ token)
+    const userId = req.user.id || req.user._id;
     
+    if (!userId) {
+      console.log("❌ [GetNoti] Không tìm thấy User ID trong token");
+      return res.status(400).json({ message: "Token lỗi, không tìm thấy ID" });
+    }
+
+    // console.log(`📥 [GetNoti] Đang lấy thông báo cho User: ${userId}`);
+
     const notifications = await Notification.find({ userId })
       .sort({ createdAt: -1 }) // Mới nhất lên đầu
       .limit(50); // Giới hạn 50 thông báo gần nhất
@@ -40,6 +48,7 @@ export const getMyNotifications = async (req, res) => {
       unreadCount
     });
   } catch (error) {
+    console.error("❌ [GetNoti] Lỗi:", error);
     res.status(500).json({ message: "Lỗi lấy thông báo" });
   }
 };
@@ -62,7 +71,7 @@ export const markAsRead = async (req, res) => {
 // ==============================================================================
 export const markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
     await Notification.updateMany({ userId, isRead: false }, { isRead: true });
     res.status(200).json({ success: true, message: "Đã đọc tất cả" });
   } catch (error) {
@@ -71,7 +80,7 @@ export const markAllAsRead = async (req, res) => {
 };
 
 export default {
-  createNotification, // Export hàm này để dùng ở OrderController
+  createNotification, 
   getMyNotifications,
   markAsRead,
   markAllAsRead

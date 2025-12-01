@@ -32,7 +32,7 @@ const routes = [
     path: '/my-account',
     component: lazy(() => import('../components/Account/MyAccount'))
   },
-  // ✅ [MỚI] Trang thông báo
+  // ✅ [MỚI] Trang thông báo cho User (Khách hàng & Thợ)
   {
     path: '/notifications',
     component: lazy(() => import('../components/Notification/NotificationPage'))
@@ -168,6 +168,12 @@ const routes = [
   {
     path: '/admin/photographer-manage',
     component: lazy(() => import('../admin/UserManage/PhotographerManage')) 
+  },
+
+  // ✅ [MỚI] Trang thông báo Admin
+  {
+    path: '/admin/notifications',
+    component: lazy(() => import('../admin/Notification/NotificationAdmin'))
   },
 
   // ✅ [FIX] Khiếu nại (Direct Import)

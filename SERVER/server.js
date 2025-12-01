@@ -6,7 +6,16 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import connectDB from "./src/config/mongoDb.js";
 
-// ✅ CRITICAL: Import models index TRƯỚC routes để đăng ký tất cả schemas
+// ✅ 1. BẮT LỖI TOÀN CỤC (QUAN TRỌNG)
+process.on('uncaughtException', (err) => {
+  console.error('🔥 LỖI NGHIÊM TRỌNG (Uncaught Exception):', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 LỖI PROMISE (Unhandled Rejection):', reason);
+});
+
+// ✅ Import models index TRƯỚC routes
 import './src/models/index.js';
 
 // ============ IMPORT ROUTES ============
@@ -26,17 +35,17 @@ import reviewRoutes from "./src/routes/review.route.js";
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
 
-// ✅ [MỚI] Import Route Thông báo
+// ✅ [MỚI] Route Thông báo cho Khách/Thợ
 import notificationRoute from "./src/routes/notification.route.js";
 
-// ✅ Load environment variables
+// ✅ [MỚI] Route Thông báo cho Admin
+import notificationAdminRoute from "./src/routes/notificationAdmin.route.js";
+
 dotenv.config();
 
-// ✅ Config __dirname cho ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Connect Database
 connectDB();
 
 const app = express();
@@ -50,13 +59,11 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// ============ STATIC FILES CONFIG ============
+// ============ STATIC FILES ============
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  console.log('📂 Đã tạo thư mục uploads');
 }
-
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ============ ROUTES REGISTRATION ============
@@ -87,41 +94,27 @@ app.use("/api/complaints", complaintRoute);
 // 6. Direct Controller Routes
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 
-// 7. ✅ [MỚI] Route Thông báo
+// 7. ✅ Route Thông báo (User)
 app.use("/api/notifications", notificationRoute);
 
-// ============ HEALTH CHECK ============
-app.get("/", (req, res) => {
-  res.json({ 
-    message: '🎨 Photography Service API đang hoạt động!',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      auth: '/api/auth',
-      customers: '/api/khachhang',
-      notifications: '/api/notifications', // ✅ Đã thêm vào docs
-      orders: '/api/orders',
-    }
-  });
-});
+// 8. ✅ Route Thông báo (Admin) - QUAN TRỌNG: Đây là dòng bạn bị thiếu
+app.use("/api/admin/notifications", notificationAdminRoute);
 
 // ============ ERROR HANDLERS ============
 app.use((req, res) => {
   console.log('❌ 404 - Không tìm thấy:', req.method, req.originalUrl);
   res.status(404).json({ 
-    success: false,
-    message: "Không tìm thấy endpoint này!",
-    requestedUrl: req.originalUrl,
-    method: req.method
+    success: false, 
+    message: "Endpoint không tồn tại!" 
   });
 });
 
 app.use((err, req, res, next) => {
   console.error('❌ Server Error:', err);
+  if (res.headersSent) return next(err);
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.stack : {}
+    message: err.message || 'Internal Server Error'
   });
 });
 
@@ -129,8 +122,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server chạy trên cổng ${PORT}`);
-  console.log(`✅ API endpoint: http://localhost:${PORT}`);
-  console.log(`✅ Static files: http://localhost:${PORT}/uploads`);
 });
 
 export default app;

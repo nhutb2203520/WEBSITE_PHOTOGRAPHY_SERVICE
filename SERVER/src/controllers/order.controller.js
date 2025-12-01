@@ -5,12 +5,13 @@ import Schedule from "../models/schedule.model.js";
 import Album from "../models/album.model.js";
 import mongoose from "mongoose"; 
 import orderService from "../services/order.service.js";
-
-// 👇 QUAN TRỌNG: PHẢI CÓ DÒNG NÀY MỚI LẤY ĐƯỢC PHÍ SÀN
 import ServiceFee from "../models/servicefee.model.js"; 
 
-// ✅ IMPORT HÀM TẠO THÔNG BÁO
-import { createNotification } from "./notification.controller.js";
+// ✅ IMPORT 2 HỆ THỐNG THÔNG BÁO RIÊNG BIỆT
+// 1. Cho người dùng thường (Khách, Thợ)
+import { createNotification } from "./notification.controller.js"; 
+// 2. Cho Admin (Gửi cho tất cả Admin)
+import { notifyAllAdmins } from "./notificationAdmin.controller.js"; 
 
 // ==============================================================================
 // 📦 1. TẠO ĐƠN HÀNG MỚI
@@ -34,6 +35,7 @@ export const createOrder = async (req, res) => {
             status: { $nin: ['cancelled', 'refund_pending', 'rejected'] }
         };
 
+        // Kiểm tra trùng lịch
         if (photographer_id) {
             orderQuery.photographer_id = photographer_id;
             const duplicateOrder = await Order.findOne(orderQuery);
@@ -90,7 +92,7 @@ export const createOrder = async (req, res) => {
             }).save();
         }
 
-        // 🔔 THÔNG BÁO: Gửi cho khách hàng
+        // 🔔 THÔNG BÁO KHÁCH HÀNG
         await createNotification({
             userId: customer_id,
             title: "Đặt lịch thành công!",
@@ -99,7 +101,7 @@ export const createOrder = async (req, res) => {
             link: "/my-orders"
         });
 
-        // 🔔 THÔNG BÁO: Gửi cho thợ chụp (nếu có)
+        // 🔔 THÔNG BÁO NHIẾP ẢNH GIA
         if (newOrder.photographer_id) {
             await createNotification({
                 userId: newOrder.photographer_id,
@@ -123,7 +125,7 @@ export const createOrder = async (req, res) => {
 };
 
 // ==============================================================================
-// 📋 2. LẤY DANH SÁCH ĐƠN HÀNG CỦA TÔI (Dùng cho Khách Hàng)
+// 📋 2. LẤY DANH SÁCH ĐƠN HÀNG CỦA TÔI
 // ==============================================================================
 export const getMyOrders = async (req, res) => {
     try {
@@ -262,7 +264,7 @@ export const updateOrderStatus = async (req, res) => {
             note
         );
 
-        // 🔔 THÔNG BÁO: Gửi cho khách hàng khi trạng thái thay đổi
+        // 🔔 THÔNG BÁO KHÁCH HÀNG
         if (updated) {
             let notiTitle = "";
             let notiMessage = "";
@@ -362,7 +364,7 @@ export const calculateTravelFee = async (req, res) => {
 };
 
 // ==============================================================================
-// 💰 6. XÁC NHẬN THANH TOÁN
+// 💰 6. XÁC NHẬN THANH TOÁN (Logic Admin mới)
 // ==============================================================================
 export const confirmPayment = async (req, res) => {
     try {
@@ -408,13 +410,21 @@ export const confirmPayment = async (req, res) => {
 
         await order.save();
 
-        // 🔔 THÔNG BÁO: Gửi cho khách hàng đã xác nhận thanh toán
+        // 🔔 THÔNG BÁO KHÁCH HÀNG
         await createNotification({
             userId: order.customer_id,
             title: "Đã gửi xác nhận thanh toán",
             message: `Thanh toán cho đơn hàng #${order.order_id} (Mã GD: ${transaction_code}) đang chờ Admin duyệt.`,
             type: "PAYMENT",
             link: "/my-orders"
+        });
+
+        // ✅ [MỚI] THÔNG BÁO CHO TẤT CẢ ADMIN
+        await notifyAllAdmins({
+            title: "💰 Yêu cầu duyệt thanh toán mới",
+            message: `Đơn hàng #${order.order_id} vừa gửi xác nhận thanh toán ${Number(amount).toLocaleString()}đ.`,
+            type: "PAYMENT",
+            link: "/admin/payment-manage"
         });
 
         res.json({
@@ -434,7 +444,7 @@ export const confirmPayment = async (req, res) => {
 };
 
 // ==============================================================================
-// 📢 7. GỬI KHIẾU NẠI
+// 📢 7. GỬI KHIẾU NẠI (Logic Admin mới)
 // ==============================================================================
 export const submitComplaint = async (req, res) => {
     try {
@@ -443,6 +453,15 @@ export const submitComplaint = async (req, res) => {
         const userId = req.user.id;
 
         const result = await orderService.submitComplaint(orderId, reason, userId);
+
+        // ✅ [MỚI] THÔNG BÁO CHO TẤT CẢ ADMIN
+        await notifyAllAdmins({
+            title: "⚠️ Có khiếu nại mới!",
+            message: `Đơn hàng #${orderId} có khiếu nại: "${reason}". Vui lòng kiểm tra.`,
+            type: "COMPLAINT",
+            link: "/admin/complaint-manage"
+        });
+
         res.json({ success: true, message: "Đã gửi khiếu nại thành công", data: result });
     } catch (error) {
         console.error("Submit complaint error:", error);
@@ -489,33 +508,29 @@ export const resolveComplaint = async (req, res) => {
     }
 };
 
+// ==============================================================================
 // 📋 10. LẤY TẤT CẢ ĐƠN HÀNG (ADMIN)
 // ==============================================================================
 export const getAllOrders = async (req, res) => {
     try {
-        // 1. Lấy thông tin Phí Sàn đang kích hoạt
         const activeFee = await ServiceFee.findOne({ isActive: true });
         const PLATFORM_FEE_PERCENT = activeFee ? activeFee.percentage : 0;
 
-        // 2. Lấy danh sách đơn hàng từ DB
         const orders = await Order.find()
             .populate({
                 path: "customer_id",
                 select: "HoTen Email SoDienThoai full_name email",
                 model: "bangKhachHang"
             })
-            // 👇 ĐOẠN NÀY QUAN TRỌNG NHẤT 👇
             .populate({
                 path: "photographer_id",
                 select: "HoTen full_name TenNganHang SoTaiKhoan TenChuTaiKhoan", 
                 model: "bangKhachHang"
             })
-            // 👆 ĐÃ THÊM CÁC TRƯỜNG NGÂN HÀNG 👆
             .populate("service_package_id", "TenGoi name price Gia")
             .sort({ createdAt: -1 })
             .lean(); 
 
-        // 3. Tính toán tiền nong
         const ordersWithFee = orders.map(order => {
             const baseAmount = order.service_amount || order.final_amount || 0;
             const platformFeeAmount = Math.round((baseAmount * PLATFORM_FEE_PERCENT) / 100);
@@ -528,7 +543,6 @@ export const getAllOrders = async (req, res) => {
                     percentage: PLATFORM_FEE_PERCENT 
                 },
                 photographer_earning: photographerEarning,
-                
                 package_name_display: order.service_package_id?.TenGoi || order.service_package_id?.name || "Gói tùy chỉnh",
                 customer_name_display: order.customer_id?.HoTen || order.customer_id?.full_name || "Khách vãng lai",
                 photographer_name_display: order.photographer_id?.HoTen || order.photographer_id?.full_name || "Chưa nhận"
@@ -541,6 +555,7 @@ export const getAllOrders = async (req, res) => {
         res.status(500).json({ message: "Lỗi server khi lấy danh sách đơn!" });
     }
 };
+
 // ==============================================================================
 // 💰 11. QUYẾT TOÁN CHO THỢ ẢNH (ADMIN)
 // ==============================================================================
@@ -548,19 +563,14 @@ export const settleForPhotographer = async (req, res) => {
     try {
         const { orderId } = req.params;
 
-        // Tìm đơn hàng
         const order = await Order.findById(orderId);
         if (!order) {
             return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
         }
 
-        // Cập nhật trạng thái quyết toán
         order.settlement_status = 'paid'; 
-        order.settlement_date = new Date(); // Lưu ngày quyết toán
+        order.settlement_date = new Date(); 
         
-        // (Tuỳ chọn) Lưu vết người thực hiện nếu cần
-        // order.settled_by = req.user.id; 
-
         await order.save();
 
         res.json({ 
@@ -574,6 +584,7 @@ export const settleForPhotographer = async (req, res) => {
         res.status(500).json({ message: "Lỗi server khi quyết toán!" });
     }
 };
+
 export default {
     createOrder,
     getMyOrders,

@@ -1,0 +1,240 @@
+/* --- LAYOUT TỔNG THỂ --- */
+.admin-page-wrapper {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f1f5f9;
+    /* Màu nền xám chuẩn Dashboard */
+}
+
+/* Phần nội dung chính (Bên phải Sidebar) */
+.admin-main-content {
+    flex: 1;
+    padding: 30px;
+    margin-left: 250px;
+    /* Chừa chỗ cho Sidebar Admin (đã fixed width) */
+    transition: margin-left 0.3s ease;
+    /* Hiệu ứng khi sidebar thu gọn */
+}
+
+/* Sidebar thu gọn thì nội dung giãn ra */
+.sidebar.collapsed~.admin-main-content {
+    margin-left: 80px;
+}
+
+/* --- CONTAINER THÔNG BÁO --- */
+.admin-noti-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    min-height: 80vh;
+}
+
+/* Header */
+.admin-noti-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-noti-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.admin-mark-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid #cbd5e1;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.admin-mark-all-btn:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+/* --- DANH SÁCH ITEM --- */
+.admin-noti-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-noti-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    position: relative;
+    border: 1px solid transparent;
+}
+
+.admin-noti-item:hover {
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Trạng thái chưa đọc (Nổi bật hơn) */
+.admin-noti-item.unread {
+    background-color: #eff6ff;
+    border-left: 4px solid #3b82f6;
+}
+
+.admin-noti-item.read {
+    background-color: white;
+    border: 1px solid #f1f5f9;
+}
+
+/* Icons */
+.admin-noti-icon-wrapper {
+    margin-right: 16px;
+    margin-top: 2px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Màu sắc Icon Admin */
+.icon-admin-order {
+    color: #3b82f6;
+}
+
+/* Xanh dương */
+.icon-admin-payment {
+    color: #10b981;
+}
+
+/* Xanh lá (Tiền) */
+.icon-admin-alert {
+    color: #ef4444;
+}
+
+/* Đỏ (Khiếu nại) */
+.icon-admin-user {
+    color: #8b5cf6;
+}
+
+/* Tím (User mới) */
+.icon-admin-system {
+    color: #64748b;
+}
+
+.icon-admin-default {
+    color: #f59e0b;
+}
+
+/* Nội dung */
+.admin-noti-content {
+    flex: 1;
+}
+
+.admin-noti-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.admin-noti-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #334155;
+    margin: 0;
+}
+
+.admin-noti-time {
+    font-size: 12px;
+    color: #94a3b8;
+    white-space: nowrap;
+    margin-left: 10px;
+}
+
+.admin-noti-message {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Chấm đỏ chưa đọc */
+.admin-noti-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    position: absolute;
+    top: 22px;
+    right: 15px;
+    box-shadow: 0 0 0 2px #eff6ff;
+}
+
+/* Trạng thái trống / loading */
+.admin-empty-noti,
+.admin-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    color: #94a3b8;
+    gap: 15px;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive cho mobile */
+@media (max-width: 768px) {
+    .admin-main-content {
+        margin-left: 0;
+        padding: 15px;
+    }
+
+    .admin-noti-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .admin-mark-all-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

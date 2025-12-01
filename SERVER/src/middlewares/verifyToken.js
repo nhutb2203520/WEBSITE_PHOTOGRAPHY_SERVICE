@@ -4,80 +4,46 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const verifyTokenUser = (req, res, next) => {
-  try {
-    const authHeader = req.headers["authorization"];
-    
-    console.log("🔐 Auth Header:", authHeader);
-    
-    const token = authHeader && authHeader.split(" ")[1];
-    
-    if (!token) {
-      console.log("❌ No token provided");
-      return res.status(401).json({ 
-        success: false,
-        message: "Access denied. No token provided." 
-      });
-    }
-
-    console.log("🔐 Token:", token.substring(0, 50) + "...");
-
-    jwt.verify(
-      token, 
-      process.env.JWT_SECRET || "Luan Van Tot Nghiep-B2203520", 
-      (err, decoded) => {
-        if (err) {
-          console.log("❌ Lỗi xác thực token:", err.message);
-          console.log("❌ Error name:", err.name);
-          return res.status(403).json({ 
-            success: false,
-            message: "Invalid token.",
-            error: err.message 
-          });
-        }
-        
-        console.log("✅ Token decoded successfully:", decoded);
-        
-        // ✅ Gắn cả decoded object và id riêng
-        req.user = decoded;
-        req.userId = decoded.id || decoded._id || decoded.userId;
-        
-        console.log("✅ User ID extracted:", req.userId);
-        
-        next();
-      }
-    );
-  } catch (error) {
-    console.error("❌ Unexpected error in verifyTokenUser:", error);
-    return res.status(500).json({ 
-      success: false,
-      message: "Internal server error" 
+  const authHeader = req.headers["authorization"];
+  
+  // 1. Kiểm tra có header Authorization không
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // console.log("❌ [VerifyToken] Thiếu header hoặc sai định dạng");
+    // Dùng return để dừng ngay, không chạy tiếp
+    return res.status(401).json({ 
+      success: false, 
+      message: "Bạn chưa đăng nhập (Thiếu Token)!" 
     });
   }
-};
-/*
-export const verifyTokenStaff = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-  
+
+  // 2. Lấy token
+  const token = authHeader.split(" ")[1];
   if (!token) {
     return res.status(401).json({ 
-      success: false,
-      message: "Access denied. No token provided." 
+      success: false, 
+      message: "Token rỗng!" 
     });
   }
 
-  jwt.verify(
-    token, 
-    process.env.JWT_SECRET || "Luan Van Tot Nghiep-B2203520", 
-    (err, staff) => {
-      if (err || !staff.ChucVu) {
-        return res.status(403).json({ 
-          success: false,
-          message: "Invalid token." 
-        });
-      }
-      req.staff = staff;
-      next();
+  // 3. Giải mã Token (Dùng Try-Catch để bắt lỗi an toàn)
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "Luan Van Tot Nghiep-B2203520");
+    
+    // Gán thông tin user vào request để dùng ở controller sau
+    req.user = decoded;
+    req.userId = decoded.id || decoded._id;
+
+    // ✅ Cho phép đi tiếp
+    return next(); 
+
+  } catch (err) {
+    console.log("❌ [VerifyToken] Lỗi Token:", err.message);
+    
+    // Xử lý các loại lỗi cụ thể của JWT
+    if (err.name === 'TokenExpiredError') {
+      return res.status(403).json({ success: false, message: "Token đã hết hạn, vui lòng đăng nhập lại." });
     }
-  );
-}; */
+    
+    return res.status(403).json({ success: false, message: "Token không hợp lệ." });
+  }
+};
