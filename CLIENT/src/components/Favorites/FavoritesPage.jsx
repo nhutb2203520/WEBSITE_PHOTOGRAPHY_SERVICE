@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Star, Package, User } from 'lucide-react';
 
-// ✅ SỬA LỖI IMPORT: Dùng ../ để quay ra thư mục components
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
 
-// ✅ SỬA LỖI IMPORT API: Dùng ../../ để quay ra src/apis
+// API Services
 import FavoriteService from '../../apis/FavoriteService';
 
 import './FavoritesPage.css';
@@ -18,7 +16,8 @@ export default function FavoritesPage() {
   const [favoritePackages, setFavoritePackages] = useState([]);
   const [favoritePhotographers, setFavoritePhotographers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // ❌ Không cần state sidebar ở đây nữa
 
   useEffect(() => {
     const token = sessionStorage.getItem('token');
@@ -61,14 +60,10 @@ export default function FavoritesPage() {
     }
   };
 
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-
   return (
-    <>
-      <Header />
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      
-      <div className={`favorites-page ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
+      <div className="favorites-page">
         <div className="container">
             <h1 className="page-title">Danh sách yêu thích</h1>
             
@@ -161,7 +156,6 @@ export default function FavoritesPage() {
             </div>
         </div>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

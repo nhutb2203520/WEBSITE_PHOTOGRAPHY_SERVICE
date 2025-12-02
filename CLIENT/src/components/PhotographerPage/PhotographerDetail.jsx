@@ -7,9 +7,11 @@ import {
 } from 'lucide-react';
 
 import './PhotographerDetail.css';
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
 
 export default function PhotographerDetail() {
   const { username } = useParams();
@@ -110,26 +112,29 @@ export default function PhotographerDetail() {
   const toggleFavorite = () => setIsFavorited(!isFavorited);
 
   if (loading) return (
-    <>
-      <Header /><Sidebar />
-      <div className="photographer-detail-page"><div className="container loading-container"><div className="spinner"></div></div></div>
-      <Footer />
-    </>
+    <MainLayout>
+      <div className="photographer-detail-page">
+          <div className="container loading-container">
+              <div className="spinner"></div>
+          </div>
+      </div>
+    </MainLayout>
   );
 
   if (error || !photographer) return (
-    <>
-      <Header /><Sidebar />
-      <div className="photographer-detail-page"><div className="container error-container"><h3>❌ {error}</h3><button onClick={() => navigate('/photographers')} className="btn-back">Quay lại</button></div></div>
-      <Footer />
-    </>
+    <MainLayout>
+      <div className="photographer-detail-page">
+          <div className="container error-container">
+              <h3>❌ {error}</h3>
+              <button onClick={() => navigate('/photographers')} className="btn-back">Quay lại</button>
+          </div>
+      </div>
+    </MainLayout>
   );
 
   return (
-    <>
-      <Header />
-      <Sidebar />
-
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
       <div className="photographer-detail-page">
 
         {/* ✅ NEW: WRAPPER CARD CHO PROFILE */}
@@ -327,7 +332,6 @@ export default function PhotographerDetail() {
           </div>
         </div>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

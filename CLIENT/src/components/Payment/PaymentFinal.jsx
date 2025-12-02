@@ -5,11 +5,14 @@ import {
   Copy, AlertTriangle, ShieldCheck, Upload, X, ChevronDown, Loader, DollarSign
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
 import './PaymentServicePackage.css'; 
 import orderApi from '../../apis/OrderService';
 import paymentMethodService from '../../apis/paymentMethodService';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer lẻ tẻ
 
 export default function PaymentFinal() {
   const location = useLocation();
@@ -139,8 +142,8 @@ export default function PaymentFinal() {
   };
 
   return (
-    <>
-      <Header />
+    // ✅ Bọc trong MainLayout
+    <MainLayout>
       <div className="payment-page">
         <div className="payment-container">
           
@@ -287,7 +290,6 @@ export default function PaymentFinal() {
 
         </div>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

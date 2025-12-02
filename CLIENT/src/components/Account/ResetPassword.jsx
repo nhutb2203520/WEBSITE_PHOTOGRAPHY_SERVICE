@@ -5,6 +5,9 @@ import { toast } from "react-toastify";
 import authApi from "../../apis/authUser";
 import "./ResetPassword.css";
 
+// ✅ Import MainLayout
+import MainLayout from "../../layouts/MainLayout/MainLayout";
+
 const ResetPassword = () => {
   // Lấy token từ URL (được định nghĩa trong route /reset-password/:token)
   const { token } = useParams();
@@ -49,8 +52,6 @@ const ResetPassword = () => {
 
     try {
       // Gọi API resetPassword
-      // authUser.js yêu cầu object { token, ...data } để ghép vào URL
-      // auth.controller.js yêu cầu body có trường "Password" (viết hoa chữ P theo code cũ của bạn)
       const dataPayload = {
         token: token,
         Password: password 
@@ -77,101 +78,104 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="reset-password-container">
-      <div className="reset-password-card">
-        {/* Header */}
-        <div className="reset-header">
-          <div className={`icon-circle ${isSuccess ? "success" : ""}`}>
-            {isSuccess ? <CheckCircle size={32} /> : <Lock size={32} />}
-          </div>
-          <h2 className="reset-title">
-            {isSuccess ? "Thành công!" : "Đặt lại mật khẩu"}
-          </h2>
-          <p className="reset-subtitle">
-            {isSuccess
-              ? "Mật khẩu của bạn đã được cập nhật. Đang chuyển hướng đến trang đăng nhập..."
-              : "Vui lòng nhập mật khẩu mới cho tài khoản của bạn."}
-          </p>
-        </div>
-
-        {/* Success View */}
-        {isSuccess ? (
-          <div className="success-action">
-             <button onClick={() => navigate("/signin")} className="btn-submit">
-               Đăng nhập ngay
-             </button>
-          </div>
-        ) : (
-          /* Form View */
-          <form onSubmit={handleSubmit} className="reset-form">
-            {error && (
-              <div className="alert-error">
-                <AlertCircle size={18} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Mật khẩu mới */}
-            <div className="form-group">
-              <label>Mật khẩu mới</label>
-              <div className="input-wrapper">
-                <Lock size={18} className="input-icon" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="toggle-password"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+    // ✅ Bọc trong MainLayout để có Header/Sidebar/Footer
+    <MainLayout>
+      <div className="reset-password-container">
+        <div className="reset-password-card">
+          {/* Header */}
+          <div className="reset-header">
+            <div className={`icon-circle ${isSuccess ? "success" : ""}`}>
+              {isSuccess ? <CheckCircle size={32} /> : <Lock size={32} />}
             </div>
+            <h2 className="reset-title">
+              {isSuccess ? "Thành công!" : "Đặt lại mật khẩu"}
+            </h2>
+            <p className="reset-subtitle">
+              {isSuccess
+                ? "Mật khẩu của bạn đã được cập nhật. Đang chuyển hướng đến trang đăng nhập..."
+                : "Vui lòng nhập mật khẩu mới cho tài khoản của bạn."}
+            </p>
+          </div>
 
-            {/* Xác nhận mật khẩu */}
-            <div className="form-group">
-              <label>Xác nhận mật khẩu</label>
-              <div className="input-wrapper">
-                <Lock size={18} className="input-icon" />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Nhập lại mật khẩu mới"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="toggle-password"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+          {/* Success View */}
+          {isSuccess ? (
+            <div className="success-action">
+               <button onClick={() => navigate("/signin")} className="btn-submit">
+                 Đăng nhập ngay
+               </button>
             </div>
-
-            <button type="submit" className="btn-submit" disabled={isLoading}>
-              {isLoading ? (
-                <span className="loading-dots">Đang xử lý...</span>
-              ) : (
-                "Xác nhận thay đổi"
+          ) : (
+            /* Form View */
+            <form onSubmit={handleSubmit} className="reset-form">
+              {error && (
+                <div className="alert-error">
+                  <AlertCircle size={18} />
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
-            
-            <div className="back-link">
-              <Link to="/signin">
-                <ArrowLeft size={16} /> Quay lại đăng nhập
-              </Link>
-            </div>
-          </form>
-        )}
+
+              {/* Mật khẩu mới */}
+              <div className="form-group">
+                <label>Mật khẩu mới</label>
+                <div className="input-wrapper">
+                  <Lock size={18} className="input-icon" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Xác nhận mật khẩu */}
+              <div className="form-group">
+                <label>Xác nhận mật khẩu</label>
+                <div className="input-wrapper">
+                  <Lock size={18} className="input-icon" />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Nhập lại mật khẩu mới"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-submit" disabled={isLoading}>
+                {isLoading ? (
+                  <span className="loading-dots">Đang xử lý...</span>
+                ) : (
+                  "Xác nhận thay đổi"
+                )}
+              </button>
+              
+              <div className="back-link">
+                <Link to="/signin">
+                  <ArrowLeft size={16} /> Quay lại đăng nhập
+                </Link>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

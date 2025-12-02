@@ -8,12 +8,36 @@ body {
 /* Trang chính */
 .about-page {
     min-height: 100vh;
-    padding: 60px 0;
+    padding: 60px 0 80px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+.about-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.about-header h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 10px;
+}
+
+.about-header .subtitle {
+    font-size: 1.1rem;
+    color: #6b7280;
 }
 
 .about-page h2 {
     text-align: center;
-    font-size: 2.8rem;
+    font-size: 2.5rem;
     font-weight: 800;
     color: #111827;
     margin-bottom: 45px;
@@ -22,26 +46,38 @@ body {
 /* --- Các section chung --- */
 .about-section {
     background: #ffffff;
-    padding: 35px 30px;
+    padding: 40px;
     border-radius: 16px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e5e7eb;
     margin-bottom: 45px;
     position: relative;
     z-index: 1;
 }
 
 .about-section h3 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: #1f2937;
     margin-bottom: 20px;
+    border-left: 4px solid #3b82f6;
+    padding-left: 15px;
 }
 
 .about-section p,
 .about-section li {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #4b5563;
-    line-height: 1.8;
+    line-height: 1.7;
+}
+
+.about-section ol,
+.about-section ul {
+    padding-left: 20px;
+}
+
+.about-section li {
+    margin-bottom: 10px;
 }
 
 /* --- Team section --- */
@@ -69,124 +105,182 @@ body {
 .team-card {
     background: white;
     border-radius: 18px;
-    padding: 30px 25px;
-    width: 280px;
-    min-height: 420px;
-    /* bỏ height cố định để tránh đè */
+    padding: 35px 25px;
+    width: 300px;
+    /* Bỏ min-height cố định để card tự giãn theo nội dung */
+    height: auto;
     text-align: center;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
     transition: transform 0.3s, box-shadow 0.3s;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    align-items: center;
 }
 
 .team-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ QUAN TRỌNG: Class này giúp ảnh tròn và không bị vỡ */
+.team-img-wrapper {
+    width: 150px;
+    /* Kích thước cố định */
+    height: 150px;
+    /* Kích thước cố định */
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    /* Bo tròn */
+    overflow: hidden;
+    /* Ẩn phần thừa */
+    border: 4px solid #f3f4f6;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    /* Không bị co lại */
 }
 
 .team-img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    margin: 0 auto 18px auto;
-    border: 4px solid #e5e7eb;
+    /* Đảm bảo ảnh không bị méo */
+    display: block;
 }
 
 .team-card h4 {
-    font-size: 1.45rem;
+    font-size: 1.35rem;
     font-weight: 700;
     color: #111827;
     margin-bottom: 5px;
 }
 
 .team-card .role {
-    color: #6b7280;
-    font-size: 1rem;
-    margin-bottom: 12px;
+    color: #3b82f6;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .team-card .description {
-    font-size: 1.05rem;
-    color: #4b5563;
-    line-height: 1.7;
-    margin-bottom: 18px;
+    font-size: 0.95rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    flex-grow: 1;
 }
 
 .social-links {
     display: flex;
     justify-content: center;
-    gap: 12px;
+    gap: 15px;
+    margin-top: auto;
 }
 
 .social-links a {
-    color: #3b82f6;
-    transition: color 0.3s, transform 0.3s;
+    color: #9ca3af;
+    background: #f9fafb;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s;
 }
 
 .social-links a:hover {
-    color: #2563eb;
-    transform: scale(1.15);
+    color: white;
+    background: #3b82f6;
+    transform: scale(1.1);
 }
 
 /* --- Giá trị nổi bật --- */
 .values-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 22px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
     margin-top: 25px;
 }
 
 .value-card {
     display: flex;
     align-items: center;
-    gap: 14px;
-    background: #f3f4f6;
-    padding: 18px 20px;
-    border-radius: 14px;
-    font-size: 1.05rem;
-    color: #1f2937;
-    font-weight: 500;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    gap: 15px;
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    transition: transform 0.2s ease;
 }
 
 .value-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+    transform: translateY(-3px);
+    background: #fff;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    border-color: #3b82f6;
+}
+
+.value-card span {
+    font-size: 1rem;
+    color: #374151;
+    font-weight: 500;
 }
 
 /* --- Thông tin liên hệ --- */
-.about-section ul {
-    padding-left: 20px;
+.contact-info ul {
+    list-style: none;
+    padding: 0;
 }
 
-.about-section ul li {
-    margin-bottom: 8px;
+.contact-info li {
+    margin-bottom: 10px;
+    padding-left: 25px;
+    position: relative;
+}
+
+.contact-info li::before {
+    content: "•";
+    color: #3b82f6;
+    font-weight: bold;
+    font-size: 1.5rem;
+    position: absolute;
+    left: 0;
+    top: -5px;
+}
+
+.contact-info a {
+    color: #2563eb;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
 }
 
 /* --- Responsive --- */
 @media (max-width: 1024px) {
     .team-cards {
-        gap: 24px;
-    }
-
-    .team-card {
-        width: 260px;
+        gap: 20px;
     }
 }
 
 @media (max-width: 768px) {
     .about-page {
-        padding: 40px 15px;
+        padding: 40px 0;
     }
 
     .team-cards {
         flex-direction: column;
         align-items: center;
-        gap: 25px;
+    }
+
+    .team-card {
+        width: 100%;
+        max-width: 350px;
     }
 
     .values-grid {

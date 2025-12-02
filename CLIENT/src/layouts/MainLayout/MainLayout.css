@@ -1,0 +1,36 @@
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.main-content {
+    background: #fafafa;
+    min-height: 100vh;
+    padding-top: 0;
+
+    /* QUAN TRỌNG: Hiệu ứng trượt mượt mà */
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+/* KHI SIDEBAR MỞ: Đẩy nội dung sang phải 280px */
+.main-content.sidebar-open {
+    margin-left: 280px;
+    width: calc(100% - 280px);
+}
+
+/* KHI SIDEBAR ĐÓNG: Thu gọn margin còn 80px */
+.main-content.sidebar-closed {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+
+    .main-content.sidebar-open,
+    .main-content.sidebar-closed {
+        margin-left: 0;
+        width: 100%;
+    }
+}

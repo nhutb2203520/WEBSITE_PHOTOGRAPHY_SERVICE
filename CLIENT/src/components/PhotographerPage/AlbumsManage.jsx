@@ -7,10 +7,12 @@ import {
 } from 'lucide-react';
 
 import albumApi from '../../apis/albumApi';
-import Header from '../Header/Header';
-import Sidebar from '../Sidebar/Sidebar';
-import Footer from '../Footer/Footer';
 import './AlbumsManage.css';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
 
 export default function AlbumsManage() {
     const navigate = useNavigate();
@@ -115,114 +117,107 @@ export default function AlbumsManage() {
     };
 
     return (
-        <div className="layout-wrapper">
-            <Header />
-            <div className="layout-body">
-                <div className="layout-sidebar"><Sidebar /></div>
-                
-                <main className="layout-content">
-                    <div className="am-container">
-                        <div className="am-header">
-                            <div>
-                                <h1>Kho Album ảnh</h1>
-                                <p>Quản lý tất cả album đã tạo</p>
-                            </div>
-                            <button className="btn-create-freelance" onClick={() => setShowModal(true)}>
-                                <Plus size={20}/> Tạo Album Job Ngoài
-                            </button>
-                        </div>
+        // ✅ Bọc trong MainLayout
+        <MainLayout>
+            <div className="am-container">
+                <div className="am-header">
+                    <div>
+                        <h1>Kho Album ảnh</h1>
+                        <p>Quản lý tất cả album đã tạo</p>
+                    </div>
+                    <button className="btn-create-freelance" onClick={() => setShowModal(true)}>
+                        <Plus size={20}/> Tạo Album Job Ngoài
+                    </button>
+                </div>
 
-                        <div className="am-search-bar">
-                            <Search size={20} className="search-icon"/>
-                            <input 
-                                type="text" 
-                                placeholder="Tìm theo tên album, tên khách, mã đơn..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
+                <div className="am-search-bar">
+                    <Search size={20} className="search-icon"/>
+                    <input 
+                        type="text" 
+                        placeholder="Tìm theo tên album, tên khách, mã đơn..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                    />
+                </div>
 
-                        {loading ? <div className="am-loading"><Loader2 className="spinner"/> Đang tải...</div> : (
-                            <div className="am-grid">
-                                {filteredList.length > 0 ? filteredList.map((item) => (
-                                    <div key={item._id} className="am-card" onClick={(e) => handleViewDetail(e, item)}>
-                                        
-                                        {/* ẢNH BÌA */}
-                                        <div className="am-card-img">
-                                            {getCoverImg(item) ? (
-                                                <img src={getCoverImg(item)} alt={item.title} loading="lazy"/>
-                                            ) : (
-                                                <div className="empty-placeholder">
-                                                    <ImageIcon size={40}/>
-                                                    <span>Trống</span>
-                                                </div>
-                                            )}
-                                            {item.type === 'freelance' ? 
-                                                <span className="badge-freelance">Job Ngoài</span> : 
-                                                <span className="badge-order">Đơn Hàng</span>
-                                            }
+                {loading ? <div className="am-loading"><Loader2 className="spinner"/> Đang tải...</div> : (
+                    <div className="am-grid">
+                        {filteredList.length > 0 ? filteredList.map((item) => (
+                            <div key={item._id} className="am-card" onClick={(e) => handleViewDetail(e, item)}>
+                                    
+                                {/* ẢNH BÌA */}
+                                <div className="am-card-img">
+                                    {getCoverImg(item) ? (
+                                        <img src={getCoverImg(item)} alt={item.title} loading="lazy"/>
+                                    ) : (
+                                        <div className="empty-placeholder">
+                                            <ImageIcon size={40}/>
+                                            <span>Trống</span>
                                         </div>
+                                    )}
+                                    {item.type === 'freelance' ? 
+                                        <span className="badge-freelance">Job Ngoài</span> : 
+                                        <span className="badge-order">Đơn Hàng</span>
+                                    }
+                                </div>
 
-                                        {/* THÔNG TIN */}
-                                        <div className="am-card-body">
-                                            <h3 className="am-title" title={item.title}>{item.title}</h3>
-                                            
-                                            <div className="am-meta">
-                                                {item.order_id && (
-                                                    <div className="meta-row">
-                                                        <span className="label">Mã đơn:</span>
-                                                        <span className="val">#{item.order_id}</span>
-                                                    </div>
-                                                )}
-                                                <div className="meta-row">
-                                                    <User size={14}/>
-                                                    <span>{item.client_name || "Khách vãng lai"}</span>
-                                                </div>
-                                                <div className="meta-row">
-                                                    <Calendar size={14}/>
-                                                    <span>{new Date(item.createdAt).toLocaleDateString('vi-VN')}</span>
-                                                </div>
+                                {/* THÔNG TIN */}
+                                <div className="am-card-body">
+                                    <h3 className="am-title" title={item.title}>{item.title}</h3>
+                                    
+                                    <div className="am-meta">
+                                        {item.order_id && (
+                                            <div className="meta-row">
+                                                <span className="label">Mã đơn:</span>
+                                                <span className="val">#{item.order_id}</span>
                                             </div>
-
-                                            <div className="am-stats">
-                                                <span className="photo-count">
-                                                    {item.photos?.length || 0} ảnh
-                                                </span>
-                                                {(item.status === 'selection_completed' || item.status === 'finalized') && (
-                                                    <span className="status-selected">Khách đã chọn</span>
-                                                )}
-                                            </div>
-
-                                            {/* ACTIONS */}
-                                            <div className="am-actions">
-                                                <button 
-                                                    className="btn-action-card secondary"
-                                                    onClick={(e) => handleViewDetail(e, item)}
-                                                    title="Quản lý Album (Upload/Xóa)"
-                                                >
-                                                    <Eye size={16}/> Chi tiết
-                                                </button>
-
-                                                {item.type === 'order' && (
-                                                    <button 
-                                                        className={`btn-action-card ${item.status === 'selection_completed' ? 'highlight' : ''}`}
-                                                        onClick={(e) => handleViewSelection(e, item)}
-                                                        title="Xem danh sách ảnh khách đã chọn"
-                                                    >
-                                                        <CheckSquare size={16}/> Xem Chọn
-                                                    </button>
-                                                )}
-                                            </div>
+                                        )}
+                                        <div className="meta-row">
+                                            <User size={14}/>
+                                            <span>{item.client_name || "Khách vãng lai"}</span>
+                                        </div>
+                                        <div className="meta-row">
+                                            <Calendar size={14}/>
+                                            <span>{new Date(item.createdAt).toLocaleDateString('vi-VN')}</span>
                                         </div>
                                     </div>
-                                )) : (
-                                    <div className="am-empty">Không tìm thấy album nào.</div>
-                                )}
+
+                                    <div className="am-stats">
+                                        <span className="photo-count">
+                                            {item.photos?.length || 0} ảnh
+                                        </span>
+                                        {(item.status === 'selection_completed' || item.status === 'finalized') && (
+                                            <span className="status-selected">Khách đã chọn</span>
+                                        )}
+                                    </div>
+
+                                    {/* ACTIONS */}
+                                    <div className="am-actions">
+                                        <button 
+                                            className="btn-action-card secondary"
+                                            onClick={(e) => handleViewDetail(e, item)}
+                                            title="Quản lý Album (Upload/Xóa)"
+                                        >
+                                            <Eye size={16}/> Chi tiết
+                                        </button>
+
+                                        {item.type === 'order' && (
+                                            <button 
+                                                className={`btn-action-card ${item.status === 'selection_completed' ? 'highlight' : ''}`}
+                                                onClick={(e) => handleViewSelection(e, item)}
+                                                title="Xem danh sách ảnh khách đã chọn"
+                                            >
+                                                <CheckSquare size={16}/> Xem Chọn
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
+                        )) : (
+                            <div className="am-empty">Không tìm thấy album nào.</div>
                         )}
                     </div>
-                    <Footer />
-                </main>
+                )}
             </div>
 
             {/* MODAL */}
@@ -253,6 +248,6 @@ export default function AlbumsManage() {
                     </div>
                 </div>
             )}
-        </div>
+        </MainLayout>
     );
 }

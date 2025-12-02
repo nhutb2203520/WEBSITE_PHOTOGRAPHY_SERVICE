@@ -8,20 +8,37 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import './Sidebar.css';
 
-// ✅ Nhận props: isOpen và toggleSidebar từ cha (HomePageCustomer)
-export default function Sidebar({ isOpen, toggleSidebar }) {
+export default function Sidebar({ isOpen: propsIsOpen, toggleSidebar: propsToggleSidebar }) {
   const location = useLocation();
   const { user } = useSelector(state => state.user);
-  const [unreadCount, setUnreadCount] = useState(0);
   
+  // ✅ 1. State nội bộ (Dùng làm fallback nếu trang cha không truyền props)
+  const [internalIsOpen, setInternalIsOpen] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // ✅ 2. Kiểm tra xem Component có đang được điều khiển bởi cha không
+  // (Chỉ khi có đủ cả isOpen và toggleSidebar thì mới coi là Controlled)
+  const isControlled = propsIsOpen !== undefined && propsToggleSidebar !== undefined;
+  
+  // ✅ 3. Xác định trạng thái thực tế
+  const isOpen = isControlled ? propsIsOpen : internalIsOpen;
+  
+  // ✅ 4. Hàm xử lý toggle đa năng
+  const handleToggle = () => {
+    if (isControlled) {
+      propsToggleSidebar(); // Gọi hàm của cha (để đẩy trang)
+    } else {
+      setInternalIsOpen(!internalIsOpen); // Tự đóng mở (không đẩy trang)
+    }
+  };
+
   const isPhotographer = user?.isPhotographer;
   
-  // Fake stats dung lượng (hoặc lấy từ user redux nếu có)
+  // Stats mẫu
   const storageUsed = user?.storageUsed || 0; 
   const storageTotal = user?.storageTotal || 30; 
   const storagePercent = Math.min((storageUsed / storageTotal) * 100, 100);
 
-  // Lấy thông báo (Giữ nguyên logic cũ của bạn)
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
@@ -59,17 +76,17 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   return (
     <>
-      {/* Nút toggle mobile */}
-      <button className="sidebar-toggle-mobile" onClick={toggleSidebar}>
+      {/* Nút toggle mobile - Sử dụng handleToggle thay vì props trực tiếp */}
+      <button className="sidebar-toggle-mobile" onClick={handleToggle}>
         <Menu size={24} />
       </button>
 
       {/* Overlay cho mobile */}
-      {isOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
+      {isOpen && <div className="sidebar-overlay" onClick={handleToggle}></div>}
 
       <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <button className="sidebar-toggle" onClick={toggleSidebar}>
+          <button className="sidebar-toggle" onClick={handleToggle}>
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -80,8 +97,16 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               key={item.path}
               to={item.path}
               className={`sidebar-item ${location.pathname === item.path ? 'active' : ''}`}
-              // Trên mobile, bấm vào link thì đóng sidebar
-              onClick={() => window.innerWidth <= 768 && toggleSidebar()}
+              onClick={() => {
+                // Tự động đóng sidebar trên mobile khi click vào link
+                if (window.innerWidth <= 768) {
+                    if (isControlled && propsToggleSidebar) {
+                        propsToggleSidebar();
+                    } else {
+                        setInternalIsOpen(false);
+                    }
+                }
+              }}
             >
               <div className="sidebar-item-content">
                 <span className="sidebar-icon">{item.icon}</span>
@@ -95,7 +120,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
                     )}
                   </>
                 )}
-                {/* Dấu chấm đỏ khi đóng sidebar */}
                 {!isOpen && item.badge && <span className="sidebar-badge-dot"></span>}
               </div>
             </Link>

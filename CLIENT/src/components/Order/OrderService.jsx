@@ -9,9 +9,11 @@ import './OrderService.css';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify'; 
 
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../../components/Sidebar/Sidebar';
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
+
 import servicePackageApi from '../../apis/ServicePackageService';
 import orderApi from '../../apis/OrderService';
 
@@ -385,10 +387,8 @@ export default function OrderServices() {
   };
 
   return (
-    <>
-      <Header />
-      <Sidebar />
-
+    // ✅ Bọc trong MainLayout
+    <MainLayout>
       <div className="order-service-page">
         <div className="container">
           <div className="order-header">
@@ -508,7 +508,7 @@ export default function OrderServices() {
                     </button>
                     <span className="geo-divider">hoặc</span>
                     <button type="button" onClick={handleGetCurrentLocation} className="btn-location">
-                       <Navigation size={16} /> Lấy vị trí hiện tại
+                        <Navigation size={16} /> Lấy vị trí hiện tại
                     </button>
                   </div>
 
@@ -576,8 +576,6 @@ export default function OrderServices() {
           </div>
         </div>
       )}
-
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart, Camera, CheckCircle2, ClipboardList, MapPin, Search, AlertTriangle } from 'lucide-react';
 import './ServicePackage.css';
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
+
 import { useSelector, useDispatch } from 'react-redux';
 import { getAllPackages } from '../../redux/Slices/servicepackageSlice';
 import Package from '../PhotographerPage/Package';
@@ -137,10 +140,8 @@ export default function ServicePackage() {
   }, [loaiGoi]); 
 
   return (
-    <>
-      <Header />
-      <Sidebar />
-
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
       <div className="packages-page">
         <section className="packages">
           <div className="container">
@@ -333,8 +334,6 @@ export default function ServicePackage() {
           </div>
         </section>
       </div>
-
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

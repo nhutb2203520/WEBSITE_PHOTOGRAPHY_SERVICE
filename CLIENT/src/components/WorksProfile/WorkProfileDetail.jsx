@@ -5,9 +5,10 @@ import {
   ChevronLeft, ChevronRight
 } from "lucide-react";
 
-import Header from "../Header/Header";
-import Sidebar from "../Sidebar/Sidebar";
-import Footer from "../Footer/Footer";
+// ✅ Import MainLayout
+import MainLayout from "../../layouts/MainLayout/MainLayout";
+
+// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
 
 import "./WorkProfileDetail.css";
 
@@ -84,16 +85,23 @@ export default function WorkProfileDetail() {
   }, [selectedIndex, showNextImage, showPrevImage]);
 
 
-  if (loading) return <div className="loading-screen"><div className="spinner"></div></div>;
-  if (!work) return <div className="error-msg">Không có dữ liệu.</div>;
+  if (loading) return (
+    <MainLayout>
+        <div className="loading-screen"><div className="spinner"></div></div>
+    </MainLayout>
+  );
+
+  if (!work) return (
+    <MainLayout>
+        <div className="error-msg">Không có dữ liệu.</div>
+    </MainLayout>
+  );
 
   const photographer = work.photographerId || work.userId || {};
 
   return (
-    <>
-      <Header />
-      <Sidebar />
-
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
       <div className="wpd-container">
 
         {/* BACK BTN */}
@@ -180,8 +188,6 @@ export default function WorkProfileDetail() {
           </div>
         )}
       </div>
-
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

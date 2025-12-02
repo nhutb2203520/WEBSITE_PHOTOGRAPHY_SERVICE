@@ -1,8 +1,10 @@
 import React from 'react';
 import './Activity.css';
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
 
 export default function Activity() {
   const steps = [
@@ -44,9 +46,8 @@ export default function Activity() {
   ];
 
   return (
-    <>
-      <Header />
-      <Sidebar />
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
       <div className="activity-page">
         <div className="container">
           <h2>Cách thức hoạt động</h2>
@@ -67,7 +68,6 @@ export default function Activity() {
           </div>
         </div>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

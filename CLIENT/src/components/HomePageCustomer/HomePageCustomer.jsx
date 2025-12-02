@@ -2,23 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Star, Heart, Users, Camera, Award, TrendingUp } from 'lucide-react';
 import './HomePageCustomer.css';
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+
+// ✅ Import MainLayout (Thay thế cho Header, Footer, Sidebar lẻ)
+import MainLayout from '../../layouts/MainLayout/MainLayout';
 
 // API Services
 import ServicePackageApi from '../../apis/ServicePackageService'; 
 import homeApi from '../../apis/homeApi';
-import FavoriteService from '../../apis/FavoriteService'; // ✅ Mới thêm
+import FavoriteService from '../../apis/FavoriteService';
 
 export default function HomePageCustomer() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   
-  // ✅ State lưu danh sách ID các món đã thích (để tô đỏ trái tim)
+  // ✅ State lưu danh sách ID các món đã thích
   const [favorites, setFavorites] = useState([]); 
   
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // ❌ Không cần state sidebar nữa vì MainLayout đã lo
+  
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statsData, setStatsData] = useState({ clients: 0, photographers: 0, projects: 0, rating: 0 });
@@ -48,7 +49,6 @@ export default function HomePageCustomer() {
         const [packagesRes, statsRes, favRes] = await Promise.all([
             ServicePackageApi.getAllPackages(),
             homeApi.getSystemStats(),
-            // Chỉ lấy favorites nếu đã đăng nhập
             token ? FavoriteService.getMyFavorites() : Promise.resolve(null)
         ]);
 
@@ -106,18 +106,13 @@ export default function HomePageCustomer() {
     fetchData();
   }, []);
 
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-
-  // ✅ Hàm xử lý bấm tim (Thả tim thật)
   const toggleFavorite = async (packageId) => {
     const token = sessionStorage.getItem('token');
     if (!token) {
         alert("Vui lòng đăng nhập để lưu vào yêu thích!");
-        // navigate('/login'); // Có thể redirect nếu muốn
         return;
     }
 
-    // 1. Cập nhật UI ngay lập tức (Optimistic Update) cho mượt
     const isCurrentlyFavorited = favorites.includes(packageId);
     setFavorites(prev => 
       isCurrentlyFavorited 
@@ -126,10 +121,8 @@ export default function HomePageCustomer() {
     );
 
     try {
-        // 2. Gọi API ngầm
         await FavoriteService.toggleFavorite('package', packageId);
     } catch (error) {
-        // 3. Nếu lỗi thì hoàn tác UI
         console.error("Lỗi khi like:", error);
         setFavorites(prev => 
             isCurrentlyFavorited 
@@ -148,11 +141,9 @@ export default function HomePageCustomer() {
   ];
 
   return (
-    <>
-      <Header />
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      
-      <div className={`homepage-customer ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
+      <div className="homepage-customer">
         
         {/* HERO */}
         <section className="hero">
@@ -235,7 +226,6 @@ export default function HomePageCustomer() {
                       
                       {pkg.isNew && <span className="badge badge-new">Mới</span>}
                       
-                      {/* NÚT TIM ĐƯỢC CẬP NHẬT LOGIC */}
                       <button className="favorite-btn" onClick={(e) => {e.preventDefault(); toggleFavorite(pkg.id)}}>
                          <Heart 
                            className={favorites.includes(pkg.id) ? 'favorited' : ''} 
@@ -268,7 +258,7 @@ export default function HomePageCustomer() {
                         <div className="package-price">
                           <span className="current-price">{pkg.price}</span>
                         </div>
-                        <Link to={`/packages/${pkg.id}`} className="btn-book">Chi tiết</Link>
+                        <Link to={`/package/${pkg.id}`} className="btn-book">Chi tiết</Link>
                       </div>
                     </div>
                   </div>
@@ -280,7 +270,6 @@ export default function HomePageCustomer() {
           </div>
         </section>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

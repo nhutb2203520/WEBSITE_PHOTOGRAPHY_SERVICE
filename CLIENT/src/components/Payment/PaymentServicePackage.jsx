@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   CreditCard, Calendar, Clock, CheckCircle, 
-  Copy, AlertTriangle, ShieldCheck, Upload, X, ChevronDown, Loader, Image as ImageIcon
+  Copy, AlertTriangle, ShieldCheck, Upload, X, ChevronDown, Loader, DollarSign, Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
 import './PaymentServicePackage.css';
 import orderApi from '../../apis/OrderService';
 import paymentMethodService from '../../apis/paymentMethodService';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer lẻ tẻ
 
 // ⚠️ Tốt nhất nên đưa vào file config hoặc biến môi trường (.env)
 const API_BASE_URL = 'http://localhost:5000'; 
@@ -182,8 +185,8 @@ export default function PaymentServicePackage() {
   const packageImgSrc = getPackageImage();
 
   return (
-    <>
-      <Header />
+    // ✅ Bọc trong MainLayout
+    <MainLayout>
       <div className="payment-page">
         <div className="payment-container">
           
@@ -272,7 +275,7 @@ export default function PaymentServicePackage() {
               )}
 
               <div className="upload-section">
-                <label className="upload-label">Tải lên minh chứng thanh toán (Bill)</label>
+                <label className="upload-label">Tải lên biên lai chuyển khoản</label>
                 
                 {!proofImage ? (
                   <div className="upload-box">
@@ -305,7 +308,7 @@ export default function PaymentServicePackage() {
             <div className="summary-card">
               <div className="section-title">
                 <ShieldCheck className="text-blue-600" />
-                Thông tin đặt lịch
+                Chi tiết thanh toán
               </div>
 
               <div className="package-mini-info">
@@ -334,7 +337,7 @@ export default function PaymentServicePackage() {
                     <Clock size={14} /> {orderData.start_time}
                   </div>
                   <div className="info-line font-semibold text-sm mt-1">
-                     {orderData.service_package_id?.TenGoi || "Gói dịch vụ"}
+                      {orderData.service_package_id?.TenGoi || "Gói dịch vụ"}
                   </div>
                 </div>
               </div>
@@ -358,14 +361,14 @@ export default function PaymentServicePackage() {
                   onClick={handleConfirmPayment}
                   disabled={loading}
                 >
-                  {loading ? 'Đang gửi...' : (
+                  {loading ? 'Đang xử lý...' : (
                     <>
                       <CheckCircle size={20} />
                       Tôi đã chuyển khoản
                     </>
                   )}
                 </button>
-                <button className="btn-back-home" onClick={() => navigate('/')}>
+                <button className="btn-back-home" onClick={() => navigate('/my-orders')}>
                   Về trang chủ
                 </button>
               </div>
@@ -374,7 +377,6 @@ export default function PaymentServicePackage() {
 
         </div>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

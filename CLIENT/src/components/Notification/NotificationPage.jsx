@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Bell, CheckCircle, Package, CreditCard, Image, Info, AlertTriangle } from "lucide-react"; // ✅ Import thêm AlertTriangle
+import { Bell, CheckCircle, Package, CreditCard, Image, Info, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import notificationApi from "../../apis/notificationService"; 
-import Header from "../Header/Header"; 
-import Footer from "../Footer/Footer"; 
-import Sidebar from "../Sidebar/Sidebar"; 
 import "./NotificationPage.css";
+
+// ✅ Import MainLayout
+import MainLayout from "../../layouts/MainLayout/MainLayout";
+
+// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
 
 // Hàm helper để chọn icon theo loại thông báo
 const getIconByType = (type) => {
@@ -14,7 +16,6 @@ const getIconByType = (type) => {
     case "PAYMENT": return <CreditCard className="icon-payment" size={24} />;
     case "ALBUM": return <Image className="icon-album" size={24} />;
     case "SYSTEM": return <Info className="icon-system" size={24} />;
-    // ✅ Thêm case cho khiếu nại (COMPLAINT)
     case "COMPLAINT": return <AlertTriangle className="icon-complaint" size={24} color="#ef4444" />;
     default: return <Bell className="icon-default" size={24} />;
   }
@@ -74,65 +75,54 @@ const NotificationPage = () => {
   };
 
   return (
-    <div className="page-wrapper">
-      <Header />
-
-      <div className="main-layout">
-        <div className="sidebar-area">
-           <Sidebar />
+    // ✅ Bọc trong MainLayout
+    <MainLayout>
+      <div className="notification-container">
+        
+        <div className="noti-header">
+          <h2>Thông báo của bạn</h2>
+          <button className="mark-all-btn" onClick={handleReadAll}>
+            <CheckCircle size={16} /> Đánh dấu tất cả là đã đọc
+          </button>
         </div>
 
-        <div className="content-area">
-          <div className="notification-container">
-            
-            <div className="noti-header">
-              <h2>Thông báo của bạn</h2>
-              <button className="mark-all-btn" onClick={handleReadAll}>
-                <CheckCircle size={16} /> Đánh dấu tất cả là đã đọc
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="loading-noti">
-                 <div className="spinner"></div> Đang tải thông báo...
+        {loading ? (
+          <div className="loading-noti">
+             <div className="spinner"></div> Đang tải thông báo...
+          </div>
+        ) : (
+          <div className="noti-list">
+            {notifications.length === 0 ? (
+              <div className="empty-noti">
+                <Bell size={48} />
+                <p>Bạn chưa có thông báo nào.</p>
               </div>
             ) : (
-              <div className="noti-list">
-                {notifications.length === 0 ? (
-                  <div className="empty-noti">
-                    <Bell size={48} />
-                    <p>Bạn chưa có thông báo nào.</p>
+              notifications.map((item) => (
+                <Link 
+                  to={item.link || "#"} 
+                  key={item._id} 
+                  className={`noti-item ${item.isRead ? "read" : "unread"}`}
+                  onClick={() => handleRead(item)}
+                >
+                  <div className="noti-icon-wrapper">
+                    {getIconByType(item.type)}
                   </div>
-                ) : (
-                  notifications.map((item) => (
-                    <Link 
-                      to={item.link || "#"} 
-                      key={item._id} 
-                      className={`noti-item ${item.isRead ? "read" : "unread"}`}
-                      onClick={() => handleRead(item)}
-                    >
-                      <div className="noti-icon-wrapper">
-                        {getIconByType(item.type)}
-                      </div>
-                      <div className="noti-content">
-                        <h4 className="noti-title">{item.title}</h4>
-                        <p className="noti-message">{item.message}</p>
-                        <span className="noti-time">
-                          {new Date(item.createdAt).toLocaleString("vi-VN")}
-                        </span>
-                      </div>
-                      {!item.isRead && <div className="noti-dot"></div>}
-                    </Link>
-                  ))
-                )}
-              </div>
+                  <div className="noti-content">
+                    <h4 className="noti-title">{item.title}</h4>
+                    <p className="noti-message">{item.message}</p>
+                    <span className="noti-time">
+                      {new Date(item.createdAt).toLocaleString("vi-VN")}
+                    </span>
+                  </div>
+                  {!item.isRead && <div className="noti-dot"></div>}
+                </Link>
+              ))
             )}
           </div>
-        </div>
+        )}
       </div>
-
-      <Footer />
-    </div>
+    </MainLayout>
   );
 };
 

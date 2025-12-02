@@ -3,14 +3,14 @@ import ServicePackage from "../models/servicePackage.model.js";
 import Review from "../models/review.model.js";
 import Schedule from "../models/schedule.model.js";
 import Album from "../models/album.model.js";
-import Admin from "../models/admin.model.js"; 
-import mongoose from "mongoose"; 
+import Admin from "../models/admin.model.js";
+import mongoose from "mongoose";
 import orderService from "../services/order.service.js";
-import ServiceFee from "../models/servicefee.model.js"; 
+import ServiceFee from "../models/servicefee.model.js";
 
 // ✅ IMPORT THÔNG BÁO
-import { createNotification } from "./notification.controller.js"; 
-import { notifyAllAdmins } from "./notificationAdmin.controller.js"; 
+import { createNotification } from "./notification.controller.js";
+import { notifyAllAdmins } from "./notificationAdmin.controller.js";
 
 // === HELPER: Lấy ID của Admin ===
 const getAdminId = async () => {
@@ -38,13 +38,13 @@ const autoCompleteOverdueOrders = async () => {
 
         if (overdueOrders.length > 0) {
             console.log(`🔄 [System] Tìm thấy ${overdueOrders.length} đơn hàng cần tự động hoàn thành.`);
-            
+
             for (const order of overdueOrders) {
                 order.status = 'completed';
                 order.completion_date = new Date();
                 order.status_history.push({
                     status: 'completed',
-                    changed_by: null, 
+                    changed_by: null,
                     note: "Hệ thống tự động hoàn thành (Hết hạn 3 ngày khiếu nại)."
                 });
                 await order.save();
@@ -81,25 +81,24 @@ const autoCompleteOverdueOrders = async () => {
 };
 
 // ==============================================================================
-// 📦 1. TẠO ĐƠN HÀNG MỚI (KHÔNG TẠO LỊCH TRÌNH + CHECK TRÙNG THOÁNG HƠN)
+// 📦 1. TẠO ĐƠN HÀNG MỚI
 // ==============================================================================
 export const createOrder = async (req, res) => {
     try {
         const customer_id = req.user.id;
-        const { 
-            booking_date, start_time, photographer_id, 
+        const {
+            booking_date, start_time, photographer_id,
             service_package_id, package_name,
-            selected_services 
+            selected_services
         } = req.body;
 
-        // Validate cơ bản
         if (!booking_date || !start_time) {
             return res.status(400).json({ message: "Vui lòng chọn ngày và giờ chụp!" });
         }
 
         if (!selected_services || !Array.isArray(selected_services) || selected_services.length === 0) {
-            return res.status(400).json({ 
-                message: "Vui lòng chọn ít nhất một dịch vụ (Option) trong gói để tiếp tục!" 
+            return res.status(400).json({
+                message: "Vui lòng chọn ít nhất một dịch vụ (Option) trong gói để tiếp tục!"
             });
         }
 
@@ -107,34 +106,23 @@ export const createOrder = async (req, res) => {
         const startOfDay = new Date(searchDate); startOfDay.setHours(0, 0, 0, 0);
         const endOfDay = new Date(searchDate); endOfDay.setHours(23, 59, 59, 999);
 
-        // Tính thời gian kết thúc dự kiến (Mặc định 4 tiếng nếu không có estimated_duration_days)
-        const [h, m] = start_time.split(':').map(Number);
-        const bookingStart = new Date(searchDate);
-        bookingStart.setHours(h, m, 0, 0);
-        // Giả sử mỗi slot chụp khoảng 4 tiếng, hoặc lấy từ package nếu có
-        const bookingEnd = new Date(bookingStart.getTime() + (4 * 60 * 60 * 1000)); 
-
-        // 🛑 CHECK TRÙNG LỊCH VỚI CÁC ĐƠN ĐÃ CHỐT (Đã cọc tiền)
+        // Check trùng lịch
         if (photographer_id) {
             const conflictOrder = await Order.findOne({
                 photographer_id: photographer_id,
-                // Chỉ check các trạng thái "Đã có chủ" (đã cọc hoặc đang làm)
-                // BỎ QUA 'pending_payment' -> Cho phép nhiều người cùng tạo đơn nháp
-                status: { 
-                    $in: ['pending', 'confirmed', 'in_progress', 'processing', 'waiting_final_payment', 'final_payment_pending', 'delivered', 'completed', 'complaint'] 
+                status: {
+                    $in: ['pending', 'confirmed', 'in_progress', 'processing', 'waiting_final_payment', 'final_payment_pending', 'delivered', 'completed', 'complaint']
                 },
-                // Check trùng ngày & giờ (Ở đây check đơn giản theo ngày như yêu cầu cũ, nếu cần chính xác giờ thì dùng bookingStart/End)
                 booking_date: { $gte: startOfDay, $lte: endOfDay },
-                start_time: start_time 
+                start_time: start_time
             });
 
             if (conflictOrder) {
-                return res.status(409).json({ 
-                    message: `Rất tiếc, Nhiếp ảnh gia đã có lịch ĐÃ CHỐT vào lúc ${start_time}. Vui lòng chọn giờ khác.` 
+                return res.status(409).json({
+                    message: `Rất tiếc, Nhiếp ảnh gia đã có lịch ĐÃ CHỐT vào lúc ${start_time}. Vui lòng chọn giờ khác.`
                 });
             }
 
-            // Check lịch bận cá nhân (Busy/Personal) - Cái này phải check chặt
             const conflictSchedule = await Schedule.findOne({
                 photographerId: photographer_id,
                 date: { $gte: startOfDay, $lte: endOfDay },
@@ -148,9 +136,6 @@ export const createOrder = async (req, res) => {
         const payload = { customer_id, ...req.body };
         const newOrder = await orderService.createOrder(payload);
 
-        // ❌ KHÔNG TẠO SCHEDULE Ở ĐÂY (Chờ cọc ở confirmPayment)
-
-        // 🔔 Báo Khách
         await createNotification({
             userId: customer_id,
             title: "Đặt lịch thành công!",
@@ -159,7 +144,6 @@ export const createOrder = async (req, res) => {
             link: "/my-orders"
         });
 
-        // 🔔 Báo Thợ
         if (newOrder.photographer_id) {
             await createNotification({
                 userId: newOrder.photographer_id,
@@ -179,7 +163,7 @@ export const createOrder = async (req, res) => {
 };
 
 // ==============================================================================
-// 💰 6. XÁC NHẬN THANH TOÁN (TẠO LỊCH TRÌNH + CHECK RACE CONDITION)
+// 💰 2. XÁC NHẬN THANH TOÁN (CỌC HOẶC FULL)
 // ==============================================================================
 export const confirmPayment = async (req, res) => {
     try {
@@ -189,63 +173,51 @@ export const confirmPayment = async (req, res) => {
         if (!req.file) return res.status(400).json({ message: "Thiếu ảnh chuyển khoản!" });
         const fileUrl = `${req.protocol}://${req.get('host')}/uploads/orders/${req.file.filename}`;
 
-        // Populate để lấy tên gói và tên khách cho Schedule
         const order = await Order.findById(orderId)
             .populate('service_package_id', 'TenGoi')
             .populate('customer_id', 'HoTen');
-            
+
         if (!order) return res.status(404).json({ message: "Đơn hàng không tồn tại" });
 
-        // --- XỬ LÝ CỌC (GIAI ĐOẠN 1) ---
         if (order.status === 'pending_payment') {
-            
-            // 🛑 [QUAN TRỌNG] CHECK LẠI LẦN CUỐI XEM CÓ AI VỪA CỌC TRƯỚC ĐÓ KHÔNG (Race Condition)
             if (order.photographer_id) {
                 const conflictOrder = await Order.findOne({
-                    _id: { $ne: order._id }, // Không tính chính nó
+                    _id: { $ne: order._id },
                     photographer_id: order.photographer_id,
-                    // Các trạng thái "Đã có chủ"
                     status: { $in: ['pending', 'confirmed', 'in_progress', 'processing', 'waiting_final_payment', 'final_payment_pending', 'delivered', 'completed', 'complaint'] },
-                    // Check trùng ngày và giờ
-                    booking_date: order.booking_date, 
+                    booking_date: order.booking_date,
                     start_time: order.start_time
                 });
 
                 if (conflictOrder) {
-                    return res.status(409).json({ 
-                        message: "Rất tiếc, khung giờ này vừa bị khách khác đặt cọc trước! Vui lòng liên hệ Admin để hoàn tiền hoặc đổi giờ." 
+                    return res.status(409).json({
+                        message: "Rất tiếc, khung giờ này vừa bị khách khác đặt cọc trước! Vui lòng liên hệ Admin để hoàn tiền hoặc đổi giờ."
                     });
                 }
             }
 
-            // Update thông tin thanh toán
             order.payment_info.transfer_image = fileUrl;
             order.payment_info.transfer_date = new Date();
             order.payment_info.transaction_code = transaction_code;
             order.payment_info.deposit_amount = Number(amount);
-            order.status = 'pending'; // Chuyển sang chờ duyệt
-            
+            order.status = 'pending';
             order.status_history.push({ status: 'pending', changed_by: req.user.id, note: `Khách cọc: ${transaction_code}` });
 
-            // ✅ CHỈ TẠO 1 LỊCH DUY NHẤT CHO PHOTOGRAPHER
             if (order.photographer_id) {
                 const existingSchedule = await Schedule.findOne({ orderId: order._id });
-                
                 if (!existingSchedule) {
                     await new Schedule({
-                        photographerId: order.photographer_id, // Chỉ ID thợ
+                        photographerId: order.photographer_id,
                         title: `Chụp khách: ${order.customer_id?.HoTen || 'Khách'} (${order.start_time})`,
                         date: order.booking_date,
                         type: 'order',
                         orderId: order._id,
                         description: `Mã đơn: ${order.order_id} - Gói: ${order.service_package_id?.TenGoi}`
                     }).save();
-                    console.log(`📅 Đã tạo lịch trình cho Photographer đơn hàng #${order.order_id}`);
                 }
             }
 
         } else {
-            // --- XỬ LÝ THANH TOÁN NỐT (GIAI ĐOẠN 2) ---
             order.payment_info.remaining_transfer_image = fileUrl;
             order.payment_info.remaining_status = 'pending';
             order.payment_info.remaining_paid_at = new Date();
@@ -255,16 +227,14 @@ export const confirmPayment = async (req, res) => {
 
         await order.save();
 
-        // 🔔 Thông báo cho khách
         await createNotification({
-            userId: order.customer_id._id, // Lưu ý: customer_id là object do populate
+            userId: order.customer_id._id,
             title: "Đã gửi xác nhận thanh toán",
             message: `Thanh toán đơn #${order.order_id} đang chờ duyệt.`,
             type: "PAYMENT",
             link: "/my-orders"
         });
 
-        // 🔔 Thông báo cho Admin
         await notifyAllAdmins({
             title: "💰 Yêu cầu duyệt thanh toán",
             message: `Đơn #${order.order_id} vừa gửi thanh toán ${Number(amount).toLocaleString()}đ.`,
@@ -281,8 +251,146 @@ export const confirmPayment = async (req, res) => {
 };
 
 // ==============================================================================
-// 📋 CÁC HÀM KHÁC (GIỮ NGUYÊN ĐỂ FILE HOÀN CHỈNH)
+// 📋 3. LẤY DANH SÁCH ĐƠN HÀNG (QUAN TRỌNG: TÍNH TOÁN PHÍ SÀN)
 // ==============================================================================
+export const getAllOrders = async (req, res) => {
+    try {
+        await autoCompleteOverdueOrders();
+
+        // 1. Lấy % Phí sàn đang kích hoạt
+        const activeFee = await ServiceFee.findOne({ isActive: true });
+        const CURRENT_FEE_PERCENT = activeFee ? activeFee.percentage : 0;
+
+        // 2. Lấy dữ liệu
+        const orders = await Order.find()
+            .populate({ path: "customer_id", select: "HoTen Email full_name email", model: "bangKhachHang" })
+            .populate({ path: "photographer_id", select: "HoTen full_name TenNganHang SoTaiKhoan", model: "bangKhachHang" })
+            .populate("service_package_id", "TenGoi price Gia")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // 3. Chuẩn hóa dữ liệu trả về
+        const ordersWithFee = orders.map(order => {
+            const isCancelled = order.status === 'cancelled';
+            const isPaid = order.settlement_status === 'paid';
+
+            // --- A. XÁC ĐỊNH DOANH THU THỰC TẾ (BASE AMOUNT) ---
+            let actualRevenue = 0;
+            if (isCancelled) {
+                // Đơn hủy: Chỉ tính trên Tiền Cọc
+                actualRevenue = order.deposit_amount > 0 ? order.deposit_amount : (order.deposit_required || 0);
+            } else {
+                // Đơn thường: Tính trên Tổng Tiền (Final Amount)
+                actualRevenue = order.final_amount || 0;
+            }
+
+            // --- B. TÍNH TOÁN PHÍ SÀN & THỰC NHẬN ---
+            let feeAmount = 0;
+            let feePercent = 0;
+            let earning = 0;
+
+            if (isPaid && order.platform_fee && order.photographer_earning) {
+                // TRƯỜNG HỢP 1: Đã quyết toán (Lấy dữ liệu lịch sử từ DB để đảm bảo không đổi)
+                feeAmount = order.platform_fee.amount || 0;
+                feePercent = order.platform_fee.percentage || 0;
+                earning = order.photographer_earning;
+            } else {
+                // TRƯỜNG HỢP 2: Chưa quyết toán (Tính toán lại theo logic hiện tại để hiển thị đúng)
+                // Áp dụng cho cả đơn HỦY và đơn THƯỜNG
+                feePercent = CURRENT_FEE_PERCENT; 
+                feeAmount = Math.round((actualRevenue * feePercent) / 100);
+                earning = actualRevenue - feeAmount;
+            }
+
+            return {
+                ...order,
+                // Ghi đè các trường tính toán để Frontend chỉ việc hiển thị
+                photographer_earning: earning,
+                platform_fee: {
+                    amount: feeAmount,
+                    percentage: feePercent
+                },
+                // Các trường hiển thị tên
+                package_name_display: order.service_package_id?.TenGoi,
+                customer_name_display: order.customer_id?.HoTen,
+                photographer_name_display: order.photographer_id?.HoTen
+            };
+        });
+
+        res.json({ success: true, data: ordersWithFee });
+    } catch (error) {
+        console.error("Get All Orders Error:", error);
+        res.status(500).json({ message: "Lỗi lấy danh sách đơn" });
+    }
+};
+
+// ==============================================================================
+// 💰 4. QUYẾT TOÁN CHO THỢ (LƯU CỨNG SỐ LIỆU ĐÚNG VÀO DB)
+// ==============================================================================
+export const settleForPhotographer = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const order = await Order.findById(orderId);
+        if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+
+        // Cho phép quyết toán cả đơn Hoàn thành và Đơn Hủy
+        if (order.status !== 'completed' && order.status !== 'cancelled') {
+            return res.status(400).json({ message: `❌ Không thể quyết toán! Đơn hàng đang '${order.status}'.` });
+        }
+
+        if (order.complaint && order.complaint.is_complained && order.complaint.status === 'pending') {
+            return res.status(400).json({ message: "❌ Đơn hàng đang có khiếu nại." });
+        }
+
+        // 1. Lấy % phí hiện tại
+        const activeFee = await ServiceFee.findOne({ isActive: true });
+        const feePercent = activeFee ? activeFee.percentage : 0;
+
+        // 2. Xác định doanh thu để tính phí
+        let actualRevenue = 0;
+        if (order.status === 'cancelled') {
+             // Nếu hủy: Tính trên cọc
+             actualRevenue = order.deposit_amount > 0 ? order.deposit_amount : (order.deposit_required || 0);
+        } else {
+             // Nếu xong: Tính trên tổng
+             actualRevenue = order.final_amount || 0;
+        }
+
+        // 3. Tính toán con số cuối cùng
+        const feeAmount = Math.round((actualRevenue * feePercent) / 100);
+        const earning = actualRevenue - feeAmount;
+
+        // 4. Cập nhật vào DB
+        order.settlement_status = 'paid';
+        order.settlement_date = new Date();
+        
+        // Lưu cứng phí và thực nhận vào DB
+        order.platform_fee = {
+            amount: feeAmount,
+            percentage: feePercent
+        };
+        order.photographer_earning = earning; 
+
+        await order.save();
+
+        // 5. Thông báo
+        if (order.photographer_id) {
+            await createNotification({
+                userId: order.photographer_id,
+                title: "💰 Bạn đã được thanh toán",
+                message: `Admin đã quyết toán thù lao cho đơn #${order.order_id}. Số tiền: ${earning.toLocaleString()}đ`,
+                type: "PAYMENT",
+                link: "/my-income"
+            });
+        }
+
+        res.json({ success: true, message: "Đã quyết toán thành công!", data: order });
+
+    } catch (error) {
+        console.error("Settle Error:", error);
+        res.status(500).json({ message: "Lỗi server khi quyết toán!" });
+    }
+};
 
 export const getMyOrders = async (req, res) => {
     try {
@@ -441,71 +549,6 @@ export const resolveComplaint = async (req, res) => {
         res.json({ success: true, message: "Đã xử lý khiếu nại", data: result });
     } catch (error) {
         res.status(500).json({ message: error.message });
-    }
-};
-
-export const getAllOrders = async (req, res) => {
-    try {
-        await autoCompleteOverdueOrders();
-        const activeFee = await ServiceFee.findOne({ isActive: true });
-        const PLATFORM_FEE_PERCENT = activeFee ? activeFee.percentage : 0;
-        const orders = await Order.find()
-            .populate({ path: "customer_id", select: "HoTen Email full_name email", model: "bangKhachHang" })
-            .populate({ path: "photographer_id", select: "HoTen full_name TenNganHang SoTaiKhoan", model: "bangKhachHang" })
-            .populate("service_package_id", "TenGoi price Gia")
-            .sort({ createdAt: -1 }).lean(); 
-
-        const ordersWithFee = orders.map(order => {
-            const baseAmount = order.service_amount || order.final_amount || 0;
-            const platformFeeAmount = Math.round((baseAmount * PLATFORM_FEE_PERCENT) / 100);
-            const photographerEarning = (order.final_amount || 0) - platformFeeAmount;
-            return {
-                ...order,
-                photographer_earning: photographerEarning,
-                platform_fee: { amount: platformFeeAmount },
-                package_name_display: order.service_package_id?.TenGoi,
-                customer_name_display: order.customer_id?.HoTen,
-                photographer_name_display: order.photographer_id?.HoTen
-            };
-        });
-        res.json({ success: true, data: ordersWithFee });
-    } catch (error) {
-        res.status(500).json({ message: "Lỗi lấy danh sách đơn" });
-    }
-};
-
-export const settleForPhotographer = async (req, res) => {
-    try {
-        const { orderId } = req.params;
-        const order = await Order.findById(orderId);
-        if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
-
-        if (order.status !== 'completed') {
-            return res.status(400).json({ message: `❌ Không thể quyết toán! Đơn hàng đang '${order.status}'.` });
-        }
-
-        if (order.complaint && order.complaint.is_complained && order.complaint.status === 'pending') {
-            return res.status(400).json({ message: "❌ Đơn hàng đang có khiếu nại." });
-        }
-
-        order.settlement_status = 'paid'; 
-        order.settlement_date = new Date(); 
-        await order.save();
-
-        if (order.photographer_id) {
-            await createNotification({
-                userId: order.photographer_id,
-                title: "💰 Bạn đã được thanh toán",
-                message: `Admin đã quyết toán thù lao cho đơn #${order.order_id}.`,
-                type: "PAYMENT",
-                link: "/my-income"
-            });
-        }
-
-        res.json({ success: true, message: "Đã quyết toán thành công!", data: order });
-
-    } catch (error) {
-        res.status(500).json({ message: "Lỗi server khi quyết toán!" });
     }
 };
 

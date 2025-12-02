@@ -5,9 +5,12 @@ import {
   DollarSign, MapPin, AlertTriangle, Clock
 } from 'lucide-react';
 import './Schedule.css';
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../../components/Sidebar/Sidebar'; 
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
+
 import scheduleApi from '../../apis/ScheduleService';
 import orderApi from '../../apis/OrderService';
 import { toast } from 'react-toastify';
@@ -198,8 +201,8 @@ export default function Schedule() {
   const monthNames = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
 
   return (
-    <>
-      <Header /><Sidebar />
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
       <div className="schedule-page">
         <div className="container">
           <div className="schedule-header">
@@ -234,8 +237,8 @@ export default function Schedule() {
           <div className="modal-content-custom schedule-modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header-custom">
               <div className="modal-title-group">
-                 <div className="icon-box"><CalendarIcon size={24} color="#3b82f6"/></div>
-                 <h3>Thêm lịch trình mới</h3>
+                  <div className="icon-box"><CalendarIcon size={24} color="#3b82f6"/></div>
+                  <h3>Thêm lịch trình mới</h3>
               </div>
               <button className="btn-close-custom" onClick={() => setShowAddModal(false)}><X size={24}/></button>
             </div>
@@ -261,11 +264,11 @@ export default function Schedule() {
                       </div>
                   </div>
                   <div className="form-group checkbox-group">
-                     <label className="switch">
+                      <label className="switch">
                         <input type="checkbox" checked={newEvent.isRemind} onChange={e => setNewEvent({...newEvent, isRemind: e.target.checked})}/>
                         <span className="slider round"></span>
-                     </label>
-                     <span className="checkbox-label">Gửi thông báo nhắc nhở</span>
+                      </label>
+                      <span className="checkbox-label">Gửi thông báo nhắc nhở</span>
                   </div>
                   <div className="form-group">
                     <label>Ghi chú</label>
@@ -294,20 +297,18 @@ export default function Schedule() {
                     <div className="detail-row"><span className="label"><User size={16}/> Khách hàng</span><span className="value">{selectedOrder.customer_id?.HoTen || 'N/A'}</span></div>
                     <div className="detail-row"><span className="label"><Briefcase size={16}/> Dịch vụ</span><span className="value">{selectedOrder.service_package_id?.TenGoi || 'N/A'}</span></div>
                     <div className="detail-row"><span className="label"><Clock size={16}/> Ngày chụp</span><span className="value">{new Date(selectedOrder.booking_date).toLocaleDateString('vi-VN')}</span></div>
-                    <div className="detail-row"><span className="label"><MapPin size={16}/> Địa điểm</span><span className="value">{selectedOrder.location || 'N/A'}</span></div>
+                    <div className="detail-row"><span className="label"><MapPin size={16}/> Địa điểm</span><span className="value">{selectedOrder.location?.address || 'N/A'}</span></div>
                     <div className="detail-row highlight-row"><span className="label"><DollarSign size={16}/> Tổng tiền</span><span className="value price">{Number(selectedOrder.final_amount).toLocaleString()} đ</span></div>
                     <div className="detail-row"><span className="label"><AlertTriangle size={16}/> Trạng thái</span><span className={`value status-tag ${selectedOrder.status}`}>{selectedOrder.status}</span></div>
                 </div>
              </div>
              <div className="modal-footer-custom">
                 <button className="btn-cancel-custom" onClick={() => setShowOrderModal(false)}>Đóng</button>
-                <button className="btn-submit-custom" onClick={() => window.location.href = `/photographer/orders`}>Quản lý đơn</button>
+                <button className="btn-submit-custom" onClick={() => window.location.href = `/photographer/orders-manage`}>Quản lý đơn</button>
              </div>
           </div>
         </div>
       )}
-
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

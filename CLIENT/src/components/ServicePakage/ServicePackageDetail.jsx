@@ -6,9 +6,12 @@ import {
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import './ServicePackageDetail.css';
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
+
 import servicePackageApi from '../../apis/ServicePackageService';
 
 export default function ServicePackageDetail() {
@@ -123,29 +126,23 @@ export default function ServicePackageDetail() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <Sidebar />
+      <MainLayout>
         <div className="package-detail-loading">
           <div className="spinner"></div>
           <p>Đang tải thông tin gói dịch vụ...</p>
         </div>
-        <Footer />
-      </>
+      </MainLayout>
     );
   }
 
   if (!packageData) {
     return (
-      <>
-        <Header />
-        <Sidebar />
+      <MainLayout>
         <div className="package-detail-error">
           <h2>Không tìm thấy gói dịch vụ</h2>
           <Link to="/service-package" className="btn-back">Quay lại danh sách</Link>
         </div>
-        <Footer />
-      </>
+      </MainLayout>
     );
   }
 
@@ -153,10 +150,8 @@ export default function ServicePackageDetail() {
   const images = getAllImages();
 
   return (
-    <>
-      <Header />
-      <Sidebar />
-
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
       <div className="package-detail-page">
         <div className="container">
           <button onClick={() => navigate(-1)} className="btn-back-nav">
@@ -476,8 +471,6 @@ export default function ServicePackageDetail() {
           </div>
         </div>
       )}
-
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

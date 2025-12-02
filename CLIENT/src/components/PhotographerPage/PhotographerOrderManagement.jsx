@@ -9,11 +9,15 @@ import {
   CheckSquare
 } from 'lucide-react';
 
-import orderApi from '../../apis/orderService'; // Kiểm tra lại tên file import đúng (OrderService hay orderService)
-import Header from '../../components/Header/Header';
-import Sidebar from '../../components/Sidebar/Sidebar';
-import Footer from '../../components/Footer/Footer';
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// Import API (Đảm bảo tên file chính xác, thường là OrderService viết hoa)
+import orderApi from '../../apis/OrderService'; 
+
 import './PhotographerOrderManagement.css';
+
+// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
 
 export default function PhotographerOrderManagement() {
   const { user } = useSelector(state => state.user);
@@ -67,14 +71,13 @@ export default function PhotographerOrderManagement() {
   const handleDeliverAlbum = (order) => {
       // Logic:
       // - Nếu đã có album (has_album = true) -> Chuyển sang trang xem ảnh khách chọn
-      // - Nếu chưa có -> Chuyển sang trang Upload/Quản lý Album (File PhotographerAlbumManager bạn vừa làm)
+      // - Nếu chưa có -> Chuyển sang trang Upload/Quản lý Album
       
       if (order.has_album) {
-          // Điều hướng đến trang quản lý file chọn (File SelectionPhotoManage.js)
+          // Điều hướng đến trang quản lý file chọn
           navigate(`/orders/${order.order_id}/manage-selection`);
       } else {
-          // ✅ FIX: Điều hướng đến trang PhotographerAlbumManager mới
-          // Dùng order.order_id hoặc order._id tùy vào cách bạn config route
+          // Điều hướng đến trang tạo Album mới
           navigate(`/photographer/album-detail/${order.order_id}`);
       }
   };
@@ -142,14 +145,9 @@ export default function PhotographerOrderManagement() {
   };
 
   return (
-    <div className="layout-wrapper">
-      <Header />
-      <div className="layout-body">
-        <div className="layout-sidebar">
-             <Sidebar />
-        </div>
-        
-        <div className="photographer-order-page layout-content">
+    // ✅ Bọc trong MainLayout
+    <MainLayout>
+        <div className="photographer-order-page">
           <div className="pam-container">
 
             {/* === HEADER SECTION === */}
@@ -161,7 +159,6 @@ export default function PhotographerOrderManagement() {
 
               <div className="search-box-wrapper">
                 <div className="search-box">
-        
                   <input
                     type="text"
                     placeholder="Tìm mã đơn, tên khách..."
@@ -263,8 +260,6 @@ export default function PhotographerOrderManagement() {
             )}
           </div>
         </div>
-      </div>
-      <Footer />
-    </div>
+    </MainLayout>
   );
 }

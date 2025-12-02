@@ -4,10 +4,13 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { 
   Loader2, Send, ArrowLeft, UploadCloud, FileImage,
-  Package, Calendar, User, Phone, MapPin, AlertTriangle, ExternalLink
+  Package, Calendar, User, Phone, MapPin, ImageIcon
 } from "lucide-react";
 import "./Album.css";
 import axiosUser from "../../apis/axiosUser";
+
+// ✅ Import MainLayout
+import MainLayout from "../../layouts/MainLayout/MainLayout";
 
 // --- COMPONENT: ORDER INFO CARD ---
 const OrderInfoCard = ({ order, loading }) => {
@@ -179,57 +182,59 @@ const Album = () => {
   // ============================================================
   if (isPhotographer) {
       return (
-        <div className="album-container create-mode">
-            <div className="album-header-simple">
-                <button className="btn-icon-back" onClick={() => navigate(-1)}><ArrowLeft size={20}/> Quay lại</button>
-                <h2>Khởi tạo Album mới</h2>
-            </div>
-
-            {/* Hiển thị thông tin đơn hàng */}
-            <OrderInfoCard order={orderInfo} loading={loadingOrder} />
-
-            <div className="create-album-form">
-                <div className="form-group">
-                    <label>Tên Album</label>
-                    <input type="text" value={newAlbumTitle} onChange={(e) => setNewAlbumTitle(e.target.value)} />
-                </div>
-                
-                <div className="form-group">
-                    <label>Lời nhắn cho khách (Tùy chọn)</label>
-                    <textarea value={newAlbumDesc} onChange={(e) => setNewAlbumDesc(e.target.value)} rows={3} placeholder="Nhập mô tả..."/>
+        <MainLayout>
+            <div className="album-container create-mode">
+                <div className="album-header-simple">
+                    <button className="btn-icon-back" onClick={() => navigate(-1)}><ArrowLeft size={20}/> Quay lại</button>
+                    <h2>Khởi tạo Album mới</h2>
                 </div>
 
-                <div className="upload-area">
-                    <input type="file" multiple accept="image/*" id="initial-upload" className="hidden-input" onChange={handleFileSelect} />
-                    <label htmlFor="initial-upload" className="upload-dropzone">
-                        <UploadCloud size={48} className="text-blue-500"/>
-                        <p className="upload-text">Nhấn để chọn ảnh hoặc kéo thả vào đây</p>
-                        <p className="upload-hint">(Không giới hạn số lượng ảnh. Hỗ trợ JPG, PNG)</p>
-                    </label>
-                </div>
+                {/* Hiển thị thông tin đơn hàng */}
+                <OrderInfoCard order={orderInfo} loading={loadingOrder} />
 
-                {/* Preview danh sách file */}
-                {selectedFiles.length > 0 && (
-                    <div className="file-preview-list">
-                        <h4>Sẵn sàng tải lên ({selectedFiles.length} ảnh):</h4>
-                        <div className="preview-grid">
-                            {selectedFiles.map((file, idx) => (
-                                <div key={idx} className="preview-item">
-                                    <FileImage size={20} color="#64748b"/>
-                                    <span className="file-name">{file.name}</span>
-                                    <button onClick={() => removeFileFromQueue(idx)} className="btn-remove-file">×</button>
-                                </div>
-                            ))}
-                        </div>
+                <div className="create-album-form">
+                    <div className="form-group">
+                        <label>Tên Album</label>
+                        <input type="text" value={newAlbumTitle} onChange={(e) => setNewAlbumTitle(e.target.value)} />
                     </div>
-                )}
+                    
+                    <div className="form-group">
+                        <label>Lời nhắn cho khách (Tùy chọn)</label>
+                        <textarea value={newAlbumDesc} onChange={(e) => setNewAlbumDesc(e.target.value)} rows={3} placeholder="Nhập mô tả..."/>
+                    </div>
 
-                <button className="btn-create-album" onClick={handleCreateAndUpload} disabled={uploading || selectedFiles.length === 0}>
-                    {uploading ? <Loader2 className="spinner" size={20}/> : <Send size={20}/>}
-                    {uploading ? "Đang khởi tạo & Upload..." : "Tạo Album & Giao Ảnh"}
-                </button>
+                    <div className="upload-area">
+                        <input type="file" multiple accept="image/*" id="initial-upload" className="hidden-input" onChange={handleFileSelect} />
+                        <label htmlFor="initial-upload" className="upload-dropzone">
+                            <UploadCloud size={48} className="text-blue-500"/>
+                            <p className="upload-text">Nhấn để chọn ảnh hoặc kéo thả vào đây</p>
+                            <p className="upload-hint">(Không giới hạn số lượng ảnh. Hỗ trợ JPG, PNG)</p>
+                        </label>
+                    </div>
+
+                    {/* Preview danh sách file */}
+                    {selectedFiles.length > 0 && (
+                        <div className="file-preview-list">
+                            <h4>Sẵn sàng tải lên ({selectedFiles.length} ảnh):</h4>
+                            <div className="preview-grid">
+                                {selectedFiles.map((file, idx) => (
+                                    <div key={idx} className="preview-item">
+                                        <FileImage size={20} color="#64748b"/>
+                                        <span className="file-name">{file.name}</span>
+                                        <button onClick={() => removeFileFromQueue(idx)} className="btn-remove-file">×</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <button className="btn-create-album" onClick={handleCreateAndUpload} disabled={uploading || selectedFiles.length === 0}>
+                        {uploading ? <Loader2 className="spinner" size={20}/> : <Send size={20}/>}
+                        {uploading ? "Đang khởi tạo & Upload..." : "Tạo Album & Giao Ảnh"}
+                    </button>
+                </div>
             </div>
-        </div>
+        </MainLayout>
       );
   }
 
@@ -237,27 +242,29 @@ const Album = () => {
   // CASE 2: KHÁCH HÀNG (CHƯA CÓ ALBUM -> HIỆN THÔNG BÁO)
   // ============================================================
   return (
-     <div className="album-container">
-        <div className="album-header-simple">
-           <button className="btn-icon-back" onClick={() => navigate(-1)}><ArrowLeft size={20}/> Quay lại</button>
-           <h2>Chi tiết Album</h2>
+    <MainLayout>
+        <div className="album-container">
+            <div className="album-header-simple">
+                <button className="btn-icon-back" onClick={() => navigate(-1)}><ArrowLeft size={20}/> Quay lại</button>
+                <h2>Chi tiết Album</h2>
+            </div>
+            
+            <OrderInfoCard order={orderInfo} loading={loadingOrder} />
+            
+            <div className="album-empty-state">
+                <div className="empty-icon-wrapper">
+                    <ImageIcon size={48} strokeWidth={1.5}/>
+                </div>
+                <h3>Chưa có ảnh nào</h3>
+                <p>Nhiếp ảnh gia đang xử lý hình ảnh. Vui lòng quay lại sau.</p>
+                
+                {/* Dev Tool: Nút để test giao diện Thợ */}
+                <button onClick={() => setForcePhotographerMode(true)} className="btn-dev-tool">
+                    🛠 (Dev) Switch to Photographer
+                </button>
+            </div>
         </div>
-        
-        <OrderInfoCard order={orderInfo} loading={loadingOrder} />
-        
-        <div className="album-empty-state">
-           <div className="empty-icon-wrapper">
-                <ImageIcon size={48} strokeWidth={1.5}/>
-           </div>
-           <h3>Chưa có ảnh nào</h3>
-           <p>Nhiếp ảnh gia đang xử lý hình ảnh. Vui lòng quay lại sau.</p>
-           
-           {/* Dev Tool: Nút để test giao diện Thợ */}
-           <button onClick={() => setForcePhotographerMode(true)} className="btn-dev-tool">
-               🛠 (Dev) Switch to Photographer
-           </button>
-        </div>
-     </div>
+    </MainLayout>
   );
 };
 

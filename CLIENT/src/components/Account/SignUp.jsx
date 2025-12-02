@@ -8,8 +8,11 @@ import {
 import { registerUser, clearError } from '../../redux/Slices/authSlice';
 import { toast } from 'react-toastify';
 import './SignUp.css';
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Footer lẻ tẻ
 
 export default function RegisterCustomer() {
   const navigate = useNavigate();
@@ -142,8 +145,8 @@ export default function RegisterCustomer() {
   };
 
   return (
-    <>
-      <Header />
+    // ✅ Bọc trong MainLayout
+    <MainLayout>
       <div className="register-container">
         <div className="register-card">
           <div className="register-header">
@@ -348,7 +351,6 @@ export default function RegisterCustomer() {
           </form>
         </div>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

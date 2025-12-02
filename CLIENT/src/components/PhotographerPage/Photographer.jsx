@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Heart, Package, MessageSquare } from 'lucide-react'; // Import thêm icon cho đẹp
+import { Star, Heart, Package, MessageSquare } from 'lucide-react';
 import './Photographer.css';
-import Header from '../../components/Header/Header';
-import Footer from '../../components/Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
+// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
 
 export default function Photographer() {
   const [photographers, setPhotographers] = useState([]);
@@ -18,6 +20,7 @@ export default function Photographer() {
     const fetchPhotographers = async () => {
       try {
         setLoading(true);
+        // Lưu ý: Trong dự án thực tế nên dùng axios instance hoặc biến môi trường
         const res = await fetch('http://localhost:5000/api/khachhang/photographers');
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
@@ -62,18 +65,21 @@ export default function Photographer() {
   }
 
   if (loading) return (
-    <>
-      <Header /><Sidebar />
-      <div className="photographers-page"><div className="container"><div className="loading-state"><div className="spinner"></div></div></div></div>
-      <Footer />
-    </>
+    // ✅ Bọc trạng thái loading trong MainLayout để giữ header/sidebar
+    <MainLayout>
+      <div className="photographers-page">
+        <div className="container">
+            <div className="loading-state">
+                <div className="spinner"></div>
+            </div>
+        </div>
+      </div>
+    </MainLayout>
   );
 
   return (
-    <>
-      <Header />
-      <Sidebar />
-
+    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    <MainLayout>
       <div className="photographers-page">
         <section className="photographers">
           <div className="container">
@@ -115,7 +121,7 @@ export default function Photographer() {
 
                     {/* Phần Avatar đè lên */}
                     <div className="card-avatar-wrapper">
-                         <img src={ph.avatar} alt="Avatar" className="card-avatar" onError={(e) => e.target.src = '/default-avatar.png'} />
+                          <img src={ph.avatar} alt="Avatar" className="card-avatar" onError={(e) => e.target.src = '/default-avatar.png'} />
                     </div>
 
                     {/* Phần Nội Dung */}
@@ -151,7 +157,6 @@ export default function Photographer() {
           </div>
         </section>
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }

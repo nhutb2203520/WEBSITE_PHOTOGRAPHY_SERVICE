@@ -8,6 +8,9 @@ import {
 import albumApi from '../../apis/albumApi';
 import './PublicAlbumView.css';
 
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
 export default function PublicAlbumView() {
     const { token } = useParams();
     
@@ -94,105 +97,108 @@ export default function PublicAlbumView() {
     if (error) return <div className="public-error"><h2>Oops!</h2><p>{error}</p></div>;
 
     return (
-        <div className="public-album-page">
-            <div className="public-hero">
-                <div className="public-container">
-                    <h1 className="public-title">{album.title}</h1>
-                    <p className="public-desc">{album.description || "Khách hàng vui lòng chọn ảnh bên dưới"}</p>
-                    <div className="public-meta">
-                        <span>{album.photos.length} ảnh</span>
-                        <span>•</span>
-                        <span>{new Date(album.createdAt).toLocaleDateString('vi-VN')}</span>
-                        {album.photographer_id && ( <><span>•</span><span>By {album.photographer_id.HoTen}</span></> )}
-                    </div>
+        // ✅ Bọc trong MainLayout
+        <MainLayout>
+            <div className="public-album-page">
+                <div className="public-hero">
+                    <div className="public-container">
+                        <h1 className="public-title">{album.title}</h1>
+                        <p className="public-desc">{album.description || "Khách hàng vui lòng chọn ảnh bên dưới"}</p>
+                        <div className="public-meta">
+                            <span>{album.photos.length} ảnh</span>
+                            <span>•</span>
+                            <span>{new Date(album.createdAt).toLocaleDateString('vi-VN')}</span>
+                            {album.photographer_id && ( <><span>•</span><span>By {album.photographer_id.HoTen}</span></> )}
+                        </div>
 
-                    {/* Hiển thị trạng thái */}
-                    {hasSubmittedBefore && !isLocked && (
-                        <div className="status-alert success">
-                            <CheckCircle2 size={16}/> Bạn đã gửi lựa chọn trước đó. Có thể chọn lại và gửi cập nhật.
-                        </div>
-                    )}
-                    {isLocked && (
-                        <div className="status-alert locked">
-                            <CheckCircle2 size={16}/> Album đã được chốt. Không thể chỉnh sửa.
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* THANH CÔNG CỤ CỐ ĐỊNH (Chỉ hiện khi chưa bị khóa cứng) */}
-            {!isLocked && (
-                <div className="selection-sticky-bar">
-                    <div className="public-container bar-content">
-                        <div className="bar-info">
-                            <span>Đang chọn: <b className="highlight">{selectedIds.length}</b> ảnh</span>
-                        </div>
-                        <button 
-                            className="btn-submit-public" 
-                            onClick={handleSubmit} 
-                            disabled={submitting}
-                        >
-                            {submitting ? <Loader2 className="spinner-sm"/> : (hasSubmittedBefore ? <RefreshCw size={18}/> : <Send size={18}/>)}
-                            {hasSubmittedBefore ? " Cập nhật lựa chọn" : " Gửi lựa chọn"}
-                        </button>
+                        {/* Hiển thị trạng thái */}
+                        {hasSubmittedBefore && !isLocked && (
+                            <div className="status-alert success">
+                                <CheckCircle2 size={16}/> Bạn đã gửi lựa chọn trước đó. Có thể chọn lại và gửi cập nhật.
+                            </div>
+                        )}
+                        {isLocked && (
+                            <div className="status-alert locked">
+                                <CheckCircle2 size={16}/> Album đã được chốt. Không thể chỉnh sửa.
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
 
-            <div className="public-container gallery-section">
-                <div className="public-grid">
-                    {album.photos.map((photo, index) => {
-                        const isSelected = selectedIds.includes(photo._id);
-                        return (
-                            <div key={photo._id} className={`public-item ${isSelected ? 'active' : ''}`}>
-                                <div className="img-wrap" onClick={() => openLightbox(index)}>
-                                    <img src={getPhotoUrl(photo.url)} alt="photo" loading="lazy" />
-                                    <div className="item-overlay"><Maximize2 size={24} color="white"/></div>
-                                </div>
+                {/* THANH CÔNG CỤ CỐ ĐỊNH (Chỉ hiện khi chưa bị khóa cứng) */}
+                {!isLocked && (
+                    <div className="selection-sticky-bar">
+                        <div className="public-container bar-content">
+                            <div className="bar-info">
+                                <span>Đang chọn: <b className="highlight">{selectedIds.length}</b> ảnh</span>
+                            </div>
+                            <button 
+                                className="btn-submit-public" 
+                                onClick={handleSubmit} 
+                                disabled={submitting}
+                            >
+                                {submitting ? <Loader2 className="spinner-sm"/> : (hasSubmittedBefore ? <RefreshCw size={18}/> : <Send size={18}/>)}
+                                {hasSubmittedBefore ? " Cập nhật lựa chọn" : " Gửi lựa chọn"}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
-                                {/* Checkbox: Ẩn nếu bị khóa cứng */}
-                                {!isLocked && (
-                                    <div className="checkbox-area" onClick={(e) => { e.stopPropagation(); togglePhoto(photo._id); }}>
-                                        <div className={`custom-checkbox ${isSelected ? 'checked' : ''}`}>
-                                            {isSelected && <CheckCircle2 size={20} color="white"/>}
+                <div className="public-container gallery-section">
+                    <div className="public-grid">
+                        {album.photos.map((photo, index) => {
+                            const isSelected = selectedIds.includes(photo._id);
+                            return (
+                                <div key={photo._id} className={`public-item ${isSelected ? 'active' : ''}`}>
+                                    <div className="img-wrap" onClick={() => openLightbox(index)}>
+                                        <img src={getPhotoUrl(photo.url)} alt="photo" loading="lazy" />
+                                        <div className="item-overlay"><Maximize2 size={24} color="white"/></div>
+                                    </div>
+
+                                    {/* Checkbox: Ẩn nếu bị khóa cứng */}
+                                    {!isLocked && (
+                                        <div className="checkbox-area" onClick={(e) => { e.stopPropagation(); togglePhoto(photo._id); }}>
+                                            <div className={`custom-checkbox ${isSelected ? 'checked' : ''}`}>
+                                                {isSelected && <CheckCircle2 size={20} color="white"/>}
+                                            </div>
                                         </div>
+                                    )}
+                                    
+                                    {isSelected && isLocked && <div className="final-tag">Đã chọn</div>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                 {lightboxIndex !== null && (
+                    <div className="lightbox-overlay" onClick={closeLightbox}>
+                        <button className="lb-close-btn"><X size={32}/></button>
+                        <div className="lb-content" onClick={e => e.stopPropagation()}>
+                            <button className="lb-nav-btn prev" onClick={prevPhoto}><ChevronLeft size={40}/></button>
+                            
+                            <div className="lb-image-wrapper">
+                                <img src={getPhotoUrl(album.photos[lightboxIndex].url)} className="lb-image" alt="" />
+                                
+                                {/* Nút chọn trong Lightbox */}
+                                {!isLocked && (
+                                    <div className="lb-actions">
+                                        <button 
+                                            className={`lb-select-btn ${selectedIds.includes(album.photos[lightboxIndex]._id) ? 'selected' : ''}`}
+                                            onClick={() => togglePhoto(album.photos[lightboxIndex]._id)}
+                                        >
+                                            {selectedIds.includes(album.photos[lightboxIndex]._id) ? 
+                                                <><CheckCircle2 size={18}/> Đã chọn</> : "Chọn ảnh này"}
+                                        </button>
                                     </div>
                                 )}
-                                
-                                {isSelected && isLocked && <div className="final-tag">Đã chọn</div>}
                             </div>
-                        );
-                    })}
-                </div>
-            </div>
 
-             {lightboxIndex !== null && (
-                <div className="lightbox-overlay" onClick={closeLightbox}>
-                    <button className="lb-close-btn"><X size={32}/></button>
-                    <div className="lb-content" onClick={e => e.stopPropagation()}>
-                        <button className="lb-nav-btn prev" onClick={prevPhoto}><ChevronLeft size={40}/></button>
-                        
-                        <div className="lb-image-wrapper">
-                            <img src={getPhotoUrl(album.photos[lightboxIndex].url)} className="lb-image" alt="" />
-                            
-                            {/* Nút chọn trong Lightbox */}
-                            {!isLocked && (
-                                <div className="lb-actions">
-                                    <button 
-                                        className={`lb-select-btn ${selectedIds.includes(album.photos[lightboxIndex]._id) ? 'selected' : ''}`}
-                                        onClick={() => togglePhoto(album.photos[lightboxIndex]._id)}
-                                    >
-                                        {selectedIds.includes(album.photos[lightboxIndex]._id) ? 
-                                            <><CheckCircle2 size={18}/> Đã chọn</> : "Chọn ảnh này"}
-                                    </button>
-                                </div>
-                            )}
+                            <button className="lb-nav-btn next" onClick={nextPhoto}><ChevronRight size={40}/></button>
                         </div>
-
-                        <button className="lb-nav-btn next" onClick={nextPhoto}><ChevronRight size={40}/></button>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </MainLayout>
     );
 }

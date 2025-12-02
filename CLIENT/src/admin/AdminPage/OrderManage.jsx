@@ -22,7 +22,6 @@ export default function OrderManage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // --- State cho Modal Thanh Toán ---
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   
@@ -62,24 +61,18 @@ export default function OrderManage() {
     }
   };
 
-  // --- 1. MỞ MODAL & TẠO QR CODE ---
   const openPaymentModal = (order, earning) => {
     const photographer = order.photographer_id || {};
-    
-    // 1. Lấy dữ liệu
     const bankName = photographer.TenNganHang || "";     
     const accountNumber = photographer.SoTaiKhoan || ""; 
     const accountHolder = photographer.TenChuTaiKhoan || photographer.HoTen || ""; 
-    
-    const paymentAmount = earning;
+    const paymentAmount = earning > 0 ? earning : 0;
     const transactionCode = `TT don ${order.order_id}`;
 
-    // 2. TẠO URL VIETQR
     let qrUrl = null;
-    if (bankName && accountNumber) {
+    if (bankName && accountNumber && paymentAmount > 0) {
         const cleanAccNumber = accountNumber.replace(/\s/g, '');
         const cleanBankName = bankName.trim(); 
-
         qrUrl = `https://img.vietqr.io/image/${cleanBankName}-${cleanAccNumber}-compact2.png?amount=${paymentAmount}&addInfo=${encodeURIComponent(transactionCode)}&accountName=${encodeURIComponent(accountHolder)}`;
     }
 
@@ -97,17 +90,13 @@ export default function OrderManage() {
     setShowPaymentModal(true);
   };
 
-  // --- 2. XÁC NHẬN ĐÃ CHUYỂN KHOẢN ---
   const handleConfirmTransfer = async () => {
     if (!selectedOrder) return;
-    
     try {
       await adminOrderService.settleForPhotographer(selectedOrder._id);
-      
       setOrders(prev => prev.map(o => 
         o._id === selectedOrder._id ? { ...o, settlement_status: 'paid' } : o
       ));
-      
       toast.success(`Đã quyết toán cho ${paymentInfo.photographerName}!`);
       setShowPaymentModal(false);
       setSelectedOrder(null);
@@ -121,22 +110,16 @@ export default function OrderManage() {
       toast.success("Đã sao chép!");
   };
 
-  // --- LỌC DỮ LIỆU ---
   const filteredOrders = orders.filter((order) => {
     const term = searchTerm.toLowerCase();
     const orderId = order.order_id || "";
-    // Vẫn tìm kiếm theo tên khách dù không hiển thị cột khách
     const cusName = order.customer_id?.full_name || order.customer_name || "";
-    
-    const matchSearch = 
-      orderId.toLowerCase().includes(term) || 
-      cusName.toLowerCase().includes(term);
+    const matchSearch = orderId.toLowerCase().includes(term) || cusName.toLowerCase().includes(term);
 
     if (filterStatus === "all") return matchSearch;
-    if (filterStatus === "completed") return matchSearch && order.status === "completed";
+    if (filterStatus === "completed") return matchSearch && (order.status === "completed" || order.status === "cancelled");
     if (filterStatus === "settled") return matchSearch && order.settlement_status === "paid";
-    if (filterStatus === "unsettled") return matchSearch && order.status === "completed" && order.settlement_status !== "paid";
-    
+    if (filterStatus === "unsettled") return matchSearch && (order.status === "completed" || order.status === "cancelled") && order.settlement_status !== "paid";
     return matchSearch;
   });
 
@@ -147,10 +130,7 @@ export default function OrderManage() {
       <SidebarAdmin />
       <main className="admin-main">
         <HeaderAdmin />
-        
-        <div className="page-header">
-          <h2>Quản lý Đơn hàng & Quyết toán</h2>
-        </div>
+        <div className="page-header"><h2>Quản lý Đơn hàng & Quyết toán</h2></div>
 
         <div className="filter-tabs">
             {['all', 'completed', 'unsettled', 'settled'].map(status => (
@@ -164,7 +144,7 @@ export default function OrderManage() {
                     }
                 >
                     {status === 'all' ? 'Tất cả đơn' : 
-                     status === 'completed' ? 'Đã hoàn thành' :
+                     status === 'completed' ? 'Đã xong / Hủy' :
                      status === 'unsettled' ? 'Cần quyết toán' : 'Đã trả thợ'}
                 </button>
             ))}
@@ -175,16 +155,9 @@ export default function OrderManage() {
             <h3 className="section-title">Danh sách đơn hàng</h3>
             <div className="search-container">
                 <div className="search-box">
-                    <input 
-                        type="text" 
-                        placeholder="Tìm mã đơn, tên khách..." 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                    />
+                    <input type="text" placeholder="Tìm mã đơn, tên khách..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     <Search size={18} className="search-icon" />
-                    {searchTerm && (
-                      <XCircle size={16} className="clear-icon" onClick={() => setSearchTerm("")} />
-                    )}
+                    {searchTerm && <XCircle size={16} className="clear-icon" onClick={() => setSearchTerm("")} />}
                 </div>
             </div>
           </div>
@@ -193,9 +166,7 @@ export default function OrderManage() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  {/* Cột 1: Mã đơn & Gói */}
                   <th>Mã đơn / Gói</th>
-                  {/* ĐÃ XÓA CỘT KHÁCH HÀNG */}
                   <th>Ngày chụp</th>
                   <th>Tổng thu</th>
                   <th>Phí sàn</th>
@@ -209,13 +180,24 @@ export default function OrderManage() {
                     <tr><td colSpan="7" style={{textAlign: 'center', padding: '30px'}}>Không tìm thấy đơn hàng nào</td></tr>
                 ) : (
                     filteredOrders.map((order) => {
-                        const platformFee = order.platform_fee?.amount || 0;
+                        const isCancelled = order.status === 'cancelled';
+                        const isPaid = order.settlement_status === 'paid';
+                        
+                        // Lấy dữ liệu đã tính toán sẵn từ Backend
+                        // 1. Doanh thu (Actual Revenue)
+                        let displayRevenue = isCancelled 
+                            ? (order.deposit_amount || order.deposit_required || 0) 
+                            : order.total_amount;
+
+                        // 2. Phí sàn và Phần trăm
+                        const feeAmount = order.platform_fee?.amount || 0;
                         const feePercent = order.platform_fee?.percentage || 0;
-                        const earning = order.photographer_earning || (order.final_amount - platformFee);
+
+                        // 3. Thực nhận
+                        const earning = order.photographer_earning || 0;
 
                         return (
                         <tr key={order._id}>
-                            {/* Cột 1 gộp Mã đơn và Tên gói */}
                             <td>
                                 <div style={{display: 'flex', flexDirection: 'column'}}>
                                     <span style={{fontWeight: 'bold', fontSize: '15px'}}>#{order.order_id}</span>
@@ -224,48 +206,44 @@ export default function OrderManage() {
                                     </span>
                                 </div>
                             </td>
-                            
-                            {/* ĐÃ XÓA CỘT KHÁCH HÀNG Ở ĐÂY */}
-
                             <td>{formatDate(order.booking_date)}</td>
                             <td className="text-success">
-                                {formatCurrency(order.total_amount)}
+                                {formatCurrency(displayRevenue)}
+                                {isCancelled && <div style={{fontSize: '11px', fontStyle: 'italic', color: '#dc2626'}}>(Tiền cọc giữ lại)</div>}
                             </td>
                             <td className="text-danger" style={{fontSize: '13px'}}>
-                                -{formatCurrency(platformFee)} <span style={{color: '#999'}}>({feePercent}%)</span>
+                                -{formatCurrency(feeAmount)} <span style={{color: '#999'}}>({feePercent}%)</span>
                             </td>
                             <td style={{color: '#2563eb', fontWeight: 'bold', fontSize: '15px', fontFamily: 'Roboto Mono'}}>
                                 {formatCurrency(earning)}
                             </td>
-                            
                             <td>
                                 <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                                    <span className={`status-badge ${order.status === 'completed' ? 'success' : 'default'}`}>
-                                        {order.status === 'completed' ? 'Hoàn thành' : order.status}
-                                    </span>
-                                    {order.settlement_status === 'paid' ? (
+                                    {isCancelled ? (
+                                        <span className="status-badge" style={{backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #f87171'}}>Đã hủy</span>
+                                    ) : (
+                                        <span className={`status-badge ${order.status === 'completed' ? 'success' : 'default'}`}>
+                                            {order.status === 'completed' ? 'Hoàn thành' : order.status}
+                                        </span>
+                                    )}
+                                    {isPaid ? (
                                         <span className="status-badge success" style={{border: '1px solid green', backgroundColor: '#f0fdf4'}}>Đã trả thợ</span>
                                     ) : (
                                         <span className="status-badge warning">Chưa trả thợ</span>
                                     )}
                                 </div>
                             </td>
-
                             <td>
-                            {order.status === 'completed' && order.settlement_status !== 'paid' ? (
-                                <button 
-                                    className="btn-verify" 
-                                    onClick={() => openPaymentModal(order, earning)}
-                                    title="Quyết toán cho thợ"
-                                >
+                            {(order.status === 'completed' || isCancelled) && !isPaid ? (
+                                <button className="btn-verify" onClick={() => openPaymentModal(order, earning)} title="Quyết toán cho thợ">
                                 <DollarSign size={16} /> Thanh toán
                                 </button>
-                            ) : order.settlement_status === 'paid' ? (
+                            ) : isPaid ? (
                                 <span className="text-muted" style={{display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px'}}>
                                     <CheckCircle2 size={16} color="green"/> Đã xong
                                 </span>
                             ) : (
-                                <span className="text-muted" style={{fontSize: '12px', fontStyle: 'italic'}}>Đợi hoàn thành</span>
+                                <span className="text-muted" style={{fontSize: '12px', fontStyle: 'italic'}}>Đợi xử lý</span>
                             )}
                             </td>
                         </tr>
@@ -276,83 +254,38 @@ export default function OrderManage() {
           </div>
         </div>
 
-        {/* --- MODAL THANH TOÁN --- */}
         {showPaymentModal && (
             <div className="modal-overlay">
-                <div className="modal-container big-modal"> {/* Thêm class big-modal */}
-                    {/* Header */}
+                <div className="modal-container big-modal">
                     <div className="modal-header">
-                        <h3 className="modal-title">
-                            <DollarSign size={24}/> Quyết toán lương thợ ảnh
-                        </h3>
-                        <button onClick={() => setShowPaymentModal(false)} className="modal-close-btn">
-                            <X size={24}/>
-                        </button>
+                        <h3 className="modal-title"><DollarSign size={24}/> Quyết toán lương thợ ảnh</h3>
+                        <button onClick={() => setShowPaymentModal(false)} className="modal-close-btn"><X size={24}/></button>
                     </div>
-
-                    {/* Body */}
                     <div className="modal-body">
-                        {/* 1. Thông tin thợ */}
                         <div className="photographer-info-card big-card">
-                            <div className="avatar-circle big-avatar">
-                                {paymentInfo.photographerName.charAt(0)}
-                            </div>
+                            <div className="avatar-circle big-avatar">{paymentInfo.photographerName.charAt(0)}</div>
                             <div>
                                 <p className="text-label">Người thụ hưởng</p>
                                 <p className="text-value-large">{paymentInfo.photographerName}</p>
                             </div>
                         </div>
-
-                        {/* 2. Hiển thị QR Code */}
                         {paymentInfo.qrUrl ? (
                             <div className="qr-layout-vertical">
-                                {/* Ảnh QR */}
-                                <div className="qr-image-wrapper-big">
-                                    <img 
-                                        src={paymentInfo.qrUrl} 
-                                        alt="VietQR Code" 
-                                        className="qr-img-display"
-                                    />
-                                </div>
-                                
-                                {/* Chi tiết */}
+                                <div className="qr-image-wrapper-big"><img src={paymentInfo.qrUrl} alt="VietQR Code" className="qr-img-display"/></div>
                                 <div className="bank-info-details big-details">
-                                    
-                                    <div className="detail-row-big">
-                                        <span className="detail-label">Ngân hàng</span>
-                                        <span className="detail-value">{paymentInfo.bankName}</span>
-                                    </div>
-
-                                    <div className="detail-row-big">
-                                        <span className="detail-label">Chủ tài khoản</span>
-                                        <span className="detail-value text-uppercase">{paymentInfo.accountHolder}</span>
-                                    </div>
-
+                                    <div className="detail-row-big"><span className="detail-label">Ngân hàng</span><span className="detail-value">{paymentInfo.bankName}</span></div>
+                                    <div className="detail-row-big"><span className="detail-label">Chủ tài khoản</span><span className="detail-value text-uppercase">{paymentInfo.accountHolder}</span></div>
                                     <div className="detail-row-big highlight-row">
                                         <span className="detail-label">Số tài khoản</span>
-                                        <div className="copy-wrapper">
-                                            <span className="text-acc-number">{paymentInfo.accountNumber}</span>
-                                            <button onClick={() => handleCopy(paymentInfo.accountNumber)} className="btn-copy-big">
-                                                <Copy size={20}/>
-                                            </button>
-                                        </div>
+                                        <div className="copy-wrapper"><span className="text-acc-number">{paymentInfo.accountNumber}</span><button onClick={() => handleCopy(paymentInfo.accountNumber)} className="btn-copy-big"><Copy size={20}/></button></div>
                                     </div>
-
                                     <div className="detail-row-big highlight-row">
-                                        <span className="detail-label">Số tiền</span>
-                                        <span className="text-money-big">{formatCurrency(paymentInfo.amount)}</span>
+                                        <span className="detail-label">Số tiền</span><span className="text-money-big">{formatCurrency(paymentInfo.amount)}</span>
                                     </div>
-
                                     <div className="detail-row-big">
                                         <span className="detail-label">Nội dung CK</span>
-                                        <div className="copy-wrapper">
-                                            <span className="detail-value">{paymentInfo.transactionCode}</span>
-                                            <button onClick={() => handleCopy(paymentInfo.transactionCode)} className="btn-copy-big">
-                                                <Copy size={18}/>
-                                            </button>
-                                        </div>
+                                        <div className="copy-wrapper"><span className="detail-value">{paymentInfo.transactionCode}</span><button onClick={() => handleCopy(paymentInfo.transactionCode)} className="btn-copy-big"><Copy size={18}/></button></div>
                                     </div>
-
                                 </div>
                             </div>
                         ) : (
@@ -360,35 +293,18 @@ export default function OrderManage() {
                                 <AlertTriangle size={40} style={{marginBottom: '10px'}}/>
                                 <p className="alert-title">Thiếu thông tin ngân hàng</p>
                                 <p className="alert-desc">Thợ ảnh này chưa cập nhật Số tài khoản hoặc Ngân hàng.</p>
-                                <p className="alert-money-big">
-                                    Cần trả: <strong>{formatCurrency(paymentInfo.amount)}</strong>
-                                </p>
+                                <p className="alert-money-big">Cần trả: <strong>{formatCurrency(paymentInfo.amount)}</strong></p>
                             </div>
                         )}
-                        
-                        <div className="modal-note">
-                            * Vui lòng quét mã QR hoặc chuyển khoản thủ công, sau đó nhấn xác nhận bên dưới.
-                        </div>
+                        <div className="modal-note">* Vui lòng quét mã QR hoặc chuyển khoản thủ công, sau đó nhấn xác nhận bên dưới.</div>
                     </div>
-
                     <div className="modal-footer">
-                        <button 
-                            onClick={() => setShowPaymentModal(false)}
-                            className="btn-modal-cancel big-btn"
-                        >
-                            Hủy bỏ
-                        </button>
-                        <button 
-                            onClick={handleConfirmTransfer}
-                            className="btn-modal-confirm big-btn"
-                        >
-                            <CheckCircle size={20}/> Xác nhận đã chuyển tiền
-                        </button>
+                        <button onClick={() => setShowPaymentModal(false)} className="btn-modal-cancel big-btn">Hủy bỏ</button>
+                        <button onClick={handleConfirmTransfer} className="btn-modal-confirm big-btn"><CheckCircle size={20}/> Xác nhận đã chuyển tiền</button>
                     </div>
                 </div>
             </div>
         )}
-
       </main>
     </div>
   );

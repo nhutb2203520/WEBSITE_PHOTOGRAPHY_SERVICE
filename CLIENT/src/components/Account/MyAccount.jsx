@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Camera, Save, X, Lock, Edit2, CreditCard } from 'lucide-react'; // Thêm icon CreditCard
+import { Camera, Save, X, Lock, Edit2, CreditCard } from 'lucide-react';
 import {
   getInfoUser, updateProfile, changePassword, uploadAvatar, uploadCover
 } from '../../redux/Slices/userSlice';
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+
+// ✅ Import MainLayout
+import MainLayout from '../../layouts/MainLayout/MainLayout';
+
 import WorksProfile from "../WorksProfile/WorksProfile";
 import './MyAccount.css';
+
+// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
 
 export default function MyAccount() {
   const dispatch = useDispatch();
@@ -17,7 +20,7 @@ export default function MyAccount() {
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   
-  // ✅ CẬP NHẬT: Thêm các trường ngân hàng vào state
+  // State form data
   const [formData, setFormData] = useState({
     HoTen: '', Email: '', SoDienThoai: '', NgaySinh: '', GioiTinh: '', DiaChi: '',
     SoTaiKhoan: '', TenNganHang: '', TenChuTaiKhoan: '', ChiNhanhNganHang: ''
@@ -38,7 +41,6 @@ export default function MyAccount() {
         NgaySinh: user.NgaySinh ? new Date(user.NgaySinh).toISOString().split('T')[0] : '',
         GioiTinh: user.GioiTinh || '',
         DiaChi: user.DiaChi || '',
-        // ✅ CẬP NHẬT: Load dữ liệu ngân hàng từ user
         SoTaiKhoan: user.SoTaiKhoan || '',
         TenNganHang: user.TenNganHang || '',
         TenChuTaiKhoan: user.TenChuTaiKhoan || '',
@@ -58,7 +60,6 @@ export default function MyAccount() {
   };
 
   const isValueChanged = (newVal, oldVal, fieldName) => {
-    // Không check !newVal ở đây để cho phép xóa nội dung (về rỗng)
     if (fieldName === 'NgaySinh') {
       const normalizedNew = normalizeDateString(newVal);
       const normalizedOld = normalizeDateString(oldVal);
@@ -72,7 +73,6 @@ export default function MyAccount() {
     if (!user?._id) return alert('Thông tin người dùng chưa load xong!');
     try {
       const updateData = {};
-      // ✅ CẬP NHẬT: Danh sách các trường cần kiểm tra thay đổi
       const fieldsToCheck = [
         'HoTen', 'Email', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'DiaChi',
         'SoTaiKhoan', 'TenNganHang', 'TenChuTaiKhoan', 'ChiNhanhNganHang'
@@ -150,9 +150,8 @@ export default function MyAccount() {
   const isPhotographer = user?.isPhotographer;
 
   return (
-    <>
-      <Header />
-      <Sidebar />
+    // ✅ Bọc trong MainLayout
+    <MainLayout>
       <div className={`myaccount-container ${isPhotographer ? 'grid-layout' : ''}`}>
         {/* Thông tin account */}
         <div className="myaccount-card">
@@ -214,7 +213,7 @@ export default function MyAccount() {
               </div>
             </div>
 
-            {/* ✅ CẬP NHẬT: THÔNG TIN NGÂN HÀNG */}
+            {/* THÔNG TIN NGÂN HÀNG */}
             <hr className="divider" />
             <h3 className="section-title"><CreditCard size={18} style={{marginRight: '8px', verticalAlign: 'text-bottom'}}/> Thông tin thanh toán</h3>
             <div className="form-grid">
@@ -281,7 +280,6 @@ export default function MyAccount() {
         {/* Portfolio bên phải */}
         {isPhotographer && <WorksProfile />}
       </div>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }
