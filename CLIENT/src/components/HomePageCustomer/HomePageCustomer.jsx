@@ -1,37 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Star, Heart, Users, Camera, Award, TrendingUp } from 'lucide-react';
 import './HomePageCustomer.css';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
 import Sidebar from '../Sidebar/Sidebar';
 
-// ✅ 1. Import API Gói dịch vụ
-import ServicePackageApi from '../../apis/ServicePackageService'; // Hoặc servicePackageApi tùy tên file bạn đặt
-
-// ✅ 2. Import API Thống kê (File bạn cần tạo ở bước trước)
-import homeApi from '../../apis/homeApi'; 
+// API Services
+import ServicePackageApi from '../../apis/ServicePackageService'; 
+import homeApi from '../../apis/homeApi';
+import FavoriteService from '../../apis/FavoriteService'; // ✅ Mới thêm
 
 export default function HomePageCustomer() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState([]);
   
-  // ✅ State quản lý Sidebar (Mặc định mở)
+  // ✅ State lưu danh sách ID các món đã thích (để tô đỏ trái tim)
+  const [favorites, setFavorites] = useState([]); 
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
-  // ✅ State dữ liệu Gói chụp
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // ✅ State dữ liệu Thống kê (Real Data)
-  const [statsData, setStatsData] = useState({
-    clients: 0,
-    photographers: 0,
-    projects: 0,
-    rating: 0
-  });
+  const [statsData, setStatsData] = useState({ clients: 0, photographers: 0, projects: 0, rating: 0 });
   
-  // State danh mục (Tự động đếm số lượng sau khi fetch data)
   const [categories, setCategories] = useState([
     { id: 'Wedding', icon: '💒', name: 'Cưới', count: 0 },
     { id: 'Family', icon: '👨‍👩‍👧‍👦', name: 'Gia đình', count: 0 },
@@ -42,27 +33,32 @@ export default function HomePageCustomer() {
     { id: 'Other', icon: '✨', name: 'Khác', count: 0 },
   ]);
 
-  // Hàm helper: Tính tổng giá từ mảng dịch vụ
   const calculatePrice = (dichVuArray) => {
     if (!dichVuArray || dichVuArray.length === 0) return 0;
     return dichVuArray.reduce((total, item) => total + (item.Gia || 0), 0);
   };
 
-  // ✅ USE EFFECT: Gọi song song cả 2 API để tối ưu tốc độ
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        const token = sessionStorage.getItem('token');
 
-        // --- GỌI API ---
-        const [packagesRes, statsRes] = await Promise.all([
-            ServicePackageApi.getAllPackages(), // Lấy gói chụp
-            homeApi.getSystemStats()            // Lấy thống kê
+        // Gọi song song các API
+        const [packagesRes, statsRes, favRes] = await Promise.all([
+            ServicePackageApi.getAllPackages(),
+            homeApi.getSystemStats(),
+            // Chỉ lấy favorites nếu đã đăng nhập
+            token ? FavoriteService.getMyFavorites() : Promise.resolve(null)
         ]);
 
-        // 1️⃣ XỬ LÝ DỮ LIỆU GÓI CHỤP
+        // 1. Xử lý Favorites
+        if (favRes && favRes.success) {
+            setFavorites(favRes.data.allIds || []);
+        }
+
+        // 2. Xử lý Packages
         const rawData = packagesRes.packages || [];
-        
         const mappedPackages = rawData.map(pkg => {
           const totalPrice = calculatePrice(pkg.DichVu);
           return {
@@ -81,17 +77,16 @@ export default function HomePageCustomer() {
             isNew: (new Date() - new Date(pkg.createdAt)) < (7 * 24 * 60 * 60 * 1000)
           };
         });
-
         setPackages(mappedPackages);
 
-        // Cập nhật số lượng danh mục
+        // 3. Xử lý Categories
         const newCategories = categories.map(cat => ({
           ...cat,
           count: mappedPackages.filter(p => p.category === cat.id).length
         }));
         setCategories(newCategories);
 
-        // 2️⃣ XỬ LÝ DỮ LIỆU THỐNG KÊ (Nếu API trả về thành công)
+        // 4. Xử lý Stats
         if (statsRes && statsRes.success) {
             setStatsData({
                 clients: statsRes.data.totalClients || 0,
@@ -113,11 +108,38 @@ export default function HomePageCustomer() {
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-  const toggleFavorite = (id) => {
-    setFavorites(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  // ✅ Hàm xử lý bấm tim (Thả tim thật)
+  const toggleFavorite = async (packageId) => {
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        alert("Vui lòng đăng nhập để lưu vào yêu thích!");
+        // navigate('/login'); // Có thể redirect nếu muốn
+        return;
+    }
+
+    // 1. Cập nhật UI ngay lập tức (Optimistic Update) cho mượt
+    const isCurrentlyFavorited = favorites.includes(packageId);
+    setFavorites(prev => 
+      isCurrentlyFavorited 
+        ? prev.filter(id => id !== packageId) 
+        : [...prev, packageId]
+    );
+
+    try {
+        // 2. Gọi API ngầm
+        await FavoriteService.toggleFavorite('package', packageId);
+    } catch (error) {
+        // 3. Nếu lỗi thì hoàn tác UI
+        console.error("Lỗi khi like:", error);
+        setFavorites(prev => 
+            isCurrentlyFavorited 
+              ? [...prev, packageId] 
+              : prev.filter(id => id !== packageId)
+        );
+        alert("Lỗi kết nối, vui lòng thử lại sau.");
+    }
   };
 
-  // Mảng stats hiển thị (Dùng dữ liệu từ state statsData)
   const statsDisplay = [
     { icon: Users, number: statsData.clients > 1000 ? '1,000+' : statsData.clients, label: 'Khách hàng tin dùng' },
     { icon: Camera, number: statsData.photographers > 100 ? '100+' : statsData.photographers, label: 'Photographer chuyên nghiệp' },
@@ -128,14 +150,11 @@ export default function HomePageCustomer() {
   return (
     <>
       <Header />
-      
-      {/* Sidebar nhận props điều khiển */}
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       
-      {/* Main Content với class động */}
       <div className={`homepage-customer ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
         
-        {/* HERO SECTION */}
+        {/* HERO */}
         <section className="hero">
           <div className="hero-background"></div>
           <div className="container">
@@ -161,7 +180,7 @@ export default function HomePageCustomer() {
           </div>
         </section>
 
-        {/* STATS SECTION (DỮ LIỆU THẬT) */}
+        {/* STATS */}
         <section className="stats">
           <div className="container">
             <div className="stats-grid">
@@ -176,7 +195,7 @@ export default function HomePageCustomer() {
           </div>
         </section>
 
-        {/* CATEGORIES SECTION */}
+        {/* CATEGORIES */}
         <section className="categories">
           <div className="container">
             <div className="section-header">
@@ -194,7 +213,7 @@ export default function HomePageCustomer() {
           </div>
         </section>
 
-        {/* PACKAGES SECTION (DỮ LIỆU THẬT) */}
+        {/* PACKAGES */}
         <section className="packages">
           <div className="container">
             <div className="section-header">
@@ -216,6 +235,7 @@ export default function HomePageCustomer() {
                       
                       {pkg.isNew && <span className="badge badge-new">Mới</span>}
                       
+                      {/* NÚT TIM ĐƯỢC CẬP NHẬT LOGIC */}
                       <button className="favorite-btn" onClick={(e) => {e.preventDefault(); toggleFavorite(pkg.id)}}>
                          <Heart 
                            className={favorites.includes(pkg.id) ? 'favorited' : ''} 

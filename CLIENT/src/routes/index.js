@@ -23,7 +23,6 @@ const routes = [
     path: '/forgot-password',
     component: lazy(() => import('../components/Account/ForgotPass'))
   },
-  // ✅ [QUAN TRỌNG] Route này BẮT BUỘC phải có để xử lý link từ email
   {
     path: '/reset-password/:token',
     component: lazy(() => import('../components/Account/ResetPassword'))
@@ -32,10 +31,14 @@ const routes = [
     path: '/my-account',
     component: lazy(() => import('../components/Account/MyAccount'))
   },
-  // ✅ [MỚI] Trang thông báo cho User (Khách hàng & Thợ)
   {
     path: '/notifications',
     component: lazy(() => import('../components/Notification/NotificationPage'))
+  },
+  // ✅ [MỚI] Trang yêu thích (Đặt trong components/Favorites)
+  {
+    path: '/favorites',
+    component: lazy(() => import('../components/Favorites/FavoritesPage'))
   },
 
   // =================================================================
@@ -157,26 +160,18 @@ const routes = [
     path: '/admin/order-manage',
     component: lazy(() => import('../admin/AdminPage/OrderManage'))
   },
-  
-  // ✅ [MỚI] Quản lý Khách hàng
   {
     path: '/admin/customer-manage',
     component: lazy(() => import('../admin/UserManage/CustomerManage')) 
   },
-
-  // ✅ [MỚI] Quản lý Nhiếp ảnh gia
   {
     path: '/admin/photographer-manage',
     component: lazy(() => import('../admin/UserManage/PhotographerManage')) 
   },
-
-  // ✅ [MỚI] Trang thông báo Admin
   {
     path: '/admin/notifications',
     component: lazy(() => import('../admin/Notification/NotificationAdmin'))
   },
-
-  // ✅ [FIX] Khiếu nại (Direct Import)
   {
     path: '/admin/complaint-manage',
     component: ComplaintManager 

@@ -6,7 +6,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import connectDB from "./src/config/mongoDb.js";
 
-// ✅ 1. BẮT LỖI TOÀN CỤC
+// ✅ 1. BẮT LỖI TOÀN CỤC (QUAN TRỌNG)
 process.on('uncaughtException', (err) => {
   console.error('🔥 LỖI NGHIÊM TRỌNG (Uncaught Exception):', err);
 });
@@ -35,8 +35,11 @@ import reviewRoutes from "./src/routes/review.route.js";
 import notificationRoute from "./src/routes/notification.route.js";
 import notificationAdminRoute from "./src/routes/notificationAdmin.route.js";
 
-// ✅ [MỚI] Import Route Thống kê trang chủ
+// ✅ Route Thống kê trang chủ
 import homeRoute from "./src/routes/home.route.js";
+
+// ✅ [MỚI] Route Yêu thích (Favorites)
+import favoriteRoutes from "./src/routes/favorite.route.js";
 
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
@@ -98,9 +101,11 @@ app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 app.use("/api/notifications", notificationRoute);
 app.use("/api/admin/notifications", notificationAdminRoute);
 
-// 8. ✅ [MỚI] Route Public (Thống kê trang chủ)
-// API: http://localhost:5000/api/public/stats
+// 8. Route Public (Thống kê trang chủ)
 app.use("/api/public", homeRoute);
+
+// 9. ✅ [MỚI] Route Yêu thích (Favorites)
+app.use("/api/favorites", favoriteRoutes);
 
 // ============ ERROR HANDLERS ============
 app.use((req, res) => {

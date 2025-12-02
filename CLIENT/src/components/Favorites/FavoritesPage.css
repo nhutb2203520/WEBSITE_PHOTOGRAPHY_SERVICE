@@ -1,0 +1,255 @@
+.favorites-page {
+    padding: 100px 0 80px;
+    background: #f9fafb;
+    min-height: 100vh;
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+.favorites-page.sidebar-open {
+    margin-left: 280px;
+    width: calc(100% - 280px);
+}
+
+.favorites-page.sidebar-closed {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: #111827;
+}
+
+/* --- TABS --- */
+.tabs {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 10px;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+.tab-btn:hover {
+    background: #f3f4f6;
+}
+
+.tab-btn.active {
+    background: #e0f2fe;
+    color: #0284c7;
+    font-weight: 600;
+}
+
+/* --- GRID LAYOUT --- */
+.grid-packages,
+.grid-photographers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+/* --- CARDS --- */
+.fav-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.fav-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.fav-img {
+    position: relative;
+    height: 180px;
+}
+
+.fav-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.btn-remove-fav {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    transition: 0.2s;
+}
+
+.btn-remove-fav:hover {
+    transform: scale(1.1);
+}
+
+.fav-info {
+    padding: 18px;
+}
+
+.fav-info h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.photographer-name {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.fav-rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.fav-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0284c7;
+    margin-bottom: 15px;
+}
+
+.btn-view {
+    display: block;
+    text-align: center;
+    background: #f3f4f6;
+    color: #374151;
+    text-decoration: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-view:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+/* --- PHOTOGRAPHER CARD SPECIFIC --- */
+.pg-img {
+    height: 140px;
+}
+
+.pg-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.8;
+}
+
+.pg-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid white;
+    position: absolute;
+    bottom: -30px;
+    left: 18px;
+    object-fit: cover;
+}
+
+.pg-info {
+    padding-top: 40px;
+}
+
+.pg-address {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 15px;
+}
+
+/* --- EMPTY STATE --- */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px;
+    background: white;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    color: #9ca3af;
+}
+
+.btn-browse {
+    background: #0284c7;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-browse:hover {
+    background: #0369a1;
+}
+
+/* --- LOADING --- */
+.loading-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    height: 200px;
+    font-size: 16px;
+    color: #6b7280;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+
+    .favorites-page.sidebar-open,
+    .favorites-page.sidebar-closed {
+        margin-left: 0;
+        width: 100%;
+    }
+}
