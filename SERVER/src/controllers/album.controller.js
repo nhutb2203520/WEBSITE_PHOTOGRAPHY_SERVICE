@@ -81,7 +81,7 @@ export const uploadPhotos = async (req, res) => {
             album.photos.push(...newPhotos);
             if (title) album.title = title;
             if (description) album.description = description;
-            album.status = 'sent_to_customer'; // Cập nhật trạng thái
+            album.status = 'sent_to_customer'; 
             await album.save();
         }
 
@@ -237,11 +237,11 @@ export const submitPublicSelection = async (req, res) => {
 };
 
 // =========================================================
-// [NEW] Giao Album (Upload ảnh đã chỉnh + Thông báo)
+// [UPDATE] Giao Album (Upload ảnh đã chỉnh + Thông báo)
 // =========================================================
 export const deliverAlbum = async (req, res) => {
     try {
-        const { id } = req.params; // Album ID hoặc Order ID
+        const { id } = req.params; 
         const photographerId = req.user.id || req.user._id;
 
         if (!req.files || req.files.length === 0) {
@@ -269,39 +269,41 @@ export const deliverAlbum = async (req, res) => {
 
         // 3. Lưu vào mảng edited_photos
         album.edited_photos.push(...editedPhotos);
-        album.status = 'finalized'; // Đánh dấu album đã hoàn tất
+        album.status = 'finalized'; 
         await album.save();
 
         let order = null;
-        // 4. Cập nhật trạng thái đơn hàng sang 'delivered'
+        // 4. Cập nhật trạng thái đơn hàng sang 'delivered' (Đã giao, chưa hoàn thành)
         if (album.order_id) {
             order = await Order.findByIdAndUpdate(album.order_id, { 
                 status: 'delivered',
+                'delivery_info.delivered_at': new Date(),
+                'delivery_info.status': 'delivered'
             }, { new: true });
         }
 
-        // 🔔 THÔNG BÁO CHO KHÁCH HÀNG: Ảnh đã xong
+        // 🔔 THÔNG BÁO CHO KHÁCH HÀNG
         if (album.customer_id) {
             await createNotification({
                 userId: album.customer_id,
-                title: "✨ Album ảnh hoàn chỉnh đã có!",
-                message: `Nhiếp ảnh gia đã giao ảnh chỉnh sửa cho album "${album.title}". Bạn có thể xem và tải về ngay.`,
+                title: "✨ Ảnh chỉnh sửa đã có!",
+                message: `Nhiếp ảnh gia đã giao ảnh chỉnh sửa. Vui lòng kiểm tra và xác nhận hoàn thành (hoặc khiếu nại nếu có vấn đề).`,
                 type: "ALBUM",
                 link: `/albums/detail/${album.order_id || album._id}`
             });
         }
 
-        // ✅ [MỚI] THÔNG BÁO CHO TẤT CẢ ADMIN: Đơn hoàn thành -> Quyết toán
+        // ✅ THÔNG BÁO ADMIN: Chỉ báo là "Đã giao", chưa báo "Thanh toán"
         if (order) {
             await notifyAllAdmins({
-                title: "✅ Đơn hàng đã hoàn thành",
-                message: `Photographer đã giao ảnh cho đơn #${order.order_id}. Vui lòng kiểm tra và quyết toán tiền.`,
+                title: "📸 Thợ đã giao ảnh",
+                message: `Đơn hàng #${order.order_id} đã được giao ảnh. Hệ thống đang chờ khách hàng xác nhận.`,
                 type: "ORDER",
-                link: "/admin/payment-manage" // Link tới trang thanh toán để Admin trả lương thợ
+                link: "/admin/order-manage" 
             });
         }
 
-        res.json({ success: true, message: "Đã giao album thành công!", data: album });
+        res.json({ success: true, message: "Đã giao album thành công! Chờ khách xác nhận.", data: album });
     } catch (error) {
         console.error("Deliver Error:", error);
         res.status(500).json({ message: error.message });

@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Calendar, Clock, MapPin, User, Phone, Mail, Package, FileText,
-  CheckCircle, AlertCircle, DollarSign, Camera, ArrowLeft, Map,
-  Check, Truck, Navigation, Loader, Search, AlertTriangle, 
-  CalendarX // Icon cho modal trùng lịch
+  CheckCircle, AlertTriangle, Truck, Navigation, Loader, Search, 
+  CalendarX, ArrowLeft, Camera, Check 
 } from 'lucide-react';
 import './OrderService.css';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify'; 
 
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
-import Sidebar from '../Sidebar/Sidebar';
+import Header from '../../components/Header/Header';
+import Footer from '../../components/Footer/Footer';
+import Sidebar from '../../components/Sidebar/Sidebar';
 import servicePackageApi from '../../apis/ServicePackageService';
 import orderApi from '../../apis/OrderService';
 
@@ -22,7 +21,7 @@ export default function OrderServices() {
   const { user } = useSelector(state => state.user || {});
 
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); 
   const [submitting, setSubmitting] = useState(false);
   
   // STATE QUẢN LÝ PHÍ DI CHUYỂN
@@ -71,10 +70,7 @@ export default function OrderServices() {
     if (location.state?.packageId) {
       setFormData(prev => ({ ...prev, packageId: location.state.packageId }));
       loadSelectedPackage(location.state.packageId);
-    } else {
-      toast.error("Vui lòng chọn gói dịch vụ trước!");
-      navigate('/service-package');
-    }
+    } 
   }, [user, navigate, location]);
 
   // TỰ ĐỘNG TÍNH PHÍ KHI CÓ TỌA ĐỘ
@@ -103,9 +99,6 @@ export default function OrderServices() {
       
       if (result) {
         setTravelFee(result);
-        if (result.error) {
-            console.warn("Travel Fee Warning:", result.error);
-        }
       }
     } catch (error) {
       console.error("❌ Lỗi tính phí:", error);
@@ -118,6 +111,7 @@ export default function OrderServices() {
     try {
       setLoading(true);
       const response = await servicePackageApi.getPackageById(packageId);
+      
       if (response) {
         setSelectedPackage(response);
         let duration = response.ThoiGianThucHien;
@@ -125,7 +119,6 @@ export default function OrderServices() {
            const match = duration.match(/\d+/);
            duration = match ? match[0] : ''; 
         }
-
         if (duration) {
           setFormData(prev => ({ ...prev, estimatedDuration: String(duration) }));
         }
@@ -142,7 +135,7 @@ export default function OrderServices() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setFormErrors(prev => ({ ...prev, [name]: '' }));
+    setFormErrors(prev => ({ ...prev, [name]: '' })); 
     
     if (name === "bookingDate") {
         calculateCompletionDate(value, formData.estimatedDuration);
@@ -151,22 +144,16 @@ export default function OrderServices() {
 
   const calculateCompletionDate = (bookingDate, duration) => {
     if (!bookingDate || !duration) return;
-
     const daysToAdd = parseInt(duration);
     if (isNaN(daysToAdd)) return;
-
     try {
       const d = new Date(bookingDate);
       if (isNaN(d.getTime())) return;
-
       d.setDate(d.getDate() + daysToAdd);
-      
       if (!isNaN(d.getTime())) {
         setFormData(prev => ({ ...prev, completionDate: d.toISOString().split("T")[0] }));
       }
-    } catch (error) {
-      console.error("❌ Lỗi tính ngày hoàn thành:", error);
-    }
+    } catch (error) {}
   };
 
   const handleServiceToggle = (serviceIndex) => {
@@ -179,39 +166,30 @@ export default function OrderServices() {
     });
   };
 
-  // --- XỬ LÝ BẢN ĐỒ & VỊ TRÍ ---
-
+  // --- XỬ LÝ BẢN ĐỒ ---
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) return toast.error("Trình duyệt không hỗ trợ định vị!");
-    
     toast.info("Đang lấy vị trí hiện tại...");
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const { latitude, longitude } = coords;
         const link = `https://www.google.com/maps?q=${latitude},${longitude}`;
-        
         setFormData(prev => ({
           ...prev,
           mapLink: link,
           location: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
         }));
-        
         setCustomerCoords({ lat: latitude, lng: longitude });
         toast.success("Đã lấy tọa độ thành công!");
       },
-      (err) => {
-        toast.error("Vui lòng cho phép truy cập vị trí hoặc nhập thủ công.");
-      },
+      () => toast.error("Vui lòng cho phép truy cập vị trí hoặc nhập thủ công."),
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
   const handleAutoGetCoordinates = async () => {
     const fullAddress = `${formData.address}, ${formData.district}, ${formData.city}`.replace(/(^,)|(,$)/g, "").trim();
-    
-    if (fullAddress.length < 5) {
-      return toast.warning("Vui lòng nhập địa chỉ cụ thể (Đường, Quận/Huyện, Tỉnh/TP)");
-    }
+    if (fullAddress.length < 5) return toast.warning("Vui lòng nhập địa chỉ cụ thể");
 
     try {
       setIsSearchingAddress(true);
@@ -222,55 +200,36 @@ export default function OrderServices() {
       if (data && data.length > 0) {
         const lat = parseFloat(data[0].lat);
         const lng = parseFloat(data[0].lon);
-
         setCustomerCoords({ lat, lng });
         setFormData(prev => ({
           ...prev,
           mapLink: `https://www.google.com/maps?q=${lat},${lng}`,
           location: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
         }));
-        toast.success("Đã tìm thấy tọa độ từ địa chỉ!");
+        toast.success("Đã tìm thấy tọa độ!");
       } else {
-        toast.error("Không tìm thấy tọa độ. Vui lòng kiểm tra lại địa chỉ hoặc dùng 'Lấy vị trí'.");
+        toast.error("Không tìm thấy tọa độ. Vui lòng kiểm tra lại địa chỉ.");
       }
     } catch (error) {
-      console.error("Geocoding error:", error);
       toast.error("Lỗi khi tìm kiếm địa chỉ.");
     } finally {
       setIsSearchingAddress(false);
     }
   };
 
-  const parseGoogleMapsLink = (link) => {
-    if (!link) return null;
-    
-    if (link.includes("goo.gl") || link.includes("maps.app")) {
-      toast.warning("Link rút gọn không chứa tọa độ. Vui lòng dùng nút 'Tìm từ địa chỉ' hoặc copy link đầy đủ.");
-      return null;
-    }
-
-    const match1 = link.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    if (match1) return { lat: parseFloat(match1[1]), lng: parseFloat(match1[2]) };
-    
-    const match2 = link.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    if (match2) return { lat: parseFloat(match2[1]), lng: parseFloat(match2[2]) };
-    
-    return null;
-  };
-
   const handleMapLinkChange = (e) => {
     const link = e.target.value;
     setFormData(prev => ({ ...prev, mapLink: link }));
-    
-    const coords = parseGoogleMapsLink(link);
+    const match1 = link.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    const match2 = link.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    const coords = match1 ? { lat: parseFloat(match1[1]), lng: parseFloat(match1[2]) } : match2 ? { lat: parseFloat(match2[1]), lng: parseFloat(match2[2]) } : null;
     if (coords) {
       setCustomerCoords(coords);
-      toast.info(`Đã nhận diện: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+      toast.info(`Đã nhận diện tọa độ.`);
     }
   };
 
-  // --- TÍNH TOÁN GIÁ ---
-
+  // --- TÍNH GIÁ ---
   const calculateServicePrice = () => {
     if (!selectedPackage?.DichVu || formData.selectedServices.length === 0) return 0;
     return formData.selectedServices.reduce((total, index) => {
@@ -280,29 +239,76 @@ export default function OrderServices() {
   };
 
   const calculateTotalPrice = () => {
-    const servicePrice = calculateServicePrice();
-    const travelFeeAmount = travelFee?.fee || 0;
-    return servicePrice + travelFeeAmount;
+    return calculateServicePrice() + (travelFee?.fee || 0);
   };
 
   const formatPrice = (p) => Number(p || 0).toLocaleString("vi-VN");
 
+  // ✅ HÀM VALIDATE: Kiểm tra nghiêm ngặt, bao gồm Dịch vụ
   const validateForm = () => {
     const errors = {};
-    if (!formData.customerName.trim()) errors.customerName = "Vui lòng nhập họ tên";
-    if (!formData.bookingDate) errors.bookingDate = "Vui lòng chọn ngày";
-    if (!formData.startTime) errors.startTime = "Vui lòng chọn giờ";
-    if (!formData.address) errors.address = "Vui lòng nhập địa chỉ";
+    let isValid = true;
+
+    // 1. Kiểm tra Gói dịch vụ (QUAN TRỌNG)
+    if (!formData.packageId || !selectedPackage) {
+        errors.packageId = "Vui lòng chọn gói dịch vụ";
+        isValid = false;
+    }
+
+    // 🛑 2. KIỂM TRA DỊCH VỤ CON (QUAN TRỌNG)
+    if (!formData.selectedServices || formData.selectedServices.length === 0) {
+        toast.warn("⚠️ Bạn chưa chọn dịch vụ nào trong gói!");
+        // Cuộn tới phần chọn dịch vụ để user thấy
+        const servicesSection = document.querySelector('.services-selection');
+        if (servicesSection) servicesSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
+
+    if (!formData.customerName.trim()) {
+        errors.customerName = "Vui lòng nhập họ tên";
+        isValid = false;
+    }
+    
+    if (!formData.customerPhone.trim()) {
+        errors.customerPhone = "Vui lòng nhập số điện thoại";
+        isValid = false;
+    }
+
+    if (!formData.customerEmail.trim()) {
+        errors.customerEmail = "Vui lòng nhập email";
+        isValid = false;
+    }
+
+    if (!formData.bookingDate) {
+        errors.bookingDate = "Vui lòng chọn ngày chụp";
+        isValid = false;
+    }
+    if (!formData.startTime) {
+        errors.startTime = "Vui lòng chọn giờ bắt đầu";
+        isValid = false;
+    }
+    
+    if (!formData.address.trim()) {
+        errors.address = "Vui lòng nhập địa chỉ chi tiết";
+        isValid = false;
+    }
     
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    
+    if (!isValid) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast.warn("Vui lòng điền đầy đủ thông tin bắt buộc!");
+    }
+
+    return isValid;
   };
 
   // --- SUBMIT ---
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return toast.warning("Vui lòng kiểm tra lại thông tin bắt buộc");
+    
+    // Gọi validate, nếu false thì dừng ngay
+    if (!validateForm()) return;
 
     try {
       setSubmitting(true);
@@ -318,7 +324,6 @@ export default function OrderServices() {
         booking_date: formData.bookingDate,
         start_time: formData.startTime,
         selected_services: formData.selectedServices,
-        
         location: {
           name: formData.location,
           address: formData.address,
@@ -327,13 +332,11 @@ export default function OrderServices() {
           map_link: formData.mapLink,
           coordinates: customerCoords 
         },
-
         service_amount: servicePrice,
         travel_fee: travelFee || { enabled: false, fee: 0, distance_km: 0 }, 
         travel_fee_amount: travelFeeAmount,
         total_amount: totalAmount,
         final_amount: totalAmount,
-        
         notes: formData.notes || "",
         special_requests: formData.specialRequests || "",
         guest_times: formData.guestTimes.filter(t => t),
@@ -344,89 +347,37 @@ export default function OrderServices() {
       const orderResult = responseData.data || responseData.order || responseData;
       const paymentInfo = responseData.payment_info || {};
 
-      if (!orderResult?._id) throw new Error("Không nhận được ID đơn hàng");
+      if (!orderResult?._id) throw new Error("Lỗi tạo đơn");
       
       toast.success("Tạo đơn hàng thành công!");
-      
-      navigate("/payment", { 
-        state: { 
-          order: orderResult,
-          transfer_code: paymentInfo.transfer_code,
-          deposit_required: paymentInfo.deposit_required
-        } 
-      });
+      navigate("/payment", { state: { order: orderResult, transfer_code: paymentInfo.transfer_code, deposit_required: paymentInfo.deposit_required } });
 
     } catch (error) {
       console.error("Create Order Error:", error);
-      
-      // 🛑 XỬ LÝ LỖI TRÙNG LỊCH BẰNG MODAL 🛑
       if (error.response && error.response.status === 409) {
-          // Bật Modal thay vì hiển thị Toast
-          setConflictModal({
-            isOpen: true,
-            message: error.response.data.message || "Khung giờ này đã có lịch đặt. Vui lòng chọn thời gian khác!"
-          });
+          setConflictModal({ isOpen: true, message: error.response.data.message || "Khung giờ này đã kín!" });
       } else {
-          const msg = error.response?.data?.message || "Lỗi khi tạo đơn hàng";
-          toast.error(msg);
+          toast.error(error.response?.data?.message || "Lỗi khi tạo đơn hàng");
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getImageUrl = (img) =>
-    !img ? "/no-image.jpg"
-         : img.startsWith("http") ? img
-         : `http://localhost:5000/${img.replace(/^\/+/, "")}`;
+  const getImageUrl = (img) => !img ? "/no-image.jpg" : img.startsWith("http") ? img : `http://localhost:5000/${img.replace(/^\/+/, "")}`;
 
   const renderTravelFeeSection = () => {
-    if (calculatingFee) {
-      return (
-        <div className="info-box">
-          <Loader size={18} className="spin" />
-          <span>Đang tính quãng đường lái xe...</span>
-        </div>
-      );
-    }
-
+    if (calculatingFee) return <div className="info-box"><Loader size={18} className="spin" /><span>Đang tính phí di chuyển...</span></div>;
     if (!travelFee) return null;
-
-    if (travelFee.error) {
-        return (
-            <div className="info-box" style={{ borderColor: '#ef4444', backgroundColor: '#fef2f2', color: '#b91c1c' }}>
-                <AlertTriangle size={18} />
-                <span>{travelFee.error}</span>
-            </div>
-        );
-    }
-
-    if (!travelFee.enabled) {
-        return (
-            <div className="info-box">
-                <CheckCircle size={18} style={{ color: '#10b981' }} />
-                <span>{travelFee.message || "Gói dịch vụ này miễn phí di chuyển"}</span>
-            </div>
-        );
-    }
+    if (travelFee.error) return <div className="info-box error"><AlertTriangle size={18} /><span>{travelFee.error}</span></div>;
+    if (!travelFee.enabled) return <div className="info-box success"><CheckCircle size={18} /><span>Miễn phí di chuyển</span></div>;
 
     return (
       <div className="travel-fee-box">
         <div className="travel-fee-header"><Truck size={20} /> <h4>Phí di chuyển (Lái xe)</h4></div>
         <div className="travel-fee-details">
-          <div className="fee-row">
-              <span>Quãng đường:</span>
-              <strong>{travelFee.distance_km} km</strong>
-          </div>
-          {travelFee.free_distance_km > 0 && (
-              <div className="fee-row"><span>Miễn phí:</span><span>{travelFee.free_distance_km} km đầu</span></div>
-          )}
-          <div className="fee-row total">
-              <span>Phí áp dụng:</span>
-              <strong className={travelFee.fee > 0 ? 'has-fee' : 'no-fee'}>
-                  {travelFee.fee > 0 ? `${formatPrice(travelFee.fee)} VNĐ` : 'Miễn phí'}
-              </strong>
-          </div>
+          <div className="fee-row"><span>Quãng đường:</span><strong>{travelFee.distance_km} km</strong></div>
+          <div className="fee-row total"><span>Phí áp dụng:</span><strong>{formatPrice(travelFee.fee)} VNĐ</strong></div>
           {travelFee.breakdown && <p className="fee-breakdown">{travelFee.breakdown}</p>}
         </div>
       </div>
@@ -441,20 +392,12 @@ export default function OrderServices() {
       <div className="order-service-page">
         <div className="container">
           <div className="order-header">
-            <button onClick={() => navigate(-1)} className="btn-back">
-              <ArrowLeft size={20} /> Quay lại
-            </button>
+            <button onClick={() => navigate(-1)} className="btn-back"><ArrowLeft size={20} /> Quay lại</button>
             <h1>Đặt Dịch Vụ Chụp Ảnh</h1>
             <p className="order-subtitle">Điền thông tin bên dưới để hoàn tất đặt hàng</p>
           </div>
 
-          {loading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Đang tải thông tin gói...</p>
-            </div>
-          ) : (
-            <div className="order-content">
+          <div className="order-content">
               <form className="order-form" onSubmit={handleSubmit}>
                 
                 {/* KHÁCH HÀNG */}
@@ -463,10 +406,19 @@ export default function OrderServices() {
                   <div className="form-group">
                     <label>Họ tên <span className="required">*</span></label>
                     <input name="customerName" value={formData.customerName} onChange={handleInputChange} className={formErrors.customerName ? 'error' : ''} />
+                    {formErrors.customerName && <span className="error-msg">{formErrors.customerName}</span>}
                   </div>
                   <div className="form-row">
-                    <div className="form-group"><label>SĐT</label><input name="customerPhone" value={formData.customerPhone} onChange={handleInputChange} /></div>
-                    <div className="form-group"><label>Email</label><input name="customerEmail" value={formData.customerEmail} onChange={handleInputChange} /></div>
+                    <div className="form-group">
+                        <label>SĐT <span className="required">*</span></label>
+                        <input name="customerPhone" value={formData.customerPhone} onChange={handleInputChange} className={formErrors.customerPhone ? 'error' : ''} />
+                        {formErrors.customerPhone && <span className="error-msg">{formErrors.customerPhone}</span>}
+                    </div>
+                    <div className="form-group">
+                        <label>Email <span className="required">*</span></label>
+                        <input name="customerEmail" value={formData.customerEmail} onChange={handleInputChange} className={formErrors.customerEmail ? 'error' : ''} />
+                        {formErrors.customerEmail && <span className="error-msg">{formErrors.customerEmail}</span>}
+                    </div>
                   </div>
                 </div>
 
@@ -475,19 +427,28 @@ export default function OrderServices() {
                   <div className="section-header"><Package /> <h2>Thông tin dịch vụ</h2></div>
                   
                   <div className="form-group">
-                    <label>Gói dịch vụ</label>
+                    <label>Gói dịch vụ <span className="required">*</span></label>
+                    {/* ✅ INPUT HIỂN THỊ GÓI DỊCH VỤ (VALIDATION UI) */}
                     <input 
                       type="text" 
-                      value={selectedPackage?.TenGoi || "Đang tải..."} 
-                      disabled 
-                      style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', fontWeight: 'bold', color: '#374151' }} 
+                      value={selectedPackage?.TenGoi || ""} 
+                      readOnly
+                      placeholder="Chưa chọn gói dịch vụ"
+                      className={formErrors.packageId ? 'error' : ''} // Class đỏ nếu lỗi
+                      onClick={() => { if(!selectedPackage) navigate('/service-package'); }} // Click để quay lại chọn
+                      style={{ cursor: selectedPackage ? 'default' : 'pointer', backgroundColor: selectedPackage ? '#f3f4f6' : '#fff' }}
                     />
+                    {/* ✅ HIỂN THỊ LỖI ĐỎ DƯỚI INPUT */}
+                    {formErrors.packageId && <span className="error-msg">{formErrors.packageId}</span>}
+                    {!selectedPackage && <small className="text-blue" style={{cursor:'pointer'}} onClick={()=>navigate('/service-package')}>Nhấn vào đây để chọn gói</small>}
                   </div>
                   
                   {selectedPackage?.DichVu?.length > 0 && (
                     <div className="form-group">
-                        <label>Chọn dịch vụ thêm</label>
-                        <div className="services-selection">
+                        <label>Chọn dịch vụ thêm <span className="required">*</span></label>
+                        
+                        {/* Thêm class error-border nếu chưa chọn dịch vụ khi submit */}
+                        <div className={`services-selection ${formData.selectedServices.length === 0 && Object.keys(formErrors).length > 0 ? 'error-border' : ''}`}>
                             {selectedPackage.DichVu.map((service, index) => (
                             <div key={index} className={`service-item ${formData.selectedServices.includes(index) ? 'selected' : ''}`} onClick={() => handleServiceToggle(index)}>
                                 <div className="service-checkbox">{formData.selectedServices.includes(index) && <Check size={16} />}</div>
@@ -495,6 +456,12 @@ export default function OrderServices() {
                             </div>
                             ))}
                         </div>
+                        {/* Hiển thị thông báo lỗi nhỏ dưới danh sách dịch vụ */}
+                        {formData.selectedServices.length === 0 && Object.keys(formErrors).length > 0 && (
+                             <small className="error-text" style={{color: '#ef4444', marginTop: '5px', display: 'block'}}>
+                                * Vui lòng chọn ít nhất 1 dịch vụ để tiếp tục.
+                             </small>
+                        )}
                     </div>
                   )}
 
@@ -502,10 +469,12 @@ export default function OrderServices() {
                     <div className="form-group">
                         <label>Ngày đặt <span className="required">*</span></label>
                         <input type="date" name="bookingDate" value={formData.bookingDate} min={todayISODate} onChange={handleInputChange} className={formErrors.bookingDate ? 'error' : ''} />
+                        {formErrors.bookingDate && <span className="error-msg">{formErrors.bookingDate}</span>}
                     </div>
                     <div className="form-group">
                         <label>Giờ bắt đầu <span className="required">*</span></label>
                         <input type="time" name="startTime" value={formData.startTime} onChange={handleInputChange} className={formErrors.startTime ? 'error' : ''} />
+                        {formErrors.startTime && <span className="error-msg">{formErrors.startTime}</span>}
                     </div>
                   </div>
                 </div>
@@ -517,22 +486,25 @@ export default function OrderServices() {
                   <div className="form-group">
                     <label>Địa chỉ chi tiết <span className="required">*</span></label>
                     <input name="address" value={formData.address} onChange={handleInputChange} className={formErrors.address ? 'error' : ''} placeholder="Số nhà, tên đường..." />
+                    {formErrors.address && <span className="error-msg">{formErrors.address}</span>}
                   </div>
 
                   <div className="form-row">
-                    <div className="form-group"><label>Quận/Huyện</label><input name="district" value={formData.district} onChange={handleInputChange} placeholder="Ví dụ: Ninh Kiều" /></div>
-                    <div className="form-group"><label>Tỉnh/Thành phố</label><input name="city" value={formData.city} onChange={handleInputChange} placeholder="Ví dụ: Cần Thơ" /></div>
+                    <div className="form-group">
+                        <label>Quận/Huyện <span className="required">*</span></label>
+                        <input name="district" value={formData.district} onChange={handleInputChange} className={formErrors.district ? 'error' : ''} placeholder="Ví dụ: Ninh Kiều" />
+                        {formErrors.district && <span className="error-msg">{formErrors.district}</span>}
+                    </div>
+                    <div className="form-group">
+                        <label>Tỉnh/Thành phố <span className="required">*</span></label>
+                        <input name="city" value={formData.city} onChange={handleInputChange} className={formErrors.city ? 'error' : ''} placeholder="Ví dụ: Cần Thơ" />
+                        {formErrors.city && <span className="error-msg">{formErrors.city}</span>}
+                    </div>
                   </div>
 
                   <div className="geo-actions">
-                    <button 
-                      type="button" 
-                      onClick={handleAutoGetCoordinates} 
-                      className="btn-auto-geo"
-                      disabled={isSearchingAddress}
-                    >
-                      {isSearchingAddress ? <Loader size={16} className="spin"/> : <Search size={16} />}
-                      Tìm tọa độ từ địa chỉ trên
+                    <button type="button" onClick={handleAutoGetCoordinates} className="btn-auto-geo" disabled={isSearchingAddress}>
+                      {isSearchingAddress ? <Loader size={16} className="spin"/> : <Search size={16} />} Tìm tọa độ
                     </button>
                     <span className="geo-divider">hoặc</span>
                     <button type="button" onClick={handleGetCurrentLocation} className="btn-location">
@@ -542,18 +514,12 @@ export default function OrderServices() {
 
                   <div className="form-group" style={{marginTop: 20}}>
                     <label>Link Google Maps (Tùy chọn)</label>
-                    <input name="mapLink" value={formData.mapLink} onChange={handleMapLinkChange} placeholder="Dán link Google Maps dài (có chứa @lat,lng)" />
-                    <small style={{color: '#6b7280', marginTop: 5, display: 'block'}}>
-                        * Lưu ý: Link rút gọn (goo.gl) sẽ không tự động tính phí được. Hãy dùng nút "Tìm từ địa chỉ" ở trên.
-                    </small>
+                    <input name="mapLink" value={formData.mapLink} onChange={handleMapLinkChange} placeholder="Dán link Google Maps dài..." />
                   </div>
 
                   {customerCoords.lat && customerCoords.lng && (
                     <div className="info-box success">
-                      <MapPin size={18} />
-                      <span>
-                        Đã nhận diện tọa độ: <strong>{customerCoords.lat.toFixed(6)}, {customerCoords.lng.toFixed(6)}</strong>
-                      </span>
+                      <MapPin size={18} /> <span>Đã nhận diện tọa độ.</span>
                     </div>
                   )}
 
@@ -574,7 +540,7 @@ export default function OrderServices() {
                 </div>
               </form>
 
-              {/* SUMMARY STICKY */}
+              {/* SUMMARY */}
               <div className="order-summary-section">
                 <div className="summary-sticky">
                   {selectedPackage ? (
@@ -582,57 +548,31 @@ export default function OrderServices() {
                         <div className="package-badge">{selectedPackage.LoaiGoi}</div>
                         <img src={getImageUrl(selectedPackage.AnhBia)} onError={(e)=>e.target.src='https://via.placeholder.com/400x250'} alt="" />
                         <h3>{selectedPackage.TenGoi}</h3>
-                        
                         <div className="price-breakdown">
                             <div className="price-row"><span>Dịch vụ:</span><span>{formatPrice(calculateServicePrice())} VNĐ</span></div>
-                            
-                            {travelFee?.fee > 0 && (
-                                <div className="price-row travel">
-                                    <span><Truck size={14}/> Phí di chuyển:</span>
-                                    <span>{formatPrice(travelFee.fee)} VNĐ</span>
-                                </div>
-                            )}
-
+                            {travelFee?.fee > 0 && <div className="price-row travel"><span>Phí di chuyển:</span><span>{formatPrice(travelFee.fee)} VNĐ</span></div>}
                             <div className="total-price"><span>Tổng cộng:</span><span className="price">{formatPrice(calculateTotalPrice())} VNĐ</span></div>
-                            
                             <div className="deposit-info"><span>Cọc 30%:</span><span className="deposit-amount">{formatPrice(Math.round(calculateTotalPrice() * 0.3))} VNĐ</span></div>
                         </div>
                     </div>
                   ) : (
-                    <div className="placeholder-box"><Camera size={40} /><p>Đang tải thông tin...</p></div>
+                    <div className="placeholder-box"><Camera size={40} /><p>Vui lòng chọn gói dịch vụ</p></div>
                   )}
                 </div>
               </div>
-
             </div>
-          )}
         </div>
       </div>
 
-      {/* ✅ MODAL TRÙNG LỊCH */}
       {conflictModal.isOpen && (
         <div className="modal-overlay-custom" onClick={() => setConflictModal({ ...conflictModal, isOpen: false })}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            
-            <div className="modal-icon-area">
-               <CalendarX size={36} color="#ea580c" strokeWidth={2} />
-            </div>
-
+            <div className="modal-icon-area"><CalendarX size={36} color="#ea580c" strokeWidth={2} /></div>
             <h3 className="modal-title">Rất tiếc, lịch đã kín!</h3>
-            
-            <p className="modal-desc">
-              {conflictModal.message}
-            </p>
-
+            <p className="modal-desc">{conflictModal.message}</p>
             <div className="modal-footer">
-              <button 
-                className="modal-btn-action" 
-                onClick={() => setConflictModal({ ...conflictModal, isOpen: false })}
-              >
-                Đã hiểu, tôi sẽ chọn ngày khác
-              </button>
+              <button className="modal-btn-action" onClick={() => setConflictModal({ ...conflictModal, isOpen: false })}>Đã hiểu, tôi sẽ chọn ngày khác</button>
             </div>
-
           </div>
         </div>
       )}
