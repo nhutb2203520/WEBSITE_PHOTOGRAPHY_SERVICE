@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Bell, CheckCircle, Package, CreditCard, Image, Info } from "lucide-react";
+import { Bell, CheckCircle, Package, CreditCard, Image, Info, AlertTriangle } from "lucide-react"; // ✅ Import thêm AlertTriangle
 import { Link } from "react-router-dom";
-import notificationApi from "../../apis/notificationService"; // ✅ Dùng service mới tạo
-import Header from "../Header/Header"; // ⚠️ Đảm bảo bạn đã có component này
-import Footer from "../Footer/Footer"; // ⚠️ Đảm bảo bạn đã có component này
-import Sidebar from "../Sidebar/Sidebar"; // ✅ Component Sidebar vừa tạo
+import notificationApi from "../../apis/notificationService"; 
+import Header from "../Header/Header"; 
+import Footer from "../Footer/Footer"; 
+import Sidebar from "../Sidebar/Sidebar"; 
 import "./NotificationPage.css";
 
 // Hàm helper để chọn icon theo loại thông báo
@@ -14,6 +14,8 @@ const getIconByType = (type) => {
     case "PAYMENT": return <CreditCard className="icon-payment" size={24} />;
     case "ALBUM": return <Image className="icon-album" size={24} />;
     case "SYSTEM": return <Info className="icon-system" size={24} />;
+    // ✅ Thêm case cho khiếu nại (COMPLAINT)
+    case "COMPLAINT": return <AlertTriangle className="icon-complaint" size={24} color="#ef4444" />;
     default: return <Bell className="icon-default" size={24} />;
   }
 };
@@ -25,9 +27,14 @@ const NotificationPage = () => {
   // Lấy danh sách thông báo
   const fetchNotifications = async () => {
     try {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+         setLoading(false);
+         return;
+      }
+
       const res = await notificationApi.getMyNotifications();
-      // Kiểm tra cấu trúc response trả về từ axiosUser (thường là res trực tiếp hoặc res.data)
-      // Dựa vào file axiosUser.js của bạn: "return response.data" -> nên ở đây res chính là data
+      // Đảm bảo luôn là mảng để tránh lỗi map
       setNotifications(res.data || []); 
     } catch (error) {
       console.error("Lỗi lấy thông báo:", error);
@@ -38,6 +45,10 @@ const NotificationPage = () => {
 
   useEffect(() => {
     fetchNotifications();
+    
+    // Tự động cập nhật mỗi 30s để nhận tin mới
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Xử lý khi click vào thông báo (Đánh dấu đã đọc)
@@ -45,7 +56,6 @@ const NotificationPage = () => {
     if (!noti.isRead) {
       try {
         await notificationApi.markAsRead(noti._id);
-        // Cập nhật UI ngay lập tức
         setNotifications(prev => prev.map(n => n._id === noti._id ? { ...n, isRead: true } : n));
       } catch (error) {
         console.error("Lỗi đánh dấu đã đọc");
@@ -65,20 +75,16 @@ const NotificationPage = () => {
 
   return (
     <div className="page-wrapper">
-      {/* 1. Header */}
       <Header />
 
       <div className="main-layout">
-        {/* 2. Sidebar */}
         <div className="sidebar-area">
            <Sidebar />
         </div>
 
-        {/* 3. Main Content */}
         <div className="content-area">
           <div className="notification-container">
             
-            {/* Notification Header */}
             <div className="noti-header">
               <h2>Thông báo của bạn</h2>
               <button className="mark-all-btn" onClick={handleReadAll}>
@@ -86,13 +92,11 @@ const NotificationPage = () => {
               </button>
             </div>
 
-            {/* Loading State */}
             {loading ? (
               <div className="loading-noti">
                  <div className="spinner"></div> Đang tải thông báo...
               </div>
             ) : (
-              /* Notification List */
               <div className="noti-list">
                 {notifications.length === 0 ? (
                   <div className="empty-noti">
@@ -127,7 +131,6 @@ const NotificationPage = () => {
         </div>
       </div>
 
-      {/* 4. Footer */}
       <Footer />
     </div>
   );

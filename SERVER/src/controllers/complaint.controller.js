@@ -1,8 +1,12 @@
 import Complaint from "../models/complaint.model.js";
 import Order from "../models/order.model.js"; 
-import "../models/khachhang.model.js"; // Đảm bảo model Khách Hàng đã được load
+import "../models/khachhang.model.js"; 
 import "../models/servicePackage.model.js"; 
 import fs from "fs";
+
+// ✅ Import 2 hệ thống thông báo
+import { notifyAllAdmins } from "./notificationAdmin.controller.js"; // Báo cho Admin
+import { createNotification } from "./notification.controller.js";      // Báo cho Khách/Thợ
 
 // [POST] Khách hàng tạo khiếu nại
 export const createComplaint = async (req, res) => {
@@ -23,7 +27,7 @@ export const createComplaint = async (req, res) => {
     const existingComplaint = await Complaint.findOne({ order_id });
     if (existingComplaint) return res.status(400).json({ message: "Đơn hàng này đã có khiếu nại." });
 
-    // 4. Xử lý upload ảnh
+    // 4. Xử lý upload ảnh bằng chứng
     let imagePaths = [];
     if (req.files && req.files.length > 0) {
       imagePaths = req.files.map(file => `/uploads/complaints/${file.filename}`);
@@ -50,9 +54,37 @@ export const createComplaint = async (req, res) => {
     order.complaint.created_at = new Date();
     await order.save();
 
+    // ✅ 1. THÔNG BÁO CHO TẤT CẢ ADMIN
+    await notifyAllAdmins({
+        title: "⚠️ Có khiếu nại mới!",
+        message: `Đơn hàng #${order.order_id} bị khiếu nại: "${reason}". Vui lòng kiểm tra và xử lý.`,
+        type: "COMPLAINT",
+        link: "/admin/complaint-manage"
+    });
+
+    // ✅ 2. THÔNG BÁO CHO KHÁCH HÀNG (Xác nhận đã gửi)
+    await createNotification({
+        userId: userId,
+        title: "Đã gửi khiếu nại thành công",
+        message: `Hệ thống đã ghi nhận khiếu nại cho đơn #${order.order_id}. Admin sẽ xem xét và phản hồi sớm nhất.`,
+        type: "COMPLAINT",
+        link: "/my-orders"
+    });
+
+    // ✅ 3. THÔNG BÁO CHO NHIẾP ẢNH GIA (Cảnh báo)
+    if (order.photographer_id) {
+        await createNotification({
+            userId: order.photographer_id,
+            title: "⚠️ Đơn hàng bị khiếu nại",
+            message: `Khách hàng đã khiếu nại đơn hàng #${order.order_id} với lý do: "${reason}". Vui lòng chờ Admin xử lý.`,
+            type: "COMPLAINT",
+            link: "/photographer/orders-manage"
+        });
+    }
+
     res.status(201).json({
       success: true,
-      message: "Gửi khiếu nại thành công.",
+      message: "Gửi khiếu nại thành công. Admin sẽ xem xét sớm nhất.",
       data: newComplaint
     });
 
@@ -76,46 +108,76 @@ export const processComplaint = async (req, res) => {
         const complaint = await Complaint.findById(id);
         if (!complaint) return res.status(404).json({ message: "Không tìm thấy khiếu nại." });
 
+        // Cập nhật trạng thái khiếu nại
         complaint.status = status;
         complaint.admin_response = admin_response || (status === 'resolved' ? "Chấp thuận" : "Từ chối");
         complaint.resolved_by = adminId;
         await complaint.save();
 
+        // Cập nhật trạng thái đơn hàng & Gửi thông báo
         const order = await Order.findById(complaint.order_id);
         if (order) {
             order.complaint.status = status;
             order.complaint.admin_response = complaint.admin_response;
             order.complaint.resolved_at = new Date();
 
+            let notiMessageUser = "";
+            let notiMessagePhoto = "";
+            let notiTitle = "Kết quả xử lý khiếu nại";
+
             if (status === 'resolved') {
-                // Khiếu nại thành công -> Chờ hoàn tiền
+                // Khiếu nại thành công (Khách thắng)
                 order.status = 'refund_pending'; 
                 order.status_history.push({
                     status: 'refund_pending',
                     note: `Khiếu nại thành công: ${complaint.admin_response}`,
                     changed_by: adminId
                 });
+                notiMessageUser = `Khiếu nại cho đơn #${order.order_id} đã được CHẤP THUẬN. Chúng tôi sẽ tiến hành hoàn tiền/xử lý.`;
+                notiMessagePhoto = `Khiếu nại đơn #${order.order_id} đã được CHẤP THUẬN (Khách thắng). Vui lòng liên hệ Admin để biết thêm chi tiết.`;
             } else {
-                // Khiếu nại thất bại -> Hoàn thành đơn
+                // Khiếu nại thất bại (Khách thua)
                 order.status = 'completed';
                 order.status_history.push({
                     status: 'completed',
                     note: `Khiếu nại bị từ chối: ${complaint.admin_response}`,
                     changed_by: adminId
                 });
+                notiMessageUser = `Khiếu nại cho đơn #${order.order_id} đã bị TỪ CHỐI. Lý do: ${complaint.admin_response}`;
+                notiMessagePhoto = `Khiếu nại đơn #${order.order_id} đã bị TỪ CHỐI (Bạn thắng). Đơn hàng được đánh dấu hoàn thành.`;
             }
             await order.save();
+
+            // ✅ 1. THÔNG BÁO KẾT QUẢ CHO KHÁCH HÀNG
+            await createNotification({
+                userId: order.customer_id,
+                title: notiTitle,
+                message: notiMessageUser,
+                type: "COMPLAINT",
+                link: `/my-orders`
+            });
+
+            // ✅ 2. THÔNG BÁO KẾT QUẢ CHO NHIẾP ẢNH GIA
+            if (order.photographer_id) {
+                await createNotification({
+                    userId: order.photographer_id,
+                    title: notiTitle,
+                    message: notiMessagePhoto,
+                    type: "COMPLAINT",
+                    link: `/photographer/orders-manage`
+                });
+            }
         }
 
         res.json({
             success: true,
-            message: "Đã xử lý khiếu nại.",
+            message: "Đã xử lý khiếu nại thành công.",
             data: complaint
         });
 
     } catch (error) {
         console.error("Process complaint error:", error);
-        res.status(500).json({ message: "Lỗi server." });
+        res.status(500).json({ message: "Lỗi server khi xử lý khiếu nại." });
     }
 };
 
@@ -151,7 +213,7 @@ export const getAllComplaints = async (req, res) => {
       .populate({
           path: "photographer_id",
           select: "HoTen", 
-          model: "bangKhachHang", // 👈 ĐÃ SỬA: Trỏ về bangKhachHang
+          model: "bangKhachHang", 
           strictPopulate: false 
       })
       .sort({ createdAt: -1 });

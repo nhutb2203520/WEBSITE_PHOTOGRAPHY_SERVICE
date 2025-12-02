@@ -2,7 +2,11 @@ import albumService from "../services/album.service.js";
 import Album from "../models/album.model.js";
 import Order from "../models/order.model.js";
 import mongoose from "mongoose";
-import crypto from "crypto"; // Thư viện có sẵn của Node.js
+import crypto from "crypto"; 
+
+// ✅ IMPORT HỆ THỐNG THÔNG BÁO
+import { createNotification } from "./notification.controller.js"; // Cho Khách/Thợ
+import { notifyAllAdmins } from "./notificationAdmin.controller.js"; // Cho Admin
 
 // Helper check ID
 const isMongoId = (id) => mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
@@ -44,7 +48,7 @@ export const getMyAlbums = async (req, res) => {
     }
 };
 
-// 3. Upload ảnh
+// 3. Upload ảnh (GIAO ẢNH GỐC)
 export const uploadPhotos = async (req, res) => {
     try {
         const { id } = req.params;
@@ -77,7 +81,19 @@ export const uploadPhotos = async (req, res) => {
             album.photos.push(...newPhotos);
             if (title) album.title = title;
             if (description) album.description = description;
+            album.status = 'sent_to_customer'; // Cập nhật trạng thái
             await album.save();
+        }
+
+        // 🔔 THÔNG BÁO CHO KHÁCH HÀNG: Đã có ảnh gốc
+        if (album.customer_id) {
+            await createNotification({
+                userId: album.customer_id,
+                title: "📸 Ảnh gốc đã sẵn sàng!",
+                message: `Nhiếp ảnh gia đã tải lên ảnh gốc cho album "${album.title}". Vào chọn ảnh ngay nhé!`,
+                type: "ALBUM",
+                link: `/albums/detail/${album.order_id || album._id}`
+            });
         }
 
         res.json({ success: true, message: "Upload thành công", data: album });
@@ -92,7 +108,6 @@ export const getAlbum = async (req, res) => {
     try {
         const { id } = req.params;
         let album = null;
-
         if (isMongoId(id)) {
             album = await Album.findById(id);
             if (!album) album = await Album.findOne({ order_id: id });
@@ -102,7 +117,6 @@ export const getAlbum = async (req, res) => {
             const order = await Order.findOne(orderQuery);
             if (order) album = await Album.findOne({ order_id: order._id });
         }
-
         if (!album) return res.json({ success: true, data: null, message: "Chưa có album" });
         res.json({ success: true, data: album });
     } catch (error) {
@@ -110,6 +124,7 @@ export const getAlbum = async (req, res) => {
     }
 };
 
+// 5. Khách chọn ảnh
 export const selectPhotos = async (req, res) => {
     try {
         const result = await albumService.submitSelection(req.params.id, req.body.selectedIds);
@@ -119,6 +134,7 @@ export const selectPhotos = async (req, res) => {
     }
 };
 
+// 6. Xóa ảnh
 export const deletePhoto = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
@@ -129,6 +145,7 @@ export const deletePhoto = async (req, res) => {
     }
 };
 
+// 7. Cập nhật thông tin Album
 export const updateAlbumInfo = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
@@ -139,6 +156,7 @@ export const updateAlbumInfo = async (req, res) => {
     }
 };
 
+// 8. Xóa Album
 export const deleteAlbum = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
@@ -149,17 +167,11 @@ export const deleteAlbum = async (req, res) => {
     }
 };
 
-// ---------------------------------------------------------
-// ✅ TÍNH NĂNG CHIA SẺ (SHARE)
-// ---------------------------------------------------------
-
-// 9. Tạo link chia sẻ (Dành cho User đã đăng nhập)
+// 9. Tạo link chia sẻ
 export const createShareLink = async (req, res) => {
     try {
-        const { id } = req.params; // Album ID hoặc Order ID
+        const { id } = req.params; 
         const userId = req.user.id || req.user._id;
-
-        // Tìm album
         let album = null;
         if (isMongoId(id)) {
             album = await Album.findById(id);
@@ -168,27 +180,18 @@ export const createShareLink = async (req, res) => {
             const order = await Order.findOne({ order_id: id });
             if (order) album = await Album.findOne({ order_id: order._id });
         }
-
         if (!album) return res.status(404).json({ message: "Không tìm thấy album" });
-
-        // Kiểm tra quyền: Phải là Chủ (Photographer) HOẶC Khách hàng của đơn
         const isOwner = album.photographer_id.toString() === userId;
         const isCustomer = album.customer_id && album.customer_id.toString() === userId;
-
         if (!isOwner && !isCustomer) {
             return res.status(403).json({ message: "Bạn không có quyền chia sẻ album này" });
         }
-
-        // Nếu chưa có token thì tạo mới
         if (!album.share_token) {
             album.share_token = crypto.randomBytes(16).toString('hex');
             await album.save();
         }
-
-        // Trả về link frontend
         const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
         const shareLink = `${clientUrl}/share/${album.share_token}`;
-
         res.json({ success: true, shareLink, shareToken: album.share_token });
     } catch (error) {
         console.error(error);
@@ -196,46 +199,28 @@ export const createShareLink = async (req, res) => {
     }
 };
 
-/// 10. Lấy Album công khai bằng Token (KHÔNG CẦN LOGIN)
+// 10. Lấy Album công khai
 export const getPublicAlbum = async (req, res) => {
     try {
         const { token } = req.params;
-        console.log("🔍 Public Access Token:", token);
-
-        // Tìm album bằng token
         const album = await Album.findOne({ share_token: token })
-            .populate({
-                path: 'photographer_id',
-                select: 'HoTen Avatar',
-                model: 'bangKhachHang' // <--- THÊM DÒNG NÀY (Chỉ định rõ model User)
-            })
+            .populate({ path: 'photographer_id', select: 'HoTen Avatar', model: 'bangKhachHang' })
             .select('-__v');
-
-        if (!album) {
-            console.log("❌ Không tìm thấy album với token này.");
-            return res.status(404).json({ message: "Link chia sẻ không hợp lệ hoặc đã hết hạn" });
-        }
-
-        console.log("✅ Đã tìm thấy album public:", album.title);
+        if (!album) return res.status(404).json({ message: "Link chia sẻ không hợp lệ" });
         res.json({ success: true, data: album });
     } catch (error) {
-        console.error("❌ Lỗi getPublicAlbum:", error); // Log lỗi chi tiết ra terminal để debug
         res.status(500).json({ message: "Lỗi server: " + error.message });
     }
 };
-// 11. [MỚI] Khách vãng lai gửi lựa chọn ảnh (Qua Token)
+
+// 11. Submit lựa chọn công khai
 export const submitPublicSelection = async (req, res) => {
     try {
         const { token } = req.params;
-        const { selectedIds } = req.body; // Mảng chứa _id các ảnh được chọn
-
+        const { selectedIds } = req.body; 
         const album = await Album.findOne({ share_token: token });
         if (!album) return res.status(404).json({ message: "Link chia sẻ không hợp lệ" });
-
-        // Reset lựa chọn cũ (nếu muốn ghi đè)
         album.photos.forEach(photo => photo.is_selected = false);
-        
-        // Cập nhật ảnh được chọn
         let count = 0;
         album.photos.forEach(photo => {
             if (selectedIds.includes(photo._id.toString())) {
@@ -243,18 +228,17 @@ export const submitPublicSelection = async (req, res) => {
                 count++;
             }
         });
-
-        // Cập nhật trạng thái album để Thợ biết khách đã chọn xong
         album.status = 'selection_completed'; 
         await album.save();
-
         res.json({ success: true, message: `Đã gửi ${count} ảnh thành công!` });
     } catch (error) {
-        console.error("Lỗi submit public:", error);
         res.status(500).json({ message: "Lỗi server khi gửi lựa chọn" });
     }
 };
-// [NEW] Giao Album (Upload ảnh đã chỉnh + Cập nhật trạng thái Order)
+
+// =========================================================
+// [NEW] Giao Album (Upload ảnh đã chỉnh + Thông báo)
+// =========================================================
 export const deliverAlbum = async (req, res) => {
     try {
         const { id } = req.params; // Album ID hoặc Order ID
@@ -288,11 +272,32 @@ export const deliverAlbum = async (req, res) => {
         album.status = 'finalized'; // Đánh dấu album đã hoàn tất
         await album.save();
 
-        // 4. Cập nhật trạng thái đơn hàng sang 'delivered' (nếu có liên kết đơn hàng)
+        let order = null;
+        // 4. Cập nhật trạng thái đơn hàng sang 'delivered'
         if (album.order_id) {
-            await Order.findByIdAndUpdate(album.order_id, { 
+            order = await Order.findByIdAndUpdate(album.order_id, { 
                 status: 'delivered',
-                // Có thể thêm log status_history nếu cần
+            }, { new: true });
+        }
+
+        // 🔔 THÔNG BÁO CHO KHÁCH HÀNG: Ảnh đã xong
+        if (album.customer_id) {
+            await createNotification({
+                userId: album.customer_id,
+                title: "✨ Album ảnh hoàn chỉnh đã có!",
+                message: `Nhiếp ảnh gia đã giao ảnh chỉnh sửa cho album "${album.title}". Bạn có thể xem và tải về ngay.`,
+                type: "ALBUM",
+                link: `/albums/detail/${album.order_id || album._id}`
+            });
+        }
+
+        // ✅ [MỚI] THÔNG BÁO CHO TẤT CẢ ADMIN: Đơn hoàn thành -> Quyết toán
+        if (order) {
+            await notifyAllAdmins({
+                title: "✅ Đơn hàng đã hoàn thành",
+                message: `Photographer đã giao ảnh cho đơn #${order.order_id}. Vui lòng kiểm tra và quyết toán tiền.`,
+                type: "ORDER",
+                link: "/admin/payment-manage" // Link tới trang thanh toán để Admin trả lương thợ
             });
         }
 
@@ -301,4 +306,19 @@ export const deliverAlbum = async (req, res) => {
         console.error("Deliver Error:", error);
         res.status(500).json({ message: error.message });
     }
+};
+
+export default {
+    createFreelanceAlbum,
+    getMyAlbums,
+    uploadPhotos,
+    getAlbum,
+    selectPhotos,
+    deletePhoto,
+    updateAlbumInfo,
+    deleteAlbum,
+    createShareLink,
+    getPublicAlbum,
+    submitPublicSelection,
+    deliverAlbum
 };
