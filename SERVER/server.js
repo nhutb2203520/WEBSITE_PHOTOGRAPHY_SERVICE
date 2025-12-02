@@ -6,7 +6,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import connectDB from "./src/config/mongoDb.js";
 
-// ✅ 1. BẮT LỖI TOÀN CỤC (QUAN TRỌNG)
+// ✅ 1. BẮT LỖI TOÀN CỤC
 process.on('uncaughtException', (err) => {
   console.error('🔥 LỖI NGHIÊM TRỌNG (Uncaught Exception):', err);
 });
@@ -32,14 +32,14 @@ import scheduleRoutes from "./src/routes/schedule.route.js";
 import albumRoute from "./src/routes/album.route.js";
 import complaintRoute from "./src/routes/complaint.route.js";
 import reviewRoutes from "./src/routes/review.route.js";
+import notificationRoute from "./src/routes/notification.route.js";
+import notificationAdminRoute from "./src/routes/notificationAdmin.route.js";
+
+// ✅ [MỚI] Import Route Thống kê trang chủ
+import homeRoute from "./src/routes/home.route.js";
+
 import khachHangController from "./src/controllers/khachhang.controller.js";
 import { verifyTokenUser } from "./src/middlewares/verifyToken.js";
-
-// ✅ [MỚI] Route Thông báo cho Khách/Thợ
-import notificationRoute from "./src/routes/notification.route.js";
-
-// ✅ [MỚI] Route Thông báo cho Admin
-import notificationAdminRoute from "./src/routes/notificationAdmin.route.js";
 
 dotenv.config();
 
@@ -94,11 +94,13 @@ app.use("/api/complaints", complaintRoute);
 // 6. Direct Controller Routes
 app.get("/api/my-profile", verifyTokenUser, khachHangController.getMyAccount);
 
-// 7. ✅ Route Thông báo (User)
+// 7. Route Thông báo
 app.use("/api/notifications", notificationRoute);
-
-// 8. ✅ Route Thông báo (Admin) - QUAN TRỌNG: Đây là dòng bạn bị thiếu
 app.use("/api/admin/notifications", notificationAdminRoute);
+
+// 8. ✅ [MỚI] Route Public (Thống kê trang chủ)
+// API: http://localhost:5000/api/public/stats
+app.use("/api/public", homeRoute);
 
 // ============ ERROR HANDLERS ============
 app.use((req, res) => {
