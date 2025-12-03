@@ -35,7 +35,7 @@ const routes = [
     path: '/notifications',
     component: lazy(() => import('../components/Notification/NotificationPage'))
   },
-  // ✅ [MỚI] Trang yêu thích (Đặt trong components/Favorites)
+  // ✅ Trang yêu thích
   {
     path: '/favorites',
     component: lazy(() => import('../components/Favorites/FavoritesPage'))
@@ -99,6 +99,11 @@ const routes = [
   {
     path: '/my-orders',
     component: lazy(() => import('../components/Order/MyOrder'))
+  },
+  // ✅ [MỚI] Chi tiết đơn hàng (xử lý link: orders/ORD-xxxx)
+  {
+    path: '/orders/:orderId',
+    component: lazy(() => import('../components/Order/MyOrderDetail')) 
   },
 
   // =================================================================

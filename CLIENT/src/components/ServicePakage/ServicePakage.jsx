@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Star, Heart, Camera, AlertTriangle, MapPin, Search, Filter } from 'lucide-react';
+// ✅ ĐÃ BỔ SUNG "Search" VÀO DÒNG IMPORT DƯỚI ĐÂY
+import { Star, Heart, Camera, AlertTriangle, MapPin, Filter, Search } from 'lucide-react';
 import './ServicePackage.css';
 
 // ✅ Import Layout & Redux
@@ -149,15 +150,19 @@ export default function ServicePackage() {
 
             <div className="sp-filters">
               <div className="filter-group search-group">
-                
+                {/* ✅ Search Icon đã được import ở trên */}
+              
+              
                 <input type="text" placeholder="Tìm tên gói..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <div className="filter-group location-group">
-                
+            
+            
                 <input type="text" placeholder="Tỉnh/Thành phố..." value={location} onChange={e => setLocation(e.target.value)} />
               </div>
               <div className="filter-group select-group">
-                <Filter size={18} />
+               
+               
                 <select value={loaiGoi} onChange={e => setLoaiGoi(e.target.value)}>
                   <option value="">Tất cả thể loại</option>
                   <option value="Wedding">Tiệc Cưới</option>
@@ -192,12 +197,12 @@ export default function ServicePackage() {
                        <div className="sp-thumb">
                           <SafeImage src={pkg.AnhBia} alt={pkg.TenGoi} className="sp-img"/>
                           
-                          {/* ✅ BUTTON LIKE: Style chuẩn mẫu */}
                           <button className="sp-like-btn" onClick={(e) => toggleFavorite(e, pkg._id)}>
                              <Heart 
                                 size={20} 
-                                fill={isLiked ? "#ef4444" : "none"}   // Đỏ nếu like, rỗng nếu chưa
-                                color={isLiked ? "#ef4444" : "#ffffff"} // Viền đỏ nếu like, VIỀN TRẮNG nếu chưa
+                                fill={isLiked ? "#ef4444" : "none"}      
+                                color={isLiked ? "#ef4444" : "#4b5563"} 
+                                strokeWidth={2.5} 
                              />
                           </button>
 

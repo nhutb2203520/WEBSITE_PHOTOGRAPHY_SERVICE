@@ -2,13 +2,16 @@ import Complaint from "../models/complaint.model.js";
 import Order from "../models/order.model.js"; 
 import "../models/khachhang.model.js"; 
 import "../models/servicePackage.model.js"; 
+import Album from "../models/album.model.js"; // ✅ Import Model Album để lấy thông tin ảnh
 import fs from "fs";
 
-// ✅ Import 2 hệ thống thông báo
+// ✅ Import hệ thống thông báo
 import { notifyAllAdmins } from "./notificationAdmin.controller.js"; // Báo cho Admin
 import { createNotification } from "./notification.controller.js";      // Báo cho Khách/Thợ
 
-// [POST] Khách hàng tạo khiếu nại
+// ==============================================================================
+// 1. [POST] KHÁCH HÀNG TẠO KHIẾU NẠI
+// ==============================================================================
 export const createComplaint = async (req, res) => {
   try {
     const { order_id, reason } = req.body;
@@ -18,14 +21,16 @@ export const createComplaint = async (req, res) => {
     const order = await Order.findById(order_id);
     if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng." });
 
-    // 2. Check quyền sở hữu
+    // 2. Check quyền sở hữu (Chỉ khách hàng của đơn này mới được khiếu nại)
     if (order.customer_id.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Không có quyền khiếu nại đơn này." });
     }
 
-    // 3. Check trùng
+    // 3. Check trùng (Mỗi đơn chỉ 1 khiếu nại đang xử lý)
     const existingComplaint = await Complaint.findOne({ order_id });
-    if (existingComplaint) return res.status(400).json({ message: "Đơn hàng này đã có khiếu nại." });
+    if (existingComplaint && existingComplaint.status === 'pending') {
+        return res.status(400).json({ message: "Đơn hàng này đang có khiếu nại chờ xử lý." });
+    }
 
     // 4. Xử lý upload ảnh bằng chứng
     let imagePaths = [];
@@ -33,11 +38,11 @@ export const createComplaint = async (req, res) => {
       imagePaths = req.files.map(file => `/uploads/complaints/${file.filename}`);
     }
 
-    // 5. Tạo khiếu nại
+    // 5. Tạo khiếu nại mới
     const newComplaint = new Complaint({
       order_id,
       customer_id: userId,
-      photographer_id: order.photographer_id,
+      photographer_id: order.photographer_id, // Lưu lại thợ để dễ truy vấn
       reason,
       images: imagePaths,
       status: 'pending'
@@ -45,7 +50,7 @@ export const createComplaint = async (req, res) => {
 
     await newComplaint.save();
 
-    // 6. Update Order Status
+    // 6. Cập nhật trạng thái đơn hàng sang 'complaint'
     order.status = 'complaint';
     if (!order.complaint) order.complaint = {};
     order.complaint.is_complained = true;
@@ -54,7 +59,9 @@ export const createComplaint = async (req, res) => {
     order.complaint.created_at = new Date();
     await order.save();
 
-    // ✅ 1. THÔNG BÁO CHO TẤT CẢ ADMIN
+    // --- GỬI THÔNG BÁO ---
+
+    // A. Thông báo cho Admin
     await notifyAllAdmins({
         title: "⚠️ Có khiếu nại mới!",
         message: `Đơn hàng #${order.order_id} bị khiếu nại: "${reason}". Vui lòng kiểm tra và xử lý.`,
@@ -62,7 +69,7 @@ export const createComplaint = async (req, res) => {
         link: "/admin/complaint-manage"
     });
 
-    // ✅ 2. THÔNG BÁO CHO KHÁCH HÀNG (Xác nhận đã gửi)
+    // B. Thông báo cho Khách hàng (Xác nhận)
     await createNotification({
         userId: userId,
         title: "Đã gửi khiếu nại thành công",
@@ -71,7 +78,7 @@ export const createComplaint = async (req, res) => {
         link: "/my-orders"
     });
 
-    // ✅ 3. THÔNG BÁO CHO NHIẾP ẢNH GIA (Cảnh báo)
+    // C. Thông báo cho Nhiếp ảnh gia (Cảnh báo)
     if (order.photographer_id) {
         await createNotification({
             userId: order.photographer_id,
@@ -94,7 +101,9 @@ export const createComplaint = async (req, res) => {
   }
 };
 
-// [PUT] ADMIN Xử lý khiếu nại
+// ==============================================================================
+// 2. [PUT] ADMIN XỬ LÝ KHIẾU NẠI (DUYỆT HOẶC TỪ CHỐI)
+// ==============================================================================
 export const processComplaint = async (req, res) => {
     try {
         const { id } = req.params;
@@ -102,19 +111,19 @@ export const processComplaint = async (req, res) => {
         const adminId = req.user._id || req.user.id;
 
         if (!['resolved', 'rejected'].includes(status)) {
-            return res.status(400).json({ message: "Trạng thái không hợp lệ." });
+            return res.status(400).json({ message: "Trạng thái xử lý không hợp lệ." });
         }
 
         const complaint = await Complaint.findById(id);
         if (!complaint) return res.status(404).json({ message: "Không tìm thấy khiếu nại." });
 
-        // Cập nhật trạng thái khiếu nại
+        // Cập nhật thông tin xử lý vào Complaint
         complaint.status = status;
         complaint.admin_response = admin_response || (status === 'resolved' ? "Chấp thuận" : "Từ chối");
         complaint.resolved_by = adminId;
         await complaint.save();
 
-        // Cập nhật trạng thái đơn hàng & Gửi thông báo
+        // Cập nhật trạng thái Đơn hàng & Gửi thông báo kết quả
         const order = await Order.findById(complaint.order_id);
         if (order) {
             order.complaint.status = status;
@@ -126,29 +135,33 @@ export const processComplaint = async (req, res) => {
             let notiTitle = "Kết quả xử lý khiếu nại";
 
             if (status === 'resolved') {
-                // Khiếu nại thành công (Khách thắng)
+                // TRƯỜNG HỢP 1: ADMIN CHẤP THUẬN (KHÁCH THẮNG)
+                // Chuyển đơn hàng sang trạng thái chờ hoàn tiền
                 order.status = 'refund_pending'; 
                 order.status_history.push({
                     status: 'refund_pending',
                     note: `Khiếu nại thành công: ${complaint.admin_response}`,
                     changed_by: adminId
                 });
-                notiMessageUser = `Khiếu nại cho đơn #${order.order_id} đã được CHẤP THUẬN. Chúng tôi sẽ tiến hành hoàn tiền/xử lý.`;
-                notiMessagePhoto = `Khiếu nại đơn #${order.order_id} đã được CHẤP THUẬN (Khách thắng). Vui lòng liên hệ Admin để biết thêm chi tiết.`;
+                
+                notiMessageUser = `Khiếu nại cho đơn #${order.order_id} đã được CHẤP THUẬN. Chúng tôi sẽ tiến hành hoàn tiền/xử lý theo quy định.`;
+                notiMessagePhoto = `Khiếu nại đơn #${order.order_id} đã được CHẤP THUẬN (Lỗi thuộc về thợ/dịch vụ). Vui lòng liên hệ Admin để giải quyết.`;
             } else {
-                // Khiếu nại thất bại (Khách thua)
+                // TRƯỜNG HỢP 2: ADMIN TỪ CHỐI (KHÁCH THUA)
+                // Đơn hàng coi như hoàn thành (vì khách đã nhận ảnh nhưng khiếu nại không hợp lý)
                 order.status = 'completed';
                 order.status_history.push({
                     status: 'completed',
                     note: `Khiếu nại bị từ chối: ${complaint.admin_response}`,
                     changed_by: adminId
                 });
-                notiMessageUser = `Khiếu nại cho đơn #${order.order_id} đã bị TỪ CHỐI. Lý do: ${complaint.admin_response}`;
-                notiMessagePhoto = `Khiếu nại đơn #${order.order_id} đã bị TỪ CHỐI (Bạn thắng). Đơn hàng được đánh dấu hoàn thành.`;
+
+                notiMessageUser = `Khiếu nại cho đơn #${order.order_id} đã bị TỪ CHỐI. Lý do: ${complaint.admin_response}. Đơn hàng được đóng lại.`;
+                notiMessagePhoto = `Khiếu nại đơn #${order.order_id} đã bị TỪ CHỐI (Bạn không có lỗi). Đơn hàng đã được đánh dấu hoàn thành.`;
             }
             await order.save();
 
-            // ✅ 1. THÔNG BÁO KẾT QUẢ CHO KHÁCH HÀNG
+            // Gửi thông báo kết quả
             await createNotification({
                 userId: order.customer_id,
                 title: notiTitle,
@@ -157,7 +170,6 @@ export const processComplaint = async (req, res) => {
                 link: `/my-orders`
             });
 
-            // ✅ 2. THÔNG BÁO KẾT QUẢ CHO NHIẾP ẢNH GIA
             if (order.photographer_id) {
                 await createNotification({
                     userId: order.photographer_id,
@@ -181,7 +193,9 @@ export const processComplaint = async (req, res) => {
     }
 };
 
-// [GET] Lấy danh sách khiếu nại của User
+// ==============================================================================
+// 3. [GET] LẤY DANH SÁCH KHIẾU NẠI CỦA KHÁCH HÀNG (MY COMPLAINTS)
+// ==============================================================================
 export const getMyComplaints = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
@@ -195,30 +209,51 @@ export const getMyComplaints = async (req, res) => {
   }
 };
 
-// [GET] ADMIN: Lấy TẤT CẢ khiếu nại
+// ==============================================================================
+// 4. [GET] ADMIN: LẤY TẤT CẢ KHIẾU NẠI (KÈM THÔNG TIN ALBUM)
+// ==============================================================================
 export const getAllComplaints = async (req, res) => {
   try {
+    // 1. Lấy danh sách khiếu nại cơ bản và populate các thông tin liên quan
     const complaints = await Complaint.find()
       .populate({
           path: "customer_id",
           select: "HoTen Email SoDienThoai Avatar",
-          // ❌ Xóa dòng: model: "bangKhachHang" (để tự nhận diện theo ref)
       })
       .populate({
           path: "order_id",
-          select: "order_id final_amount booking_date package_name",
-          // ❌ Xóa dòng: model: "Orders" (đây là nguyên nhân chính gây lỗi)
+          select: "order_id final_amount booking_date package_name", // Lấy các trường cần thiết của đơn hàng
       })
       .populate({
           path: "photographer_id",
           select: "HoTen", 
           strictPopulate: false 
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Dùng lean() để trả về Plain Object, giúp ta có thể gán thêm thuộc tính 'album_info'
 
-    res.json({ success: true, data: complaints });
+    // 2. Lấy thêm thông tin Album cho từng khiếu nại
+    // Giúp Admin xem được ảnh thợ đã giao (số lượng, link xem) để đánh giá khách quan
+    const dataWithAlbum = await Promise.all(complaints.map(async (c) => {
+        if (c.order_id) {
+            // Tìm Album theo order_id (Lưu ý: trong model Order, _id là khóa chính)
+            const album = await Album.findOne({ order_id: c.order_id._id })
+                                     .select('status photos edited_photos share_token title createdAt');
+            c.album_info = album; 
+        }
+        return c;
+    }));
+
+    res.json({ success: true, data: dataWithAlbum });
   } catch (error) {
     console.error("Get All Complaints Error:", error);
     res.status(500).json({ message: "Lỗi lấy danh sách khiếu nại.", error: error.message });
   }
+};
+
+export default {
+    createComplaint,
+    processComplaint,
+    getMyComplaints,
+    getAllComplaints
 };

@@ -14,8 +14,6 @@ import './MyOrder.css';
 // ✅ Import MainLayout
 import MainLayout from '../../layouts/MainLayout/MainLayout';
 
-// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
-
 export default function MyOrder() {
   const navigate = useNavigate();
   const { user } = useSelector(state => state.user || {});
@@ -29,7 +27,6 @@ export default function MyOrder() {
   
   // --- STATE QUẢN LÝ MODAL ---
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -82,6 +79,9 @@ export default function MyOrder() {
     if (statusFilter !== 'all') {
         if (statusFilter === 'processing_group') {
             filtered = filtered.filter(o => ['in_progress', 'processing', 'delivered'].includes(o.status));
+        } else if (statusFilter === 'cancelled') {
+            // ✅ Gộp cả refund_pending vào tab Đã hủy để hiển thị thống nhất
+            filtered = filtered.filter(o => ['cancelled', 'refund_pending'].includes(o.status));
         } else {
             filtered = filtered.filter(order => order.status === statusFilter);
         }
@@ -109,8 +109,11 @@ export default function MyOrder() {
         case 'waiting_final_payment': 
         case 'final_payment_pending': return { label: 'Chờ thanh toán', icon: <Hourglass size={16}/>, className: 'status-payment' };
         case 'completed': return { label: 'Hoàn thành', icon: <Star size={16}/>, className: 'status-completed' };
-        case 'cancelled': return { label: 'Đã hủy', icon: <XCircle size={16}/>, className: 'status-cancelled' };
-        case 'refund_pending': return { label: 'Chờ hoàn tiền', icon: <RefreshCcw size={16}/>, className: 'status-refund' };
+        
+        // ✅ Cập nhật: refund_pending hiển thị label là "Đã hủy" giống cancelled
+        case 'cancelled': 
+        case 'refund_pending': return { label: 'Đã hủy', icon: <XCircle size={16}/>, className: 'status-cancelled' };
+        
         case 'complaint': return { label: 'Đang khiếu nại', icon: <AlertTriangle size={16}/>, className: 'status-cancelled' };
         default: return { label: status, icon: <HelpCircle size={16}/>, className: 'status-default' };
     }
@@ -129,7 +132,6 @@ export default function MyOrder() {
   const handleOpenCancel = (order) => {
     setSelectedOrder(order);
     setShowCancelModal(true);
-    setShowDetailModal(false);
   };
 
   const handleCancelOrder = async () => {
@@ -319,7 +321,7 @@ export default function MyOrder() {
         </div>
         <div className="order-card-footer">
           <div className="footer-top-actions">
-             <button className="btn-view-detail" onClick={() => { setSelectedOrder(order); setShowDetailModal(true); }}><Eye size={16}/> Chi tiết</button>
+             <button className="btn-view-detail" onClick={() => navigate(`/orders/${order.order_id}`)}><Eye size={16}/> Chi tiết</button>
              {showComplaintBtn && <button className="btn-link-danger" onClick={() => openComplaintModal(order)}><MessageSquareWarning size={16}/> Khiếu nại</button>}
           </div>
           <div className="action-buttons">
@@ -379,36 +381,8 @@ export default function MyOrder() {
         </div>
       </div>
 
-      {/* --- MODALS (Để ngoài container chính để tránh ảnh hưởng layout nhưng vẫn trong MainLayout context nếu cần, hoặc để ngoài cùng) --- */}
+      {/* --- MODALS --- */}
       
-      {/* Detail Modal */}
-      {showDetailModal && selectedOrder && (
-          <div className="modal-overlay" onClick={()=>setShowDetailModal(false)}>
-              <div className="modal-content" onClick={e=>e.stopPropagation()}>
-                  <div className="modal-header"><h2>Chi tiết đơn hàng #{selectedOrder.order_id}</h2><button onClick={()=>setShowDetailModal(false)}>×</button></div>
-                  <div className="modal-body">
-                      <p><strong>Dịch vụ:</strong> {selectedOrder.service_package_id?.TenGoi}</p>
-                      <p><strong>Thời gian:</strong> {selectedOrder.start_time} - {formatDate(selectedOrder.booking_date)}</p>
-                      <p><strong>Địa chỉ:</strong> {selectedOrder.location?.address}</p>
-                      <p><strong>Tổng tiền:</strong> {formatPrice(selectedOrder.final_amount)}</p>
-                      <p><strong>Trạng thái:</strong> {getStatusInfo(selectedOrder.status).label}</p>
-                  </div>
-                  <div className="modal-actions" style={{justifyContent: 'flex-end', marginTop: 20}}>
-                        {['pending_payment', 'pending', 'confirmed'].includes(selectedOrder.status) && (
-                            <button 
-                                className="btn-cancel-order" 
-                                style={{marginRight: 10, borderColor: '#dc2626', color: '#dc2626', background: 'white'}} 
-                                onClick={() => handleOpenCancel(selectedOrder)}
-                            >
-                                Hủy đơn hàng
-                            </button>
-                        )}
-                        <button className="btn-secondary" onClick={()=>setShowDetailModal(false)}>Đóng</button>
-                  </div>
-              </div>
-          </div>
-      )}
-
       {/* Cancel Modal */}
       {showCancelModal && selectedOrder && (
           <div className="modal-overlay" onClick={()=>setShowCancelModal(false)}>
