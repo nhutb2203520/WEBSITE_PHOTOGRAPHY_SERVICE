@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Star, Heart, Camera, CheckCircle2, ClipboardList, MapPin, Search, AlertTriangle } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Star, Heart, Camera, AlertTriangle, MapPin, Search, Filter } from 'lucide-react';
 import './ServicePackage.css';
 
-// ✅ Import MainLayout
+// ✅ Import Layout & Redux
 import MainLayout from '../../layouts/MainLayout/MainLayout';
-
-// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
-
 import { useSelector, useDispatch } from 'react-redux';
 import { getAllPackages } from '../../redux/Slices/servicepackageSlice';
 import Package from '../PhotographerPage/Package';
+import FavoriteService from '../../apis/FavoriteService'; 
 
-// ✅ Component hiển thị ảnh an toàn - Không gây lỗi ERR_NAME_NOT_RESOLVED
+// ✅ Component hiển thị ảnh an toàn
 const SafeImage = ({ src, alt, className, style, fallbackIcon = Camera, fallbackSize = 48 }) => {
   const [error, setError] = useState(false);
   const FallbackIcon = fallbackIcon;
   
+  const getSafeSrc = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    return `http://localhost:5000/${url.replace(/^\/+/, "")}`;
+  };
+
   if (!src || error) {
     return (
       <div 
@@ -24,11 +28,11 @@ const SafeImage = ({ src, alt, className, style, fallbackIcon = Camera, fallback
         style={{ 
           width: '100%', 
           height: '100%', 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'white',
+          color: '#6366f1',
           ...style
         }}
       >
@@ -39,7 +43,7 @@ const SafeImage = ({ src, alt, className, style, fallbackIcon = Camera, fallback
 
   return (
     <img 
-      src={src} 
+      src={getSafeSrc(src)} 
       alt={alt}
       className={className}
       style={style}
@@ -50,289 +54,206 @@ const SafeImage = ({ src, alt, className, style, fallbackIcon = Camera, fallback
 
 export default function ServicePackage() {
   const dispatch = useDispatch();
-  const [favorites, setFavorites] = useState([]);
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  
+  // State
+  const [favorites, setFavorites] = useState([]); 
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [location, setLocation] = useState(''); 
-  const [loaiGoi, setLoaiGoi] = useState('');
+  const [loaiGoi, setLoaiGoi] = useState(searchParams.get('type') || '');
   const [sortBy, setSortBy] = useState('');
 
   const { user } = useSelector(state => state.user);
   const { packages, loading } = useSelector(state => state.package);
   const isPhotographer = user?.isPhotographer;
 
+  // 1. Fetch Packages & Favorites
   useEffect(() => {
     dispatch(getAllPackages());
+
+    const fetchFavorites = async () => {
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            try {
+                const res = await FavoriteService.getMyFavorites();
+                if (res.success) setFavorites(res.data.allIds || []);
+            } catch (error) {
+                console.error("Lỗi tải danh sách yêu thích:", error);
+            }
+        }
+    };
+    fetchFavorites();
   }, [dispatch]);
 
-  const toggleFavorite = (id) => {
-    setFavorites(prev => 
-      prev.includes(id) 
-        ? prev.filter(f => f !== id) 
-        : [...prev, id]
-    );
+  // 2. Handle Like
+  const toggleFavorite = async (e, id) => {
+    e.preventDefault(); 
+    e.stopPropagation();
+
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        alert("Vui lòng đăng nhập để lưu yêu thích!");
+        return;
+    }
+
+    const isLiked = favorites.includes(id);
+    setFavorites(prev => isLiked ? prev.filter(f => f !== id) : [...prev, id]);
+
+    try {
+        await FavoriteService.toggleFavorite('package', id);
+    } catch (error) {
+        setFavorites(prev => isLiked ? [...prev, id] : prev.filter(f => f !== id));
+        alert("Lỗi kết nối, thử lại sau.");
+    }
   };
 
-  // ✅ FIX: Không dùng placeholder URL - Trả về chuỗi rỗng nếu không có ảnh
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return "";
-    if (imageUrl.startsWith("http")) return imageUrl;
-    return `http://localhost:5000/${imageUrl.replace(/^\/+/, "")}`;
-  };
-
-  const getPriceRange = (dichVu) => {
-    if (!dichVu || dichVu.length === 0) return { min: 0, max: 0 };
+  // 3. Helpers
+  const formatPrice = (dichVu) => {
+    if (!dichVu?.length) return "Liên hệ";
     const prices = dichVu.map(s => Number(s.Gia)).filter(p => p > 0);
-    if (prices.length === 0) return { min: 0, max: 0 };
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices)
-    };
+    if (!prices.length) return "Liên hệ";
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return min === max 
+      ? `${min.toLocaleString("vi-VN")} đ` 
+      : `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} đ`;
   };
 
-  const formatPriceRange = (dichVu) => {
-    const { min, max } = getPriceRange(dichVu);
-    if (min === 0 && max === 0) return "Liên hệ";
-    if (min === max) return `${min.toLocaleString("vi-VN")} đ`;
-    return `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")} đ`;
-  };
-
-  // Filter logic
+  // 4. Filter & Sort Logic
   let filtered = packages.filter(pkg => {
     const matchSearch = pkg.TenGoi?.toLowerCase().includes(search.toLowerCase()) ||
                         pkg.MoTa?.toLowerCase().includes(search.toLowerCase());
-    
     const matchLoaiGoi = !loaiGoi || pkg.LoaiGoi === loaiGoi;
-
-    const pkgLocation = [
-      pkg.baseLocation?.city, 
-      pkg.baseLocation?.district, 
-      pkg.baseLocation?.address
-    ].join(' ').toLowerCase();
-    
+    const pkgLocation = [pkg.baseLocation?.city, pkg.baseLocation?.district].join(' ').toLowerCase();
     const matchLocation = !location || pkgLocation.includes(location.toLowerCase());
-
     return matchSearch && matchLoaiGoi && matchLocation;
   });
 
-  // Sort logic
-  if (sortBy === 'rating') {
-    filtered.sort((a, b) => (b.DanhGia || 0) - (a.DanhGia || 0));
-  } else if (sortBy === 'popular') {
-    filtered.sort((a, b) => (b.SoLuongDaDat || 0) - (a.SoLuongDaDat || 0));
-  } else if (sortBy === 'newest') {
-    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  } else if (sortBy === 'priceAsc') {
-    filtered.sort((a, b) => getPriceRange(a.DichVu).min - getPriceRange(b.DichVu).min);
-  } else if (sortBy === 'priceDesc') {
-    filtered.sort((a, b) => getPriceRange(b.DichVu).min - getPriceRange(a.DichVu).min);
-  }
+  if (sortBy === 'rating') filtered.sort((a, b) => (b.DanhGia || 0) - (a.DanhGia || 0));
+  else if (sortBy === 'popular') filtered.sort((a, b) => (b.SoLuongDaDat || 0) - (a.SoLuongDaDat || 0));
+  else if (sortBy === 'newest') filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  else if (sortBy === 'priceAsc') filtered.sort((a, b) => (a.DichVu?.[0]?.Gia || 0) - (b.DichVu?.[0]?.Gia || 0));
 
-  const handleFilterChange = () => {
-    const filters = {};
-    if (loaiGoi) filters.loaiGoi = loaiGoi;
-    if (search) filters.search = search;
-    if (location) filters.location = location; 
-    dispatch(getAllPackages(filters));
-  };
-
-  useEffect(() => {
-    handleFilterChange();
-  }, [loaiGoi]); 
-
+  // --- RENDER ---
   return (
-    // ✅ Bọc toàn bộ nội dung trong MainLayout
     <MainLayout>
-      <div className="packages-page">
-        <section className="packages">
-          <div className="container">
-
-            <div className="section-header">
-              <h2>Gói Dịch Vụ Chụp Ảnh</h2>
-              <p>Khám phá các gói dịch vụ chất lượng từ các photographer chuyên nghiệp</p>
+      <div className="service-package-page">
+        <div className="container">
+          
+          {/* Header & Filter */}
+          <div className="sp-header">
+            <div className="sp-title">
+                <h1>Kho Gói Chụp Ảnh</h1>
+                <p>Khám phá hơn {packages.length} gói dịch vụ chất lượng</p>
             </div>
 
-            <div className="search-filter">
-              <div className="input-wrapper">
-                <Search size={18} className="input-icon" />
-                <input
-                  type="text"
-                  placeholder="Tìm tên gói, mô tả..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleFilterChange()}
-                />
+            <div className="sp-filters">
+              <div className="filter-group search-group">
+                <Search size={18} />
+                <input type="text" placeholder="Tìm tên gói..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-
-              <div className="input-wrapper">
-                <MapPin size={18} className="input-icon" />
-                <input
-                  type="text"
-                  placeholder="Tỉnh/Thành phố..."
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleFilterChange()}
-                />
+              <div className="filter-group location-group">
+                <MapPin size={18} />
+                <input type="text" placeholder="Tỉnh/Thành phố..." value={location} onChange={e => setLocation(e.target.value)} />
               </div>
-
-              <select value={loaiGoi} onChange={(e) => setLoaiGoi(e.target.value)}>
-                <option value="">Tất cả loại gói</option>
-                <option value="Wedding">Wedding (Cưới)</option>
-                <option value="Event">Event (Sự kiện)</option>
-                <option value="Family">Family (Gia đình)</option>
-                <option value="Portrait">Portrait (Chân dung)</option>
-                <option value="Product">Product (Sản phẩm)</option>
-                <option value="Fashion">Fashion (Thời trang)</option>
-                <option value="Other">Khác</option>
-              </select>
-
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="">Sắp xếp theo</option>
-                <option value="newest">Mới nhất</option>
-                <option value="rating">Đánh giá cao</option>
-                <option value="popular">Phổ biến nhất</option>
-                <option value="priceAsc">Giá: Thấp đến Cao</option>
-                <option value="priceDesc">Giá: Cao đến Thấp</option>
-              </select>
-
-              {user && (
-                <Link to="/my-orders" className="btn-my-orders">
-                  <ClipboardList size={20} />
-                  Đơn hàng của tôi
-                </Link>
-              )}
+              <div className="filter-group select-group">
+                <Filter size={18} />
+                <select value={loaiGoi} onChange={e => setLoaiGoi(e.target.value)}>
+                  <option value="">Tất cả thể loại</option>
+                  <option value="Wedding">Tiệc Cưới</option>
+                  <option value="Event">Sự kiện</option>
+                  <option value="Portrait">Chân dung</option>
+                  <option value="Product">Sản phẩm</option>
+                  <option value="Fashion">Thời trang</option>
+                  <option value="Other">Khác</option>
+                </select>
+              </div>
+              <div className="filter-group select-group">
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                  <option value="">Sắp xếp</option>
+                  <option value="newest">Mới nhất</option>
+                  <option value="rating">Đánh giá cao</option>
+                  <option value="popular">Phổ biến</option>
+                  <option value="priceAsc">Giá thấp - cao</option>
+                </select>
+              </div>
             </div>
-
-            {isPhotographer && (
-              <div className="photographer-section-wrapper">
-                <div className="section-divider">
-                  <h3>Quản lý gói dịch vụ của bạn</h3>
-                </div>
-                <Package />
-              </div>
-            )}
-
-            <div className="section-divider">
-              <h3>Tất cả gói dịch vụ</h3>
-            </div>
-
-            {loading && <div className="loading">Đang tải...</div>}
-
-            {!loading && filtered.length === 0 && (
-              <div className="no-packages">
-                <Camera size={48} color="#9ca3af" />
-                <p>Không tìm thấy gói dịch vụ nào phù hợp.</p>
-              </div>
-            )}
-
-            <div className="packages-grid">
-              {filtered.map(pkg => (
-                <div key={pkg._id} className="package-card">
-                  <div className="package-image">
-                    {/* ✅ Dùng SafeImage component - Không gây lỗi mạng */}
-                    <SafeImage 
-                      src={getImageUrl(pkg.AnhBia)} 
-                      alt={pkg.TenGoi}
-                    />
-                    <button
-                      className="favorite-btn"
-                      onClick={() => toggleFavorite(pkg._id)}
-                    >
-                      <Heart
-                        className={favorites.includes(pkg._id) ? 'favorited' : ''}
-                        fill={favorites.includes(pkg._id) ? '#ef4444' : 'none'}
-                        color={favorites.includes(pkg._id) ? '#ef4444' : '#ffffff'}
-                      />
-                    </button>
-                    <div className="package-badge">{pkg.LoaiGoi}</div>
-                  </div>
-
-                  <div className="package-content">
-                    <div className="package-header-row">
-                      <h3 className="package-name">{pkg.TenGoi}</h3>
-                      <div className="package-rating">
-                        <Star className="star-icon" fill="#fbbf24" color="#fbbf24" size={14} />
-                        <span>{(pkg.DanhGia || 0).toFixed(1)}</span>
-                        <span style={{ marginLeft: '4px', color: '#6b7280', fontSize: '0.85em' }}>
-                          ({pkg.SoLuotDanhGia || 0})
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="package-location-row">
-                      <MapPin size={14} />
-                      <span>{pkg.baseLocation?.city || pkg.baseLocation?.address || 'Toàn quốc'}</span>
-                    </div>
-
-                    <p className="package-description">{pkg.MoTa}</p>
-
-                    <div className="package-services-list">
-                      {pkg.DichVu?.slice(0, 3).map((s, idx) => (
-                        <span key={idx} className="service-tag">
-                          <CheckCircle2 size={10} /> {s.name}
-                        </span>
-                      ))}
-                      {pkg.DichVu?.length > 3 && (
-                        <span className="service-tag more">+{pkg.DichVu.length - 3} khác</span>
-                      )}
-                    </div>
-
-                    <div className="package-footer-info" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', flexWrap: 'wrap'}}>
-                      <span className="package-price">
-                        {formatPriceRange(pkg.DichVu)}
-                      </span>
-                      
-                      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px'}}>
-                        <span className="booking-count-text">
-                          <Camera size={14} style={{display: 'inline', marginRight: '4px'}}/>
-                          {pkg.SoLuongDaDat || 0} lượt đặt
-                        </span>
-
-                        <span 
-                          className="booking-count-text" 
-                          style={{ 
-                            color: pkg.SoLuongKhieuNai > 0 ? '#ef4444' : '#9ca3af',
-                            fontWeight: pkg.SoLuongKhieuNai > 0 ? '600' : '400',
-                            display: 'flex', alignItems: 'center', gap: '4px'
-                          }}
-                        >
-                           <AlertTriangle size={14} /> {pkg.SoLuongKhieuNai || 0} khiếu nại
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="card-divider"></div>
-
-                    {pkg.PhotographerId && (
-                      <div className="photographer-info">
-                        <div className="photographer-profile">
-                          {/* ✅ Dùng SafeImage cho avatar photographer */}
-                          <SafeImage 
-                            src={getImageUrl(pkg.PhotographerId.Avatar)} 
-                            alt={pkg.PhotographerId.HoTen}
-                            className="photographer-avatar"
-                            fallbackSize={20}
-                            style={{ 
-                              width: '30px', 
-                              height: '30px', 
-                              borderRadius: '50%',
-                              objectFit: 'cover'
-                            }}
-                          />
-                          <span className="photographer-name-text">{pkg.PhotographerId.HoTen}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <Link to={`/package/${pkg._id}`} className="btn-view">
-                      Xem chi tiết
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-
           </div>
-        </section>
+
+          {/* Package Grid */}
+          {loading ? (
+             <div className="sp-loading"><div className="spinner"></div><p>Đang tải dữ liệu...</p></div>
+          ) : (
+             <div className="sp-grid">
+                {filtered.length > 0 ? filtered.map(pkg => {
+                   const isLiked = favorites.includes(pkg._id);
+                   return (
+                    <Link to={`/package/${pkg._id}`} key={pkg._id} className="sp-card">
+                       <div className="sp-thumb">
+                          <SafeImage src={pkg.AnhBia} alt={pkg.TenGoi} className="sp-img"/>
+                          
+                          {/* ✅ BUTTON LIKE: Style chuẩn mẫu */}
+                          <button className="sp-like-btn" onClick={(e) => toggleFavorite(e, pkg._id)}>
+                             <Heart 
+                                size={20} 
+                                fill={isLiked ? "#ef4444" : "none"}   // Đỏ nếu like, rỗng nếu chưa
+                                color={isLiked ? "#ef4444" : "#ffffff"} // Viền đỏ nếu like, VIỀN TRẮNG nếu chưa
+                             />
+                          </button>
+
+                          <span className="sp-cat-badge">{pkg.LoaiGoi}</span>
+                          {(new Date() - new Date(pkg.createdAt) < 7*86400000) && <span className="sp-new-badge">Mới</span>}
+                       </div>
+
+                       <div className="sp-content">
+                          <div className="sp-author">
+                             <SafeImage 
+                                src={pkg.PhotographerId?.Avatar} 
+                                className="sp-avatar" 
+                                style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
+                             />
+                             <span>{pkg.PhotographerId?.HoTen || 'Nhiếp ảnh gia'}</span>
+                          </div>
+
+                          <h3 className="sp-name" title={pkg.TenGoi}>{pkg.TenGoi}</h3>
+
+                          <div className="sp-meta">
+                             <div className="sp-rating">
+                                <Star size={14} fill="#fbbf24" color="#fbbf24"/> 
+                                <b>{(pkg.DanhGia || 0).toFixed(1)}</b> <span>({pkg.SoLuotDanhGia || 0})</span>
+                             </div>
+                             <div className="sp-loc">
+                                <MapPin size={14} /> {pkg.baseLocation?.city || 'Toàn quốc'}
+                             </div>
+                          </div>
+                          
+                          <div className="sp-divider"></div>
+
+                          <div className="sp-footer">
+                             <div className="sp-price">{formatPrice(pkg.DichVu)}</div>
+                             <span className="sp-sold">{pkg.SoLuongDaDat > 0 ? `${pkg.SoLuongDaDat} đã đặt` : 'Chưa có lượt đặt'}</span>
+                          </div>
+
+                          {pkg.SoLuongKhieuNai > 0 && (
+                             <div className="sp-warning"><AlertTriangle size={12} /> {pkg.SoLuongKhieuNai} khiếu nại</div>
+                          )}
+                          <span className="btn-view">Xem chi tiết</span>
+                       </div>
+                    </Link>
+                   );
+                }) : (
+                   <div className="sp-empty"><Camera size={48} color="#9ca3af"/><p>Không tìm thấy gói dịch vụ nào.</p></div>
+                )}
+             </div>
+          )}
+
+          {isPhotographer && (
+            <div className="photographer-section-wrapper">
+              <div className="section-divider"><h3>Quản lý gói dịch vụ</h3></div>
+              <Package />
+            </div>
+          )}
+        </div>
       </div>
     </MainLayout>
   );
