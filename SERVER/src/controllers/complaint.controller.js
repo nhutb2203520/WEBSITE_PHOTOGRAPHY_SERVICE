@@ -198,22 +198,20 @@ export const getMyComplaints = async (req, res) => {
 // [GET] ADMIN: Lấy TẤT CẢ khiếu nại
 export const getAllComplaints = async (req, res) => {
   try {
-    // Populate sâu để lấy thông tin hiển thị trên bảng Admin
     const complaints = await Complaint.find()
       .populate({
           path: "customer_id",
           select: "HoTen Email SoDienThoai Avatar",
-          model: "bangKhachHang"
+          // ❌ Xóa dòng: model: "bangKhachHang" (để tự nhận diện theo ref)
       })
       .populate({
           path: "order_id",
           select: "order_id final_amount booking_date package_name",
-          model: "Orders"
+          // ❌ Xóa dòng: model: "Orders" (đây là nguyên nhân chính gây lỗi)
       })
       .populate({
           path: "photographer_id",
           select: "HoTen", 
-          model: "bangKhachHang", 
           strictPopulate: false 
       })
       .sort({ createdAt: -1 });

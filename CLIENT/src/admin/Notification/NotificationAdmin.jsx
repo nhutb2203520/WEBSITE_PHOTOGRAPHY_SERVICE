@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Bell, CheckCircle, Package, CreditCard, AlertTriangle, UserPlus, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 import notificationAdminApi from "../../apis/notificationAdminService";
-import SidebarAdmin from "../AdminPage/SidebarAdmin"; 
+import SidebarAdmin from "../AdminPage/SidebarAdmin";
+import HeaderAdmin from "../AdminPage/HeaderAdmin"; 
 import "./NotificationAdmin.css";
 
 const getIconByType = (type) => {
@@ -22,7 +23,6 @@ const NotificationAdmin = () => {
 
   const fetchNotifications = async () => {
     try {
-      // ✅ FIX 1: Dùng đúng key "adminToken"
       const token = sessionStorage.getItem("adminToken");
       if (!token) {
         setLoading(false);
@@ -30,9 +30,6 @@ const NotificationAdmin = () => {
       }
 
       const res = await notificationAdminApi.getMyNotifications();
-      
-      // ✅ FIX 2: Truy cập đúng cấp dữ liệu (res.data.data)
-      // Vì axiosInstance của Admin trả về full response object
       const notiList = res.data?.data || [];
       
       setNotifications(notiList);
@@ -45,7 +42,7 @@ const NotificationAdmin = () => {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000); // 15s cập nhật 1 lần
+    const interval = setInterval(fetchNotifications, 15000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -74,6 +71,9 @@ const NotificationAdmin = () => {
       <SidebarAdmin />
 
       <div className="admin-main-content">
+        {/* ✅ THÊM HEADER ADMIN TẠI ĐÂY */}
+        <HeaderAdmin /> 
+
         <div className="admin-noti-container">
           
           <div className="admin-noti-header">

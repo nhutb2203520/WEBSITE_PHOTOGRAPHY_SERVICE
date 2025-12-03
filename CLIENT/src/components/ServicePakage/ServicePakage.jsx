@@ -149,11 +149,11 @@ export default function ServicePackage() {
 
             <div className="sp-filters">
               <div className="filter-group search-group">
-                <Search size={18} />
+                
                 <input type="text" placeholder="Tìm tên gói..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <div className="filter-group location-group">
-                <MapPin size={18} />
+                
                 <input type="text" placeholder="Tỉnh/Thành phố..." value={location} onChange={e => setLocation(e.target.value)} />
               </div>
               <div className="filter-group select-group">

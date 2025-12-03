@@ -48,14 +48,19 @@ export default function HeaderAdmin() {
   return (
     <header className="admin-header">
       <div className="header-left">
-        <h1 className="header-title">Trang quản trị</h1>
+        {/* ✅ Cập nhật: Thêm onClick để quay về Dashboard */}
+        <h1 
+          className="header-title" 
+          onClick={() => navigate("/admin-page")} 
+          style={{ cursor: "pointer" }} 
+          title="Quay lại Dashboard"
+        >
+          Trang quản trị
+        </h1>
       </div>
 
       <div className="header-center">
-        <div className="search-box">
-          <span className="material-icons search-icon">search</span>
-          <input type="text" placeholder="Tìm kiếm..." />
-        </div>
+        {/* ✅ ĐÃ XÓA THANH TÌM KIẾM THEO YÊU CẦU */}
       </div>
 
       <div className="header-right">

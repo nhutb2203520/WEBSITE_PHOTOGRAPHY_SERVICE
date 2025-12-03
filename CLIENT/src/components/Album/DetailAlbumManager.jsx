@@ -147,18 +147,34 @@ export default function DetailAlbumManager() {
         } catch (error) { toast.error("Lỗi xóa album."); }
     };
 
-    // --- SHARE ---
+    // --- SHARE (ĐÃ CẬP NHẬT) ---
     const handleShare = async () => {
         if (!album) return toast.warning("Vui lòng tải ảnh lên trước khi chia sẻ.");
+        
         try {
+            console.log("Đang gọi API share..."); // Log kiểm tra
             const res = await albumApi.createShareLink(album._id);
-            if (res.data && res.data.shareLink) {
-                setShareLink(res.data.shareLink);
+            
+            console.log("Response share:", res); // Log xem server trả về gì
+
+            // ✅ FIX: Kiểm tra linh hoạt (xử lý cả trường hợp axios trả về full response hoặc chỉ data)
+            const data = res.data || res; 
+
+            if (data && data.shareLink) {
+                setShareLink(data.shareLink);
                 setShowShareModal(true);
                 setCopied(false);
+                toast.success("Đã tạo link chia sẻ!");
+            } else {
+                console.error("Cấu trúc response không đúng:", data);
+                toast.error("Server không trả về link chia sẻ.");
             }
-        } catch (error) { toast.error("Lỗi tạo link chia sẻ."); }
+        } catch (error) { 
+            console.error("Lỗi API Share:", error); // Log lỗi chi tiết
+            toast.error(error.response?.data?.message || "Lỗi tạo link chia sẻ."); 
+        }
     };
+    
     const copyToClipboard = () => { navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
     // --- [NEW] DELIVER ALBUM HANDLERS ---

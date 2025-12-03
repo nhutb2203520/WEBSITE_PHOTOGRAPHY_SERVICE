@@ -1,7 +1,11 @@
 import Orders from "../models/order.model.js";
 import ServicePackage from "../models/servicePackage.model.js"; 
+import Schedule from "../models/schedule.model.js"; 
 import crypto from "crypto";
 import axios from "axios"; 
+
+// ✅ IMPORT HÀM TẠO THÔNG BÁO TỪ CONTROLLER
+import { createNotification } from "../controllers/notification.controller.js";
 
 const generateOrderId = () => "ORD-" + crypto.randomBytes(4).toString("hex").toUpperCase();
 
@@ -142,7 +146,6 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
   }
 
   // 2. Admin xác nhận thanh toán đợt 2 (đủ tiền) -> Chuyển sang 'processing'
-  //    => Tự động tính Deadline giao hàng là 7 ngày sau
   if (status === 'processing') {
       order.payment_info.remaining_status = 'paid';
       order.payment_info.remaining_paid_at = new Date();
@@ -154,16 +157,11 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
       note = note || `Đã thanh toán đủ. Hạn chót giao ảnh: ${deadline.toLocaleDateString('vi-VN')}`;
   }
 
-  // 3. Photographer giao hàng (delivered) -> Cần có link sản phẩm
+  // 3. Photographer giao hàng (delivered)
   if (status === 'delivered') {
       order.delivery_info.delivered_at = new Date();
-      
-      // Nếu có link ảnh được gửi kèm (extraData)
-      if (extraData.product_link) {
-          order.delivery_info.product_link = extraData.product_link;
-      }
+      if (extraData.product_link) order.delivery_info.product_link = extraData.product_link;
 
-      // Check trễ hạn
       if (order.delivery_info.deadline && new Date() > order.delivery_info.deadline) {
           order.delivery_info.status = 'late';
           note += " (Giao trễ hạn - Khách có quyền khiếu nại)";
@@ -177,12 +175,55 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
       order.completion_date = new Date();
   }
   
-  // 5. Hủy đơn -> Giảm lượt đặt nếu đơn đã từng được confirm
-  if (status === 'cancelled' && order.status === 'confirmed') {
-       await ServicePackage.findByIdAndUpdate(
-          order.service_package_id, 
-          { $inc: { SoLuongDaDat: -1 } }
-      );
+  // 5. Hủy đơn -> XÓA LỊCH & THÔNG BÁO THỢ
+  if (status === 'cancelled' || status === 'refund_pending') {
+       if (order.status === 'confirmed') {
+           await ServicePackage.findByIdAndUpdate(
+              order.service_package_id, 
+              { $inc: { SoLuongDaDat: -1 } }
+           );
+       }
+
+       try {
+           await Schedule.deleteMany({ orderId: order._id });
+       } catch (err) { console.error(err); }
+
+       if (order.photographer_id) {
+           try {
+               await createNotification({
+                   userId: order.photographer_id,
+                   title: "❌ Đơn hàng đã bị hủy",
+                   message: `Đơn hàng #${order.order_id} đã bị hủy. Lịch trình của bạn đã được xóa khỏi hệ thống.`,
+                   type: "ORDER", 
+                   link: "/photographer/orders-manage"
+               });
+           } catch (notiErr) { console.error(notiErr); }
+       }
+  }
+
+  // 6. ✅ [MỚI] TỪ CHỐI THANH TOÁN -> THÔNG BÁO KHÁCH HÀNG
+  // Nếu trạng thái quay ngược từ 'pending' -> 'pending_payment' (Từ chối cọc)
+  // Hoặc từ 'final_payment_pending' -> 'waiting_final_payment' (Từ chối TT cuối)
+  if (
+      (order.status === 'pending' && status === 'pending_payment') || 
+      (order.status === 'final_payment_pending' && status === 'waiting_final_payment')
+  ) {
+      const isDeposit = (order.status === 'pending');
+      const notiTitle = isDeposit ? "⚠️ Thanh toán cọc bị từ chối" : "⚠️ Thanh toán cuối bị từ chối";
+      const notiMsg = `Admin đã từ chối xác nhận thanh toán đơn #${order.order_id}. Lý do: "${note}". Vui lòng kiểm tra và gửi lại ảnh bằng chứng.`;
+
+      try {
+          await createNotification({
+              userId: order.customer_id,
+              title: notiTitle,
+              message: notiMsg,
+              type: "PAYMENT",
+              link: `/orders/${order.order_id}` // Dẫn khách về trang chi tiết đơn để Re-upload
+          });
+          console.log(`[Notification] Đã gửi thông báo từ chối thanh toán cho khách ${order.customer_id}`);
+      } catch (err) {
+          console.error("❌ Lỗi gửi thông báo từ chối thanh toán:", err);
+      }
   }
 
   order.updateStatus(status, userId, note);
@@ -271,7 +312,6 @@ export const submitReview = async (orderId, rating, comment, userId) => {
 export const getOrdersByCustomer = async (cid) => Orders.find({ customer_id: cid }).populate("service_package_id").sort({ createdAt: -1 });
 
 export const getOrderByOrderId = async (oid) => {
-    // populate photographer_id để lấy tên thợ nếu cần
     let order = await Orders.findOne({ order_id: oid })
         .populate("service_package_id")
         .populate({path: "photographer_id", model: "bangKhachHang", select: "HoTen"});

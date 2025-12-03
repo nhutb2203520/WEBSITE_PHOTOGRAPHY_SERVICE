@@ -34,7 +34,8 @@ const ComplaintManager = () => {
       setLoading(true);
       const res = await adminComplaintService.getAllComplaints();
       if (res && res.data) {
-          setComplaints(res.data); 
+        console.log("Dữ liệu khiếu nại:", res.data);
+        setComplaints(res.data); 
       } else {
           setComplaints([]);
       }

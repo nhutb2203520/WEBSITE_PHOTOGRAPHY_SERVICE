@@ -17,8 +17,6 @@ import orderApi from '../../apis/OrderService';
 
 import './PhotographerOrderManagement.css';
 
-// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
-
 export default function PhotographerOrderManagement() {
   const { user } = useSelector(state => state.user);
   const navigate = useNavigate();
@@ -131,12 +129,6 @@ export default function PhotographerOrderManagement() {
     }
   };
 
-  const renderDepositStatus = (order) => {
-    if (['completed', 'cancelled', 'refund_pending'].includes(order.status) || order.payment_info?.remaining_status === 'paid') return null;
-    if (order.deposit_paid || order.payment_info?.deposit_status === 'paid') return <span className="deposit-tag" style={{ background: '#dcfce7', color: '#16a34a' }}>Đã cọc</span>;
-    return <span className="deposit-tag" style={{ background: '#fee2e2', color: '#dc2626' }}>Chưa cọc</span>;
-  };
-
   const canDeliverAlbum = (order) => {
     const isPaid = order.payment_info?.remaining_status === 'paid';
     const isProcessing = order.status === 'processing';
@@ -228,7 +220,7 @@ export default function PhotographerOrderManagement() {
 
                     <div className="order-price-col">
                       <span className="price-tag">{formatPrice(order.final_amount)}</span>
-                      {renderDepositStatus(order)}
+                      {/* Đã xóa trạng thái cọc ở đây theo yêu cầu */}
                     </div>
 
                     <div className="order-actions">

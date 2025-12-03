@@ -1,246 +1,285 @@
-/* --- Global Layout --- */
+/* --- 1. BIẾN MÀU SẮC & CẤU HÌNH --- */
+:root {
+  --primary-color: #3b82f6;       /* Xanh dương chủ đạo */
+  --primary-dark: #2563eb;        /* Xanh dương đậm khi hover */
+  --secondary-color: #f59e0b;     /* Vàng cam cho rating */
+  --text-main: #1f2937;           /* Chữ đen đậm */
+  --text-secondary: #6b7280;      /* Chữ xám */
+  --bg-page: #f9fafb;             /* Nền trang xám rất nhạt */
+  --bg-card: #ffffff;             /* Nền card trắng */
+  --border-color: #e5e7eb;        /* Màu viền */
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  --radius-card: 16px;
+  --radius-btn: 8px;
+  --transition: all 0.3s ease;
+}
+
+/* --- 2. LAYOUT CHUNG --- */
 .photographers-page {
-    min-height: 100vh;
-    background-color: #f3f4f6; /* Màu nền xám nhẹ hiện đại */
-    padding: 40px 0 80px;
-    font-family: 'Inter', sans-serif;
+  background-color: var(--bg-page);
+  min-height: 100vh;
+  padding: 40px 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
-/* --- Section Header --- */
+/* --- 3. HEADER & TITLE --- */
 .section-header {
-    text-align: center;
-    margin-bottom: 40px;
+  text-align: center;
+  margin-bottom: 40px;
 }
 
 .section-header h2 {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #111827;
-    margin-bottom: 8px;
-    letter-spacing: -0.5px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
 }
 
 .section-header p {
-    color: #6b7280;
-    font-size: 1.05rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
 }
 
-/* --- Search Filter Bar --- */
+/* --- 4. SEARCH & FILTER BAR --- */
 .search-filter {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 50px;
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
 }
 
-.search-filter input, .search-filter select {
-    padding: 12px 20px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    background: white;
-    font-size: 0.95rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    transition: all 0.2s;
-    min-width: 220px;
+.search-filter input,
+.search-filter select {
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-btn);
+  font-size: 0.95rem;
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  outline: none;
+  transition: var(--transition);
+  min-width: 200px;
 }
 
-.search-filter input:focus, .search-filter select:focus {
-    outline: none;
-    border-color: #6366f1; /* Màu tím indigo */
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+/* Hiệu ứng focus input */
+.search-filter input:focus,
+.search-filter select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* --- Grid System --- */
+.search-filter input {
+  flex: 1;
+  max-width: 400px;
+}
+
+/* --- 5. GRID LAYOUT --- */
 .photographers-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 30px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive tự động */
+  gap: 30px;
 }
 
-/* --- CARD DESIGN (Phần quan trọng nhất) --- */
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 1.1rem;
+}
+
+/* --- 6. PHOTOGRAPHER CARD (QUAN TRỌNG NHẤT) --- */
 .photographer-card {
-    background: white;
-    border-radius: 20px;
-    overflow: hidden;
-    position: relative;
-    border: 1px solid rgba(0,0,0,0.04);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    display: flex;
-    flex-direction: column;
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
 }
 
 .photographer-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: translateY(-5px); /* Nổi lên khi rê chuột */
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
-/* 1. Header (Cover Image) */
+/* --- 6.1 Card Header (Cover Image) --- */
 .card-header {
-    height: 160px;
-    position: relative;
-    overflow: hidden;
-    background-color: #e5e7eb;
+  position: relative;
+  height: 140px;
+  background-color: #e5e7eb;
 }
 
 .card-cover {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.photographer-card:hover .card-cover {
-    transform: scale(1.05);
-}
-
-/* Nút Tim */
+/* Nút Favorite */
 .btn-favorite {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: rgba(0,0,0,0.2);
-    backdrop-filter: blur(4px);
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  z-index: 10;
 }
 
 .btn-favorite:hover {
-    background: white;
-    transform: scale(1.1);
+  background: white;
+  transform: scale(1.1);
 }
-.btn-favorite:hover svg { fill: #ef4444; stroke: #ef4444; }
 
-/* 2. Avatar Wrapper (Đè lên ảnh bìa) */
+/* --- 6.2 Avatar (Đè lên Cover) --- */
 .card-avatar-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: -50px; /* Kéo Avatar lên trên */
-    position: relative;
-    z-index: 10;
+  display: flex;
+  justify-content: center;
+  margin-top: -50px; /* Kỹ thuật số âm để avatar trồi lên */
+  position: relative;
+  z-index: 5;
 }
 
 .card-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid white;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    background: white;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--bg-card); /* Viền trắng dày tách biệt */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background-color: white;
 }
 
-/* 3. Body */
+/* --- 6.3 Card Body --- */
 .card-body {
-    padding: 15px 25px 25px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
+  padding: 16px 20px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Để footer luôn ở đáy */
 }
 
 .card-name {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 10px 0 15px;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 16px;
+  
+  /* Cắt tên quá dài */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 4. Stats Pill (Gom nhóm đẹp mắt) */
+/* --- 6.4 Stats (Rating, Reviews, Packages) --- */
 .card-stats {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .stat-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #4b5563;
-    background-color: #f3f4f6;
-    border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #f3f4f6;
+  color: var(--text-secondary);
 }
 
+/* Màu riêng cho pill Rating để nổi bật */
 .stat-pill.rating {
-    background-color: #fffbeb; /* Vàng nhạt */
-    color: #b45309; /* Vàng đậm */
-    border-color: #fcd34d;
+  background-color: #fffbeb; /* Vàng nhạt */
+  color: #b45309;           /* Vàng nâu */
 }
 
-/* 5. Footer (Button) */
+/* --- 6.5 Footer & Button --- */
 .card-footer {
-    width: 100%;
-    margin-top: auto;
+  margin-top: auto; /* Đẩy nút xuống đáy card */
 }
 
 .btn-view-profile {
-    display: block;
-    width: 100%;
-    padding: 12px 0;
-    border-radius: 12px;
-    background-color: #111827; /* Màu đen sang trọng */
-    color: white;
-    text-align: center;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  display: block;
+  width: 100%;
+  padding: 12px 0;
+  background-color: var(--text-main); /* Nút đen sang trọng */
+  color: white;
+  text-align: center;
+  border-radius: var(--radius-btn);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: var(--transition);
 }
 
 .btn-view-profile:hover {
-    background-color: #4f46e5; /* Đổi màu xanh tím khi hover */
-    transform: translateY(-2px);
-    box-shadow: 0 6px 10px rgba(79, 70, 229, 0.3);
+  background-color: var(--primary-color); /* Hover chuyển xanh */
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-/* Loading & Empty States */
-.loading-state, .no-results {
-    width: 100%;
-    text-align: center;
-    padding: 60px;
-    font-size: 1.1rem;
-    color: #6b7280;
+/* --- 7. LOADING SPINNER --- */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
 }
+
 .spinner {
-    width: 40px; height: 40px; 
-    border: 4px solid #e5e7eb; 
-    border-top-color: #4f46e5; 
-    border-radius: 50%; 
-    animation: spin 1s infinite;
-    margin: 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-/* Mobile */
-@media (max-width: 640px) {
-    .photographers-grid {
-        grid-template-columns: 1fr;
-    }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* --- 8. RESPONSIVE --- */
+@media (max-width: 768px) {
+  .search-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-filter input {
+    max-width: 100%;
+  }
+
+  .section-header h2 {
+    font-size: 1.75rem;
+  }
 }

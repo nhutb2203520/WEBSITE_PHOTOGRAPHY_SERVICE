@@ -610,3 +610,148 @@ input:checked+.slider:before {
 .clear-icon:hover {
     color: #6b7280;
 }
+
+/* =========================================
+   PROOF IMAGE & ZOOM (NEW FEATURES)
+   ========================================= */
+.proof-image-section {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.section-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.proof-image-wrapper {
+    position: relative;
+    width: 200px;
+    height: 120px;
+    margin: 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #e5e7eb;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: #f3f4f6;
+}
+
+.proof-image-wrapper:hover {
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.proof-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.proof-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.proof-image-wrapper:hover .proof-overlay {
+    opacity: 1;
+}
+
+.no-proof-warning {
+    background-color: #fef2f2;
+    border: 1px dashed #ef4444;
+    color: #b91c1c;
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.no-proof-warning p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Zoom Overlay */
+.image-zoom-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    /* Cao hơn modal chính */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.image-zoom-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+.image-zoom-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    object-fit: contain;
+}
+
+.close-zoom {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.close-zoom:hover {
+    transform: scale(1.1);
+}
+/* TEXTAREA CHO LÝ DO TỪ CHỐI */
+.reject-reason-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    resize: vertical;
+    margin-top: 10px;
+    background-color: #f9fafb;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+
+.reject-reason-input:focus {
+    border-color: #ef4444;
+    /* Màu đỏ khi focus nhập lý do từ chối */
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* THÊM STYLE CHO HEADER CÁC BƯỚC */
+.modal-header h3 {
+    margin-top: 15px;
+    /* Tăng khoảng cách title trong modal */
+}

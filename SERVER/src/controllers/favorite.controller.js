@@ -1,7 +1,8 @@
 import Favorite from "../models/favorite.model.js";
+import mongoose from "mongoose";
 
 const favoriteController = {
-  // ❤️ Toggle: Thêm/Xóa yêu thích
+  // ❤️ Toggle: Thêm/Xóa yêu thích (Giữ nguyên logic của bạn)
   toggleFavorite: async (req, res) => {
     try {
       const { type, itemId } = req.body; 
@@ -34,55 +35,134 @@ const favoriteController = {
     }
   },
 
-  // 📋 Lấy danh sách yêu thích
+  // 📋 Lấy danh sách yêu thích (ĐÃ VIẾT LẠI DÙNG AGGREGATE)
   getMyFavorites: async (req, res) => {
     try {
-      const customerId = req.user.id || req.user._id;
+      const customerId = new mongoose.Types.ObjectId(req.user.id || req.user._id);
 
-      // ✅ FIX QUAN TRỌNG: Thêm model: 'bangKhachHang' vào populate
-      const favorites = await Favorite.find({ CustomerId: customerId })
-        .populate({
-            path: 'ServicePackageId',
-            select: 'TenGoi AnhBia Gia DichVu MoTa DanhGia SoLuotDanhGia LoaiGoi PhotographerId',
-            populate: { 
-                path: 'PhotographerId', 
-                select: 'HoTen Avatar',
-                model: 'bangKhachHang' // ⚠️ Bắt buộc phải có dòng này để tránh lỗi
-            }
-        })
-        .populate({
-            path: 'PhotographerId',
-            select: 'HoTen Avatar CoverImage DiaChi',
-            model: 'bangKhachHang' // ⚠️ Bắt buộc phải có dòng này
-        })
-        .sort({ createdAt: -1 });
+      const favorites = await Favorite.aggregate([
+        // 1. Lọc theo CustomerId
+        { $match: { CustomerId: customerId } },
 
-      // Lọc bỏ các mục bị null (do gói/thợ đã bị xóa)
-      const favoritePackages = favorites
-        .filter(f => f.Type === 'package' && f.ServicePackageId)
-        .map(f => ({ ...f.ServicePackageId.toObject(), favoriteId: f._id }));
+        // 2. Chia luồng dữ liệu (Facet): 1 luồng xử lý Package, 1 luồng xử lý Photographer
+        {
+          $facet: {
+            // === LUỒNG 1: XỬ LÝ GÓI DỊCH VỤ ===
+            packages: [
+              { $match: { Type: 'package' } },
+              {
+                $lookup: {
+                  from: 'servicepackages', // Tên collection Gói trong DB
+                  localField: 'ServicePackageId',
+                  foreignField: '_id',
+                  as: 'packageInfo'
+                }
+              },
+              { $unwind: '$packageInfo' }, // Chỉ lấy gói còn tồn tại
+              {
+                $lookup: {
+                  from: 'KHACHHANG', // Tên collection User trong DB
+                  localField: 'packageInfo.PhotographerId',
+                  foreignField: '_id',
+                  as: 'pgInfo'
+                }
+              },
+              {
+                $project: {
+                  _id: '$packageInfo._id', // ID gói
+                  favoriteId: '$_id',      // ID yêu thích
+                  TenGoi: '$packageInfo.TenGoi',
+                  AnhBia: '$packageInfo.AnhBia',
+                  Gia: '$packageInfo.Gia',
+                  DichVu: '$packageInfo.DichVu',
+                  LoaiGoi: '$packageInfo.LoaiGoi',
+                  DanhGia: '$packageInfo.DanhGia',
+                  SoLuotDanhGia: '$packageInfo.SoLuotDanhGia',
+                  PhotographerId: { $arrayElemAt: ['$pgInfo', 0] } // Lấy object photographer
+                }
+              }
+            ],
 
-      const favoritePhotographers = favorites
-        .filter(f => f.Type === 'photographer' && f.PhotographerId)
-        .map(f => ({ ...f.PhotographerId.toObject(), favoriteId: f._id }));
+            // === LUỒNG 2: XỬ LÝ NHIẾP ẢNH GIA (Tính Rating/Reviews) ===
+            photographers: [
+              { $match: { Type: 'photographer' } },
+              {
+                $lookup: {
+                  from: 'KHACHHANG',
+                  localField: 'PhotographerId',
+                  foreignField: '_id',
+                  as: 'pgInfo'
+                }
+              },
+              { $unwind: '$pgInfo' },
+              
+              // >>> JOIN REVIEWS <<<
+              {
+                $lookup: {
+                  from: 'reviews',
+                  let: { pid: '$pgInfo._id' },
+                  pipeline: [
+                    { $match: { $expr: { $and: [{ $eq: ['$PhotographerId', '$$pid'] }, { $eq: ['$Status', 'approved'] }] } } },
+                    { $project: { Rating: 1 } }
+                  ],
+                  as: 'reviewData'
+                }
+              },
+              
+              // >>> JOIN PACKAGES (Đếm số gói) <<<
+              {
+                $lookup: {
+                  from: 'servicepackages',
+                  let: { pid: '$pgInfo._id' },
+                  pipeline: [
+                    { $match: { $expr: { $and: [{ $eq: ['$PhotographerId', '$$pid'] }, { $ne: ['$isDeleted', true] }] } } }
+                  ],
+                  as: 'pkgData'
+                }
+              },
 
-      // Lấy danh sách ID để tô đỏ nút tim ở Frontend
-      const allIds = favorites.map(f => 
-        f.Type === 'package' ? f.ServicePackageId?._id?.toString() : f.PhotographerId?._id?.toString()
-      ).filter(Boolean);
+              // >>> TÍNH TOÁN & TRẢ VỀ <<<
+              {
+                $project: {
+                  _id: 1, // Favorite ID
+                  photographer: {
+                    _id: '$pgInfo._id',
+                    TenDangNhap: '$pgInfo.TenDangNhap',
+                    HoTen: '$pgInfo.HoTen',
+                    Avatar: '$pgInfo.Avatar',
+                    CoverImage: '$pgInfo.CoverImage',
+                    DiaChi: '$pgInfo.DiaChi',
+                    // Tính toán rating
+                    rating: { $ifNull: [{ $round: [{ $avg: '$reviewData.Rating' }, 1] }, 5.0] },
+                    reviews: { $size: '$reviewData' },
+                    packages: { $size: '$pkgData' }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]);
+
+      const result = favorites[0];
+      
+      // Lấy danh sách ID để tô đỏ nút tim
+      const allIds = [
+        ...result.packages.map(p => p._id.toString()),
+        ...result.photographers.map(p => p.photographer._id.toString())
+      ];
 
       return res.status(200).json({ 
           success: true, 
           data: {
-              packages: favoritePackages,
-              photographers: favoritePhotographers,
+              packages: result.packages,
+              photographers: result.photographers, // Dữ liệu này giờ đã có rating, reviews chuẩn
               allIds: allIds
           }
       });
 
     } catch (error) {
       console.error("Get Favorites Error:", error);
-      // Trả về mảng rỗng thay vì lỗi 500 để Frontend không bị crash
       return res.status(200).json({ 
           success: true, 
           data: { packages: [], photographers: [], allIds: [] } 
