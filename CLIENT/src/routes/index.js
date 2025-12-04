@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 
 // ⚠️ QUAN TRỌNG: Import trực tiếp ComplaintManager để tránh lỗi lazy load khi thiếu file dependency
+// Các component khác dùng lazy load để tối ưu hiệu năng
 import ComplaintManager from '../admin/ComplaintManager/ComplaintManager';
 
 const routes = [
@@ -34,6 +35,11 @@ const routes = [
   {
     path: '/notifications',
     component: lazy(() => import('../components/Notification/NotificationPage'))
+  },
+  // ✅ Trang Chat (User)
+  {
+    path: '/messages',
+    component: lazy(() => import('../components/ChatMessage/UserChatPage'))
   },
   // ✅ Trang yêu thích
   {
@@ -180,6 +186,11 @@ const routes = [
   {
     path: '/admin/complaint-manage',
     component: ComplaintManager 
+  },
+  // ✅ [MỚI] Trang Chat Admin
+  {
+    path: '/admin/messages',
+    component: lazy(() => import('../admin/Chat/AdminChat'))
   },
 
   // =================================================================

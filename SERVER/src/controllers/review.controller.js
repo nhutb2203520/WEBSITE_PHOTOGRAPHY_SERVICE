@@ -1,27 +1,57 @@
+import mongoose from "mongoose"; // 👈 Cần import cái này để check ID
 import Review from "../models/review.model.js";
 import Order from "../models/order.model.js";
-import ServicePackage from "../models/servicePackage.model.js";
 
-// ✅ Import thông báo cho User (Thợ chụp)
+// ✅ Import thông báo
 import { createNotification } from "./notification.controller.js";
 
 // [GET] Lấy danh sách đánh giá
 export const getReviews = async (req, res) => {
   try {
     const { photographerId } = req.query;
+    
+    // Tạo bộ lọc mặc định
+    // ⚠️ LƯU Ý: Đảm bảo DB của bạn có trường "Status" là "approved". 
+    // Nếu chưa có chức năng duyệt đánh giá, hãy tạm thời bỏ dòng này hoặc comment lại.
     const query = { Status: 'approved' }; 
+    // const query = {}; // 👉 Dùng dòng này nếu bạn muốn lấy tất cả bất kể trạng thái
 
+    // 1. Kiểm tra ID hợp lệ trước khi query (FIX LỖI 500)
     if (photographerId) {
+      if (!mongoose.Types.ObjectId.isValid(photographerId)) {
+        return res.status(400).json({ 
+            message: "Photographer ID không hợp lệ", 
+            success: false 
+        });
+      }
       query.PhotographerId = photographerId;
     }
 
+    // 2. Thực hiện query
     const reviews = await Review.find(query)
-      .populate("CustomerId", "HoTen Avatar")
+      .populate("CustomerId", "HoTen Avatar") // Lấy thông tin người đánh giá
       .sort({ createdAt: -1 });
 
-    res.status(200).json(reviews);
+    // 3. Tính toán thống kê (Optional - giúp Frontend hiển thị đẹp hơn)
+    let averageRating = 0;
+    if (reviews.length > 0) {
+      const total = reviews.reduce((acc, curr) => acc + (curr.Rating || 0), 0);
+      averageRating = (total / reviews.length).toFixed(1);
+    }
+
+    res.status(200).json({
+        success: true,
+        count: reviews.length,
+        averageRating: parseFloat(averageRating),
+        data: reviews
+    });
+
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server khi lấy đánh giá", error: error.message });
+    console.error("❌ Lỗi getReviews:", error); // Log lỗi ra terminal để debug
+    res.status(500).json({ 
+        message: "Lỗi server khi lấy đánh giá", 
+        error: error.message 
+    });
   }
 };
 
@@ -42,6 +72,7 @@ export const createReview = async (req, res) => {
         CustomerId: req.user._id || req.user.id, 
         Rating: rating,
         Comment: comment,
+        Status: 'approved', // Mặc định duyệt ngay (hoặc 'pending' nếu cần admin duyệt)
         Images: []
     };
 
@@ -59,9 +90,9 @@ export const createReview = async (req, res) => {
         await createNotification({
             userId: order.photographer_id,
             title: "⭐ Bạn có đánh giá mới!",
-            message: `Khách hàng vừa đánh giá ${rating} sao cho đơn hàng #${order.order_id}.`,
-            type: "SYSTEM", // Có thể dùng type khác nếu muốn icon khác
-            link: "/photographer/my-services" // Link để thợ vào xem (hoặc link chi tiết)
+            message: `Khách hàng vừa đánh giá ${rating} sao cho đơn hàng #${order.order_id || 'Mới'}.`,
+            type: "SYSTEM",
+            link: "/photographer/my-services"
         });
     }
 
@@ -77,6 +108,11 @@ export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, comment } = req.body;
+
+    // Check ID hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Review ID không hợp lệ" });
+    }
 
     const review = await Review.findById(id);
     if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá" });
@@ -107,6 +143,7 @@ export const updateReview = async (req, res) => {
     res.status(200).json(review);
 
   } catch (error) {
+    console.error("❌ Lỗi updateReview:", error);
     res.status(500).json({ message: "Lỗi khi cập nhật đánh giá", error: error.message });
   }
 };

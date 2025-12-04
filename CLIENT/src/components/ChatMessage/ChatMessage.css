@@ -1,0 +1,230 @@
+/* Overlay làm mờ nền phía sau */
+.chat-window-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    /* Tối hơn chút để tập trung */
+    z-index: 99999;
+    /* Đảm bảo luôn nằm trên cùng */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+    /* Hiệu ứng làm mờ nền hiện đại */
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Khung chat chính */
+.chat-box {
+    width: 450px;
+    height: 600px;
+    max-width: 95%;
+    max-height: 90vh;
+    background: #fff;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    /* QUAN TRỌNG: Sửa lỗi cú pháp flexDirection cũ */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Header */
+.chat-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    /* Gradient tím đẹp mắt */
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.close-chat-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.close-chat-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: rotate(90deg);
+}
+
+/* Khu vực tin nhắn */
+.chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    /* Màu nền xám nhẹ dễ chịu */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Scrollbar đẹp hơn cho Chrome/Safari */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+/* Style chung cho tin nhắn */
+.message {
+    max-width: 75%;
+    padding: 10px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Tin nhắn của MÌNH (Bên phải) */
+.message.own {
+    align-self: flex-end;
+    background: #6c5ce7;
+    /* Màu tím chủ đạo */
+    color: white;
+    border-bottom-right-radius: 4px;
+    /* Bo góc đặc trưng */
+}
+
+/* Tin nhắn của NGƯỜI KHÁC (Bên trái) */
+.message.other {
+    align-self: flex-start;
+    background: #ffffff;
+    color: #2d3436;
+    border: 1px solid #e9ecef;
+    border-bottom-left-radius: 4px;
+}
+
+/* Tên người gửi */
+.message-meta {
+    font-size: 11px;
+    margin-bottom: 4px;
+    color: #636e72;
+    font-weight: 600;
+    display: block;
+}
+
+.message.own .message-meta {
+    display: none;
+    /* Ẩn tên mình */
+}
+
+/* Thời gian */
+.message-time {
+    font-size: 10px;
+    display: block;
+    text-align: right;
+    margin-top: 4px;
+    opacity: 0.7;
+}
+
+/* Khu vực nhập liệu */
+.chat-input-area {
+    padding: 15px;
+    background: white;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.chat-input-area input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #dfe6e9;
+    border-radius: 25px;
+    outline: none;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    background: #f8f9fa;
+}
+
+.chat-input-area input:focus {
+    border-color: #6c5ce7;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+.chat-send-btn {
+    padding: 10px 20px;
+    background: #6c5ce7;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.chat-send-btn:hover {
+    background: #5649c0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(108, 92, 231, 0.3);
+}
+
+.chat-send-btn:active {
+    transform: translateY(0);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

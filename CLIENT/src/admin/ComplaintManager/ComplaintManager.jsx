@@ -6,9 +6,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import adminComplaintService from '../../apis/adminComplaintService';
+import chatApi from '../../apis/chatApi';
+import adminAuthService from '../../apis/adminAuthService'; // ✅ Sửa import đúng service admin
 
 import SidebarAdmin from "../AdminPage/SidebarAdmin";
 import HeaderAdmin from "../AdminPage/HeaderAdmin";
+import ChatMessage from '../../components/ChatMessage/ChatMessage'; 
 import './ComplaintManager.css'; 
 
 const ComplaintManager = () => {
@@ -23,14 +26,28 @@ const ComplaintManager = () => {
   const [adminResponse, setAdminResponse] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  // ✅ [MỚI] Modal Xem Album
+  // Modal Xem Album
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [viewingAlbum, setViewingAlbum] = useState(null);
-  const [activeAlbumTab, setActiveAlbumTab] = useState('edited'); // 'raw' | 'edited'
+  const [activeAlbumTab, setActiveAlbumTab] = useState('edited');
+
+  // Chat Real-time
+  const [openChat, setOpenChat] = useState(false);
+  const [currentConversation, setCurrentConversation] = useState(null);
+  const [adminInfo, setAdminInfo] = useState(null);
 
   useEffect(() => {
     fetchComplaints();
+    getAdminInfo(); 
   }, []);
+
+  const getAdminInfo = () => {
+      // ✅ Sử dụng helper từ adminAuthService để lấy thông tin chính xác từ sessionStorage
+      const admin = adminAuthService.getCurrentAdmin();
+      if (admin) {
+          setAdminInfo(admin);
+      }
+  };
 
   const fetchComplaints = async () => {
     try {
@@ -63,13 +80,13 @@ const ComplaintManager = () => {
     setSelectedComplaint(item);
     setAdminResponse(item.admin_response || ''); 
     setShowModal(true);
+    setOpenChat(false); 
+    setCurrentConversation(null);
   };
 
-  // ✅ [MỚI] Hàm mở Modal Album
   const openAlbumModal = (album) => {
       if (!album) return;
       setViewingAlbum(album);
-      // Ưu tiên hiển thị tab có ảnh
       if (album.edited_photos?.length > 0) setActiveAlbumTab('edited');
       else setActiveAlbumTab('raw');
       setShowAlbumModal(true);
@@ -93,9 +110,44 @@ const ComplaintManager = () => {
     }
   };
 
+  // Hàm mở Chat Group Giải quyết tranh chấp
+  const handleOpenDisputeChat = async () => {
+    if (!selectedComplaint) return;
+    
+    // Đảm bảo adminInfo đã có
+    const currentAdmin = adminInfo || adminAuthService.getCurrentAdmin();
+    if (!currentAdmin) {
+        toast.error("Không tìm thấy thông tin Admin. Vui lòng đăng nhập lại.");
+        return;
+    }
+
+    try {
+        setProcessing(true);
+        const data = {
+            complaintId: selectedComplaint._id,
+            customerId: selectedComplaint.customer_id?._id,
+            photographerId: selectedComplaint.photographer_id?._id,
+            adminId: currentAdmin._id || currentAdmin.id 
+        };
+        
+        // ✅ Gọi API dành riêng cho Admin (dùng axiosAdmin)
+        const res = await chatApi.getComplaintGroupAdmin(data);
+        
+        setCurrentConversation(res.data);
+        setOpenChat(true); 
+        
+    } catch (error) {
+        console.error(error);
+        toast.error("Không thể tạo nhóm chat. Kiểm tra kết nối hoặc quyền Admin.");
+    } finally {
+        setProcessing(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch(status) {
       case 'pending': return <span className="badge badge-pending">Chờ xử lý</span>;
+      case 'negotiating': return <span className="badge badge-negotiating">Đang thương lượng</span>;
       case 'resolved': return <span className="badge badge-resolved">Thành công</span>;
       case 'rejected': return <span className="badge badge-rejected">Đã từ chối</span>;
       default: return <span>{status}</span>;
@@ -221,7 +273,7 @@ const ComplaintManager = () => {
             </div>
             
             <div className="modal-body-split">
-              {/* CỘT TRÁI: Nội dung khiếu nại & Phản hồi */}
+              {/* CỘT TRÁI */}
               <div className="split-left">
                 <div className="info-card">
                   <h4><AlertTriangle size={16}/> Nội dung khiếu nại</h4>
@@ -241,7 +293,7 @@ const ComplaintManager = () => {
 
                 <div className="info-card">
                   <h4><MessageSquare size={16}/> Phản hồi của Admin</h4>
-                  {selectedComplaint.status === 'pending' ? (
+                  {selectedComplaint.status === 'pending' || selectedComplaint.status === 'negotiating' ? (
                     <div className="admin-action-form">
                       <textarea 
                         rows="4" 
@@ -249,21 +301,31 @@ const ComplaintManager = () => {
                         value={adminResponse}
                         onChange={(e) => setAdminResponse(e.target.value)}
                       ></textarea>
-                      <div className="action-buttons">
+                      
+                      <div className="action-buttons-container">
                         <button 
-                          className="btn-reject" 
-                          onClick={() => handleProcess('rejected')}
-                          disabled={processing}
+                            className="btn-negotiate" 
+                            onClick={handleOpenDisputeChat}
                         >
-                          <XCircle size={16}/> Từ chối
+                            💬 Thảo luận nhóm
                         </button>
-                        <button 
-                          className="btn-resolve" 
-                          onClick={() => handleProcess('resolved')}
-                          disabled={processing}
-                        >
-                          <CheckCircle size={16}/> Chấp thuận
-                        </button>
+
+                        <div className="right-actions">
+                            <button 
+                                className="btn-reject" 
+                                onClick={() => handleProcess('rejected')}
+                                disabled={processing}
+                            >
+                                <XCircle size={16}/> Từ chối
+                            </button>
+                            <button 
+                                className="btn-resolve" 
+                                onClick={() => handleProcess('resolved')}
+                                disabled={processing}
+                            >
+                                <CheckCircle size={16}/> Chấp thuận
+                            </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -275,7 +337,7 @@ const ComplaintManager = () => {
                 </div>
               </div>
 
-              {/* CỘT PHẢI: Thông tin Đơn hàng & Album */}
+              {/* CỘT PHẢI */}
               <div className="split-right">
                 <div className="info-section-group">
                     <h4>Thông tin đơn hàng</h4>
@@ -308,7 +370,6 @@ const ComplaintManager = () => {
                     )}
                 </div>
 
-                {/* THÔNG TIN ALBUM & NÚT MỞ MODAL */}
                 <div className="info-section-group" style={{marginTop: '20px'}}>
                     <h4 style={{display:'flex', alignItems:'center', gap: 6}}>
                         <ImageIcon size={16}/> Thông tin Album
@@ -328,7 +389,6 @@ const ComplaintManager = () => {
                                 <span className="value">{selectedComplaint.album_info.edited_photos?.length || 0} ảnh</span>
                             </div>
                             <div style={{marginTop: '12px', textAlign: 'center'}}>
-                                {/* ✅ Thay đổi thành Button mở Modal */}
                                 <button 
                                     className="btn-view-album-link"
                                     onClick={() => openAlbumModal(selectedComplaint.album_info)}
@@ -350,7 +410,7 @@ const ComplaintManager = () => {
         </div>
       )}
 
-      {/* --- ✅ NEW MODAL: XEM ALBUM (Album View) --- */}
+      {/* --- MODAL XEM ALBUM --- */}
       {showAlbumModal && viewingAlbum && (
           <div className="modal-overlay album-overlay" onClick={() => setShowAlbumModal(false)}>
               <div className="modal-content album-view-modal" onClick={e => e.stopPropagation()}>
@@ -359,7 +419,6 @@ const ComplaintManager = () => {
                       <button className="close-btn" onClick={() => setShowAlbumModal(false)}><X size={24}/></button>
                   </div>
                   
-                  {/* TABS CHUYỂN ĐỔI ẢNH */}
                   <div className="album-tabs-header">
                       <button 
                           className={`tab-btn ${activeAlbumTab === 'edited' ? 'active' : ''}`}
@@ -375,7 +434,6 @@ const ComplaintManager = () => {
                       </button>
                   </div>
 
-                  {/* NỘI DUNG ẢNH */}
                   <div className="album-gallery-content">
                       {activeAlbumTab === 'edited' ? (
                           <div className="photo-grid-admin">
@@ -409,6 +467,16 @@ const ComplaintManager = () => {
                   </div>
               </div>
           </div>
+      )}
+
+      {/* --- CỬA SỔ CHAT --- */}
+      {openChat && currentConversation && (
+        <ChatMessage 
+            conversation={currentConversation}
+            currentUser={adminInfo}
+            onClose={() => setOpenChat(false)}
+            isAdmin={true} // ✅ Quan trọng: Báo cho ChatMessage biết đây là Admin
+        />
       )}
 
     </div>
