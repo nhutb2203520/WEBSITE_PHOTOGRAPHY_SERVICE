@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
     ArrowLeft, Calendar, User, Package, 
     UploadCloud, Trash2, Edit2, Save, X, Image as ImageIcon,
-    ChevronLeft, ChevronRight, Share2, Copy, Check, Send, Star, PlusCircle
+    ChevronLeft, ChevronRight, Share2, Copy, Check, Send, Star, PlusCircle,
+    MapPin, Clock, FileText, ExternalLink // ✅ Thêm icons mới
 } from 'lucide-react';
 
 import MainLayout from '../../layouts/MainLayout/MainLayout';
@@ -27,7 +28,7 @@ export default function DetailAlbumManager() {
     const [editData, setEditData] = useState({ title: '', description: '' });
     
     // Lightbox & Share
-    const [lightboxIndex, setLightboxIndex] = useState(null);
+    const [lightboxIndex, setLightboxIndex] = useState(-1);
     const [lightboxSource, setLightboxSource] = useState('raw');
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareLink, setShareLink] = useState('');
@@ -42,10 +43,10 @@ export default function DetailAlbumManager() {
     // Xử lý phím tắt Lightbox
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (lightboxIndex === null) return;
-            if (e.key === 'Escape') closeLightbox();
-            if (e.key === 'ArrowRight') nextPhoto();
-            if (e.key === 'ArrowLeft') prevPhoto();
+            if (lightboxIndex === -1) return;
+            if (e.key === 'Escape') setLightboxIndex(-1);
+            if (e.key === 'ArrowRight') navigateImage(1);
+            if (e.key === 'ArrowLeft') navigateImage(-1);
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -92,6 +93,30 @@ export default function DetailAlbumManager() {
         }
     };
 
+    // --- UTILS ---
+    const getImgUrl = (path) => {
+        if (!path) return null;
+        if (path.startsWith('blob:')) return path;
+        return path.startsWith('http') ? path : `http://localhost:5000${path}`;
+    };
+
+    // Helper Lightbox
+    const getCurrentPhotos = () => lightboxSource === 'edited' ? (album?.edited_photos || []) : (album?.photos || []);
+    
+    const navigateImage = (direction) => {
+        const photos = getCurrentPhotos();
+        if (photos.length === 0) return;
+        let newIndex = lightboxIndex + direction;
+        if (newIndex < 0) newIndex = photos.length - 1;
+        if (newIndex >= photos.length) newIndex = 0;
+        setLightboxIndex(newIndex);
+    };
+
+    const openLightbox = (index, source) => {
+        setLightboxSource(source);
+        setLightboxIndex(index);
+    };
+
     // --- Handlers CRUD ---
     const handleFileChange = async (e) => {
         const files = Array.from(e.target.files);
@@ -104,7 +129,6 @@ export default function DetailAlbumManager() {
         }
         try {
             setUploading(true);
-            // Nếu có album thì dùng ID album, nếu chưa có (lần đầu tạo từ order) thì dùng orderId
             const targetId = album ? album._id : orderId;
             const res = await albumApi.uploadPhotos(targetId, formData);
             toast.success(`Đã tải lên ${files.length} ảnh gốc!`);
@@ -124,7 +148,7 @@ export default function DetailAlbumManager() {
                 edited_photos: prev.edited_photos ? prev.edited_photos.filter(p => p._id !== photoId) : []
             }));
             toast.success("Đã xóa ảnh.");
-            if (lightboxIndex !== null) closeLightbox();
+            if (lightboxIndex !== -1) setLightboxIndex(-1);
         } catch (error) { toast.error("Lỗi xóa ảnh."); }
     };
 
@@ -187,25 +211,15 @@ export default function DetailAlbumManager() {
 
     const handleConfirmDeliver = async () => {
         if (deliverFiles.length === 0) return toast.warning("Vui lòng chọn ảnh đã chỉnh sửa để giao!");
-        
         try {
             setUploading(true);
             const formData = new FormData();
             deliverFiles.forEach(file => formData.append('photos', file));
-            
             const targetId = album._id;
             const res = await albumApi.deliverAlbum(targetId, formData);
-            
             toast.success("Đã thêm ảnh chỉnh sửa và cập nhật trạng thái giao hàng!");
-            
-            // Cập nhật lại state album
             setAlbum(res.data?.data || res.data);
-            
-            // Nếu có order thì cập nhật trạng thái order, nếu không (job ngoài) thì album đã được cập nhật
-            if (order) {
-                setOrder(prev => ({ ...prev, status: 'delivered' }));
-            }
-            
+            if (order) setOrder(prev => ({ ...prev, status: 'delivered' }));
             setShowDeliverModal(false);
             setDeliverFiles([]);
         } catch (error) {
@@ -216,32 +230,9 @@ export default function DetailAlbumManager() {
         }
     };
 
-    // --- Lightbox Helpers ---
-    const getPhotoUrl = (url) => url.startsWith('http') ? url : `http://localhost:5000${url}`;
-    
-    const openLightbox = (index, source = 'raw') => { 
-        setLightboxIndex(index); 
-        setLightboxSource(source);
-        document.body.style.overflow = 'hidden'; 
-    };
-    
-    const closeLightbox = () => { setLightboxIndex(null); document.body.style.overflow = 'auto'; };
-    
-    const getCurrentPhotos = () => lightboxSource === 'edited' ? album.edited_photos : album.photos;
-
-    const nextPhoto = () => { 
-        const list = getCurrentPhotos();
-        if (list) setLightboxIndex((prev) => (prev + 1) % list.length); 
-    };
-    const prevPhoto = () => { 
-        const list = getCurrentPhotos();
-        if (list) setLightboxIndex((prev) => (prev - 1 + list.length) % list.length); 
-    };
-
     if (loading) return <div className="pam-loading">Đang tải dữ liệu...</div>;
     if (!order && !album) return <div className="pam-error"><h3>Không tìm thấy dữ liệu!</h3><button onClick={() => navigate(-1)} className="btn-back-error">Quay lại</button></div>;
 
-    // ✅ CẬP NHẬT LOGIC: Job ngoài (không có order) kiểm tra status trên album
     const isDelivered = (order?.status === 'delivered' || order?.status === 'completed') || 
                         (album?.status === 'delivered' || album?.status === 'completed');
 
@@ -257,7 +248,6 @@ export default function DetailAlbumManager() {
                     </div>
                     
                     <div className="header-actions-right">
-                        {/* ✅ CẬP NHẬT: Hiển thị nút Giao Album cho cả Job ngoài (chỉ cần có album) */}
                         {album && (
                             <button 
                                 className={`btn-deliver-main ${isDelivered ? 'secondary' : ''}`} 
@@ -268,7 +258,6 @@ export default function DetailAlbumManager() {
                                 {isDelivered ? " Giao thêm ảnh" : " Giao Album"}
                             </button>
                         )}
-                        
                         {album && <button className="btn-share-main" onClick={handleShare}><Share2 size={18}/> Chia sẻ</button>}
                     </div>
                 </div>
@@ -285,12 +274,77 @@ export default function DetailAlbumManager() {
                             {order ? (
                                 <>
                                     <div className="info-row"><span className="label">Mã đơn:</span><span className="value highlight">#{order.order_id}</span></div>
+                                    
                                     <div className="info-group">
-                                        <div className="info-item"><User size={16}/><div><p className="sub-label">Khách hàng</p><p className="main-text">{order.customer_id?.HoTen}</p></div></div>
-                                        <div className="info-item"><Package size={16}/><div><p className="sub-label">Gói</p><p className="main-text">{order.service_package_id?.TenGoi}</p></div></div>
-                                        <div className="info-item"><Calendar size={16}/><div><p className="sub-label">Ngày chụp</p><p className="main-text">{new Date(order.booking_date).toLocaleDateString('vi-VN')}</p></div></div>
+                                        {/* Khách hàng */}
+                                        <div className="info-item">
+                                            <User size={16}/>
+                                            <div>
+                                                <p className="sub-label">Khách hàng</p>
+                                                <p className="main-text">{order.customer_id?.HoTen}</p>
+                                                <p className="sub-text">{order.customer_id?.SoDienThoai}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Gói dịch vụ */}
+                                        <div className="info-item">
+                                            <Package size={16}/>
+                                            <div>
+                                                <p className="sub-label">Gói dịch vụ</p>
+                                                <p className="main-text">{order.service_package_id?.TenGoi}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Thời gian */}
+                                        <div className="info-item">
+                                            <Clock size={16}/>
+                                            <div>
+                                                <p className="sub-label">Thời gian chụp</p>
+                                                <p className="main-text">
+                                                    {new Date(order.booking_date).toLocaleDateString('vi-VN')}
+                                                    {order.start_time ? ` - ${order.start_time}` : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Địa điểm & Map */}
+                                        <div className="info-item">
+                                            <MapPin size={16}/>
+                                            <div>
+                                                <p className="sub-label">Địa điểm</p>
+                                                <p className="main-text">{order.location?.address || order.location?.name || "Chưa cập nhật"}</p>
+                                                <p className="sub-text">
+                                                    {[order.location?.district, order.location?.city].filter(Boolean).join(', ')}
+                                                </p>
+                                                {order.location?.map_link && (
+                                                    <a 
+                                                        href={order.location.map_link} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="map-link-btn"
+                                                    >
+                                                        <ExternalLink size={12}/> Xem bản đồ
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Ghi chú */}
+                                        {order.notes && (
+                                            <div className="info-item">
+                                                <FileText size={16}/>
+                                                <div>
+                                                    <p className="sub-label">Ghi chú khách hàng</p>
+                                                    <p className="main-text italic text-gray-600">"{order.notes}"</p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="price-box"><span>Tổng tiền:</span><span className="price-value">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.final_amount)}</span></div>
+
+                                    <div className="price-box">
+                                        <span>Tổng tiền:</span>
+                                        <span className="price-value">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.final_amount)}</span>
+                                    </div>
                                 </>
                             ) : (
                                 <>
@@ -347,7 +401,7 @@ export default function DetailAlbumManager() {
                                 <div className="photo-grid">
                                     {album.edited_photos.map((photo, index) => (
                                         <div key={photo._id} className="photo-item group final" onClick={() => openLightbox(index, 'edited')}>
-                                            <img src={getPhotoUrl(photo.url)} alt="" loading="lazy" />
+                                            <img src={getImgUrl(photo.url)} alt="" loading="lazy" />
                                             <div className="photo-overlay">
                                                 <button className="btn-delete-photo" onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo._id); }}><Trash2 size={16} color="white"/></button>
                                             </div>
@@ -378,7 +432,7 @@ export default function DetailAlbumManager() {
                                 <div className="photo-grid">
                                     {album.photos.map((photo, index) => (
                                         <div key={photo._id} className="photo-item group" onClick={() => openLightbox(index, 'raw')}>
-                                            <img src={getPhotoUrl(photo.url)} alt="" loading="lazy" />
+                                            <img src={getImgUrl(photo.url)} alt="" loading="lazy" />
                                             <div className="photo-overlay">
                                                 <button className="btn-delete-photo" onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo._id); }}><Trash2 size={16} color="white"/></button>
                                             </div>
@@ -455,20 +509,20 @@ export default function DetailAlbumManager() {
             )}
 
             {/* Lightbox */}
-            {lightboxIndex !== null && album?.photos && (
-                <div className="lightbox-overlay" onClick={closeLightbox}>
-                    <button className="lb-close-btn" onClick={closeLightbox}><X size={32} /></button>
-                    <div className="lb-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="lb-nav-btn prev" onClick={prevPhoto}><ChevronLeft size={40} /></button>
-                        <div className="lb-image-wrapper">
-                            <img src={getPhotoUrl(getCurrentPhotos()[lightboxIndex]?.url)} alt="Full view" className="lb-image" />
-                            <div className="lb-caption">
-                                {lightboxIndex + 1} / {getCurrentPhotos().length} 
-                                {lightboxSource === 'edited' ? ' (Đã chỉnh sửa)' : ' (Ảnh gốc)'}
-                            </div>
-                        </div>
-                        <button className="lb-nav-btn next" onClick={nextPhoto}><ChevronRight size={40} /></button>
+            {lightboxIndex !== -1 && (
+                <div className="image-zoom-overlay" onClick={() => setLightboxIndex(-1)}>
+                    <button className="lb-nav-btn prev" onClick={(e) => { e.stopPropagation(); navigateImage(-1); }}>
+                        <ChevronLeft size={40} />
+                    </button>
+
+                    <div className="image-zoom-content" onClick={(e) => e.stopPropagation()}>
+                        <img src={getImgUrl(getCurrentPhotos()[lightboxIndex]?.url)} alt="Zoomed" />
+                        <button className="close-zoom" onClick={() => setLightboxIndex(-1)}><X size={24}/></button>
                     </div>
+
+                    <button className="lb-nav-btn next" onClick={(e) => { e.stopPropagation(); navigateImage(1); }}>
+                        <ChevronRight size={40} />
+                    </button>
                 </div>
             )}
         </MainLayout>

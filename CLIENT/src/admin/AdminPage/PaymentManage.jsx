@@ -64,6 +64,7 @@ export default function PaymentManage() {
       setPaymentMethods(methodsList.map(m => ({ ...m, id: m._id, editing: false })));
 
       const rawOrders = ordersRes.data?.data || ordersRes.data || [];
+      
       const formatted = rawOrders.map(o => {
         const deposit = o.deposit_required || 0;
         const total = o.final_amount || 0;
@@ -83,10 +84,36 @@ export default function PaymentManage() {
           amountToCollectStr: formatCurrency(amountToCollect),
           paymentPhase, proofImage,
           date: formatDate(o.createdAt),
+          rawDate: new Date(o.createdAt), // ✅ Lưu date gốc để sort chính xác
           status: o.status, rawStatus: o.status
         };
       });
-      setPayments(formatted.sort((a, b) => new Date(b.date) - new Date(a.date)));
+
+      // ✅ LOGIC SẮP XẾP MỚI
+      // 1. Nhóm cần duyệt (pending, final_payment_pending) lên đầu.
+      // 2. Trong nhóm cần duyệt: Cũ nhất lên trước (Ascending) để xử lý tồn đọng.
+      // 3. Các nhóm còn lại: Mới nhất lên trước (Descending) để xem lịch sử.
+      const pendingStatuses = ['pending', 'final_payment_pending'];
+
+      formatted.sort((a, b) => {
+        const isPendingA = pendingStatuses.includes(a.rawStatus);
+        const isPendingB = pendingStatuses.includes(b.rawStatus);
+
+        // Nếu khác nhóm: Pending luôn lên trên
+        if (isPendingA && !isPendingB) return -1;
+        if (!isPendingA && isPendingB) return 1;
+
+        // Nếu cùng là Pending: Lâu nhất lên trên (Ascending Date)
+        if (isPendingA && isPendingB) {
+            return a.rawDate - b.rawDate;
+        }
+
+        // Nếu cùng là Đã duyệt/Khác: Mới nhất lên trên (Descending Date)
+        return b.rawDate - a.rawDate;
+      });
+
+      setPayments(formatted);
+
     } catch (e) { console.error(e); toast.error("Lỗi tải dữ liệu"); } 
     finally { setLoading(false); }
   };

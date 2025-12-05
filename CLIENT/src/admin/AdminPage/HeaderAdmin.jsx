@@ -64,9 +64,6 @@ export default function HeaderAdmin() {
       </div>
 
       <div className="header-right">
-        <span className="material-icons header-icon">chat</span>
-        <span className="material-icons header-icon">settings</span>
-        <span className="material-icons header-icon">notifications</span>
 
         {isAuthenticated ? (
           <>
@@ -91,14 +88,6 @@ export default function HeaderAdmin() {
 
             {openMenu && (
               <div className="user-menu">
-                <div className="menu-item">
-                  <span className="material-icons">person</span>
-                  <p>Thông tin cá nhân</p>
-                </div>
-                <div className="menu-item">
-                  <span className="material-icons">lock</span>
-                  <p>Đổi mật khẩu</p>
-                </div>
                 <div
                   className="menu-item logout"
                   onClick={handleLogout}
