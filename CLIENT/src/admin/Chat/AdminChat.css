@@ -564,7 +564,7 @@
     background: white !important;
     padding: 0 !important;
     border-radius: 20px;
-    width: 650px;
+    width: 900px;
     /* Rộng hơn để thoải mái */
     max-width: 95%;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -699,7 +699,8 @@
 /* Upload Section Redesign */
 .upload-section {
     display: flex;
-    gap: 20px;
+    gap: 80px;
+    width: 96%;
 }
 
 .upload-box {

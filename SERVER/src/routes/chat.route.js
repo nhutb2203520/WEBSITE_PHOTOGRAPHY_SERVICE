@@ -5,15 +5,17 @@ import fs from "fs";
 import { 
     createConversation, 
     getConversations, 
+    getConversationsAdmin, // 🔥 [QUAN TRỌNG] Phải import hàm này
     getMessages,
     getComplaintConversation,
     addMessage,
     getUnreadCount,
-    markAsRead // <-- Import mới
+    markAsRead 
 } from "../controllers/chat.controller.js";
 
 const router = express.Router();
 
+// --- Cấu hình Multer (Upload ảnh) ---
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -31,11 +33,24 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post("/", createConversation);
-router.get("/unread/:userId", getUnreadCount); 
-router.put("/mark-read", markAsRead); // <-- Route mới để đánh dấu đã đọc
+// --- ĐỊNH NGHĨA ROUTES ---
 
+// 1. Tạo cuộc hội thoại mới
+router.post("/", createConversation);
+
+// 2. Lấy số tin nhắn chưa đọc & Đánh dấu đã đọc
+router.get("/unread/:userId", getUnreadCount); 
+router.put("/mark-read", markAsRead); 
+
+// 🔥 [FIX QUAN TRỌNG NHẤT] Route dành riêng cho Admin
+// Route này sẽ gọi hàm getConversationsAdmin (có populate status khiếu nại)
+// Đặt nó TRƯỚC route /:userId để tránh bị nhầm lẫn
+router.get("/admin/:userId", getConversationsAdmin); 
+
+// 3. Lấy danh sách chat cho User thường (Không có populate status chi tiết)
 router.get("/:userId", getConversations);
+
+// 4. Các route khác
 router.get("/message/:conversationId", getMessages);
 router.post("/complaint-group", getComplaintConversation);
 router.post("/message", upload.array("images", 5), addMessage);

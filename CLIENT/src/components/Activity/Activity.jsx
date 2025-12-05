@@ -15,33 +15,54 @@ export default function Activity() {
     },
     {
       id: 2,
-      title: 'Chọn dịch vụ & đăng ký lịch chụp',
-      description: 'Chọn dịch vụ và đặt lịch chụp phù hợp với thời gian mong muốn.',
+      title: 'Đặt hàng ngay',
+      description: 'Chọn dịch vụ và đặt lịch chụp phù hợp với thời gian mong muốn, nhập các thông tin, lấy tọa độ Google Maps',
     },
+  
     {
       id: 3,
-      title: 'Chờ nhiếp ảnh gia xác nhận',
-      description: 'Nhiếp ảnh gia sẽ xác nhận lịch chụp trong thời gian sớm nhất.',
-    },
-    {
-      id: 4,
-      title: 'Cọc tiền trong vòng 12 giờ',
+      title: 'Thanh toán cọc để tạo lịch trình',
       description: 'Khách hàng thanh toán cọc để giữ lịch chụp.',
     },
     {
-      id: 5,
-      title: 'Nhận sản phẩm & thanh toán phần còn lại',
+      id: 4,
+      title: 'Admin xác nhận cọc và chờ ngày chụp',
       description: 'Sau khi nhận sản phẩm, khách hàng thanh toán phần còn lại.',
     },
     {
-      id: 6,
+      id: 5,
       title: 'Nhắn tin với nhiếp ảnh gia',
       description: 'Khách hàng có thể nhắn tin trao đổi chi tiết về gói chụp.',
     },
     {
-      id: 7,
+      id: 6,
       title: 'Hủy dịch vụ',
-      description: 'Nếu chưa xác nhận, khách hàng có thể hủy ngay; đã xác nhận phải chờ nhiếp ảnh gia duyệt hủy.',
+      description: 'Nếu chưa xác nhận, khách hàng có thể hủy ngay không mất cọc. Nếu đơn đã xác nhận, hủy sẽ mất cọc',
+    },
+    {
+      id: 7,
+      title: 'Sau khi chụp ảnh thanh toán phần còn lại',
+      description: 'Sau buổi chụp khách hàng thanh toán 70% tiền còn lại trên hệ thống',
+    },
+    {
+      id: 8,
+      title: 'Nhận ảnh gốc, sau đó chọn ảnh và nhiếp ảnh gia sẽ xử lý và giao ảnh chỉnh',
+      description: 'Có thể trao đổi với nhiếp ành gia bằng tin nhắn',
+    },
+    {
+      id: 9,
+      title: 'Nhận ảnh xong, xác nhận và đánh giá hoặc khiếu nại',
+      description: 'Nếu ảnh ưng ý có thể xác nhận và đánh giá, nếu ảnh không ưng ý có thể trao đổi thêm với nhiếp ảnh gia. Không thỏa thuận được thì sẽ khiếu nại',
+    },
+    {
+      id: 10,
+      title: 'Khiếu nại đơn hàng, mô tả và tải ảnh minh chứng lên',
+      description: 'Nếu khiếu nại không hợp lệ, admin hủy khiếu nại. Nếu hợp lệ admin tạo nhóm chat để thảo luận đưa ra hướng giải quyết',
+    },
+    {
+      id: 11,
+      title: 'Thỏa thuận thành công',
+      description: 'Thảo thuận thành công, admin sẽ giải quyết khiếu nại và thanh toán tiền theo thỏa thuận',
     },
   ];
 

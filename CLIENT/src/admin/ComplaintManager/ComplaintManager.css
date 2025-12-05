@@ -498,7 +498,7 @@
 
 /* Admin Action Form */
 .admin-action-form textarea {
-    width: 100%;
+    width: 90%;
     padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -527,7 +527,7 @@
 
 .right-actions {
     display: flex;
-    gap: 10px;
+    gap: 1px;
 }
 
 /* Action Buttons */
@@ -537,7 +537,7 @@
     padding: 9px 16px;
     border-radius: var(--radius-md);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;

@@ -310,7 +310,7 @@ const ComplaintManager = () => {
                                         <div className="admin-action-form">
                                             <textarea 
                                                 rows="4" 
-                                                placeholder="Nhập lý do chấp thuận hoặc từ chối..." 
+                                                placeholder="Nhập lý do từ chối..." 
                                                 value={adminResponse}
                                                 onChange={(e) => setAdminResponse(e.target.value)}
                                             ></textarea>
@@ -318,7 +318,7 @@ const ComplaintManager = () => {
                                                 <button className="btn-negotiate" onClick={handleOpenDisputeChat}>💬 Thảo luận nhóm</button>
                                                 <div className="right-actions">
                                                     <button className="btn-reject" onClick={() => handleProcess('rejected')} disabled={processing}><XCircle size={16}/> Từ chối</button>
-                                                    <button className="btn-resolve" onClick={() => handleProcess('resolved')} disabled={processing}><CheckCircle size={16}/> Chấp thuận</button>
+                
                                                 </div>
                                             </div>
                                         </div>

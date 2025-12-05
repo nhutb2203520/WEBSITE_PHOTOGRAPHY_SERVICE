@@ -216,13 +216,7 @@ export default function PaymentManage() {
                   </div>
                 </div>
                 <div className="card-body">
-                  <div className="form-toggle">
-                    <label>Hiển thị:</label>
-                    <label className="switch">
-                      <input type="checkbox" checked={m.isActive} disabled={!m.editing} onChange={(e) => handleMethodChange(m.id, "isActive", e.target.checked)} />
-                      <span className="slider round"></span>
-                    </label>
-                  </div>
+                
                   <div className="form-group"><label>Chủ tài khoản *</label><input type="text" value={m.fullName} readOnly={!m.editing} onChange={(e) => handleMethodChange(m.id, "fullName", e.target.value)} /></div>
                   <div className="form-group"><label>Số tài khoản *</label><input type="text" value={m.accountNumber} readOnly={!m.editing} onChange={(e) => handleMethodChange(m.id, "accountNumber", e.target.value)} /></div>
                   <div className="form-group-row">

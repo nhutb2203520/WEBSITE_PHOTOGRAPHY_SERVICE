@@ -1,22 +1,30 @@
+import path from "path";
+import fs from "fs";
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+// Import để đảm bảo Model đã được đăng ký với Mongoose
+import "../models/complaint.model.js"; 
 
-// Tạo cuộc hội thoại
+// ============================================================
+// 1. TẠO CUỘC HỘI THOẠI (PRIVATE)
+// ============================================================
 export const createConversation = async (req, res) => {
   try {
     const { senderId, receiverId } = req.body;
+    
     const exist = await Conversation.findOne({
       members: { $all: [senderId, receiverId] },
       type: 'private'
     });
+    
     if(exist) return res.status(200).json(exist);
+    
     const newConv = new Conversation({
       members: [senderId, receiverId],
       type: 'private',
-      lastMessage: {
-          readBy: [senderId] // Người tạo coi như đã đọc
-      }
+      lastMessage: { readBy: [senderId] }
     });
+    
     const saved = await newConv.save();
     res.status(200).json(saved);
   } catch (err) {
@@ -24,7 +32,9 @@ export const createConversation = async (req, res) => {
   }
 };
 
-// Lấy danh sách chat (Sắp xếp theo tin nhắn mới nhất)
+// ============================================================
+// 2. LẤY DANH SÁCH CHAT (USER THƯỜNG)
+// ============================================================
 export const getConversations = async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -32,7 +42,8 @@ export const getConversations = async (req, res) => {
       members: { $in: [userId] },
     })
     .populate("members", "HoTen Avatar Email")
-    .sort({ "lastMessage.createdAt": -1 }); // Sort theo thời gian tin nhắn cuối
+    .sort({ "lastMessage.createdAt": -1 })
+    .lean(); 
     
     res.status(200).json(conversations);
   } catch (err) {
@@ -41,17 +52,50 @@ export const getConversations = async (req, res) => {
   }
 };
 
-// Lấy tin nhắn chi tiết & ĐÁNH DẤU LÀ ĐÃ ĐỌC
+// ============================================================
+// 3. [CORE FIX] LẤY DANH SÁCH CHAT CHO ADMIN
+// ============================================================
+export const getConversationsAdmin = async (req, res) => {
+  try {
+    const adminId = req.params.userId;
+    
+    const conversations = await Conversation.find({
+      $or: [
+        { members: { $in: [adminId] } },
+        { type: 'complaint' },          
+        { type: 'group' }                
+      ]
+    })
+    .populate("members", "HoTen Avatar Email username") 
+    .populate("lastMessage.sender", "HoTen Avatar")
+    
+    // ❌ [XÓA DÒNG NÀY ĐI] Nó chính là nguyên nhân gây lỗi!
+    // .populate("lastMessage.readBy", "_id") 
+    // -----------------------------------------------------
+
+    .populate("complaint_id") 
+    .sort({ "updatedAt": -1 })
+    .lean(); 
+
+    res.status(200).json(conversations);
+  } catch (err) {
+    console.error("❌ Lỗi getConversationsAdmin:", err);
+    res.status(500).json(err);
+  }
+};
+
+// ============================================================
+// 4. LẤY TIN NHẮN CHI TIẾT
+// ============================================================
 export const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    // Lấy userId từ query hoặc middleware (giả sử bạn gửi kèm userId hoặc lấy từ token)
-    // Để đơn giản, ta sẽ lấy từ req.query.userId nếu frontend gửi lên, hoặc bỏ qua bước đánh dấu ở đây nếu không có
     const userId = req.query.userId; 
 
-    const messages = await Message.find({ conversationId });
+    const messages = await Message.find({ conversationId }).lean();
 
-    // 🔥 CẬP NHẬT TRẠNG THÁI ĐÃ ĐỌC (READ)
+    // Logic này chỉ chạy nếu Frontend gửi kèm ?userId=... (thường là không gửi)
+    // Frontend dùng API markAsRead riêng bên dưới nên đoạn này dự phòng thôi
     if (userId) {
         await Conversation.findByIdAndUpdate(conversationId, {
             $addToSet: { "lastMessage.readBy": userId }
@@ -64,34 +108,43 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// API đánh dấu đã đọc (Gọi khi user click vào chat)
+// ============================================================
+// 5. API ĐÁNH DẤU ĐÃ ĐỌC (QUAN TRỌNG)
+// ============================================================
 export const markAsRead = async (req, res) => {
     try {
         const { conversationId, userId } = req.body;
+        
+        // Sử dụng $addToSet để đảm bảo ID không bị trùng
         await Conversation.findByIdAndUpdate(conversationId, {
             $addToSet: { "lastMessage.readBy": userId }
         });
+        
         res.status(200).json({ success: true });
     } catch (error) {
         res.status(500).json(error);
     }
 };
 
-// Tạo/Lấy nhóm chat KHIẾU NẠI
+// ============================================================
+// 6. TẠO/LẤY NHÓM CHAT KHIẾU NẠI
+// ============================================================
 export const getComplaintConversation = async (req, res) => {
     try {
         const { complaintId, customerId, photographerId, adminId } = req.body;
+        
         let conversation = await Conversation.findOne({
             complaint_id: complaintId,
             type: 'complaint'
         });
+
         if (!conversation) {
             const rawMembers = [customerId, photographerId, adminId].filter(id => id);
             conversation = new Conversation({
                 members: rawMembers, 
                 type: 'complaint',
                 complaint_id: complaintId,
-                lastMessage: { readBy: rawMembers }
+                lastMessage: { readBy: rawMembers } 
             });
             await conversation.save();
         } else {
@@ -106,7 +159,9 @@ export const getComplaintConversation = async (req, res) => {
     }
 };
 
-// Gửi tin nhắn
+// ============================================================
+// 7. GỬI TIN NHẮN
+// ============================================================
 export const addMessage = async (req, res) => {
   try {
     const { conversationId, senderId, text } = req.body;
@@ -130,13 +185,14 @@ export const addMessage = async (req, res) => {
         lastMsgContent = "[Hình ảnh]";
     }
 
-    // 🔥 Cập nhật Last Message và RESET mảng readBy (chỉ có người gửi là đã đọc)
+    // Khi có tin nhắn mới, reset mảng readBy chỉ còn người gửi
     await Conversation.findByIdAndUpdate(conversationId, {
         lastMessage: {
             text: lastMsgContent,
             sender: senderId,
-            readBy: [senderId], // Reset người đã đọc
-            createdAt: Date.now()
+            readBy: [senderId], 
+            createdAt: Date.now(),
+            images: images
         },
         updatedAt: Date.now()
     });
@@ -148,19 +204,17 @@ export const addMessage = async (req, res) => {
   }
 };
 
-// [GET] Lấy số lượng tin nhắn chưa đọc (Dựa trên readBy)
+// ============================================================
+// 8. LẤY SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC
+// ============================================================
 export const getUnreadCount = async (req, res) => {
     try {
         const userId = req.params.userId;
-
-        // Đếm số cuộc hội thoại mà user LÀ thành viên NHƯNG KHÔNG nằm trong readBy của lastMessage
-        // Và tin nhắn đó phải tồn tại
         const count = await Conversation.countDocuments({
             members: { $in: [userId] },
-            "lastMessage.sender": { $ne: null }, // Đảm bảo có tin nhắn
-            "lastMessage.readBy": { $ne: userId } // ID chưa nằm trong mảng readBy
+            "lastMessage.sender": { $ne: null },
+            "lastMessage.readBy": { $ne: userId }
         });
-
         res.status(200).json({ count });
     } catch (err) {
         console.error("❌ Lỗi getUnreadCount:", err);

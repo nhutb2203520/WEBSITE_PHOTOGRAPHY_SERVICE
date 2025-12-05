@@ -7,8 +7,8 @@ import MainLayout from '../../layouts/MainLayout/MainLayout';
 import './AboutWeb.css';
 
 // Import hình ảnh (Đảm bảo đường dẫn đúng)
-import OWNER_IMG from '../../assets/image/owner.jpg';
-import PHOTO_IMG from '../../assets/image/photographer.jpg';
+import OWNER_IMG from '../../assets/image/MinhNhut.jpg';
+import PHOTO_IMG from '../../assets/image/YenTrung.jpg';
 
 export default function AboutWeb() {
   return (
@@ -36,12 +36,16 @@ export default function AboutWeb() {
           <section className="about-section">
             <h3>Quy trình dịch vụ</h3>
             <ol>
-              <li>Chọn gói dịch vụ → chọn ngày giờ → đặt lịch.</li>
-              <li>Nhiếp ảnh gia xem yêu cầu → xác nhận lịch.</li>
-              <li>Thanh toán cọc trong 12h để giữ chỗ.</li>
-              <li>Thực hiện buổi chụp → nhận sản phẩm.</li>
-              <li>Thanh toán phần còn lại → hoàn tất đơn hàng.</li>
-              <li>Đánh giá dịch vụ và nhắn tin phản hồi nếu cần.</li>
+              <li>Chọn gói dịch vụ → chọn ngày giờ → Vị trí → Đặt lịch → Thanh toán cọc (30%) </li>
+              <li>Admin xác nhận thanh toán cọc</li>
+              <li>Khách hàng, nhiếp ảnh gia có thể trao đổi bằng tin nhắn</li>
+              <li>Thực hiện buổi chụp → Thanh toán phần còn lại (70%).</li>
+              <li>Nhiếp ảnh gia giao ảnh chỉnh → Khách hàng kiểm tra</li>
+              <li>Ưng ý → Xác nhận hoàn thành và đánh giá</li>
+              <li>Không ưng ý có thể trao đổi lại nhiếp ảnh gia</li>
+              <li>2 bên thỏa thuận không thành công → Khiếu nại</li>
+              <li>Admin xem xét khiếu nại → Thảo luận lại và đưa ra hướng giải quyết</li>
+              <li>Admin xác nhận giải quyết khiếu nại → Hoàn thành đơn hàng</li>
             </ol>
           </section>
 
@@ -61,15 +65,15 @@ export default function AboutWeb() {
                         onError={(e) => e.target.src = 'https://via.placeholder.com/150'} 
                     />
                 </div>
-                <h4>Nguyễn Văn Quản</h4>
+                <h4>MINH NHỰT</h4>
                 <p className="role">Chủ sở hữu</p>
                 <p className="description">
                   Người vận hành website, có nhiều năm kinh nghiệm trong quản lý studio và dịch vụ chụp ảnh chuyên nghiệp.
                 </p>
                 <div className="social-links">
-                  <a href="#" target="_blank" rel="noreferrer"><Facebook size={20}/></a>
-                  <a href="#" target="_blank" rel="noreferrer"><Instagram size={20}/></a>
-                  <a href="#" target="_blank" rel="noreferrer"><Linkedin size={20}/></a>
+                  <a href="https://www.facebook.com/minh.nhut.428229/" target="_blank" rel="noreferrer"><Facebook size={20}/></a>
+                  <a href="https://www.facebook.com/minh.nhut.428229/" target="_blank" rel="noreferrer"><Instagram size={20}/></a>
+                  <a href="https://www.facebook.com/minh.nhut.428229/" target="_blank" rel="noreferrer"><Linkedin size={20}/></a>
                 </div>
               </div>
 
@@ -84,15 +88,15 @@ export default function AboutWeb() {
                         onError={(e) => e.target.src = 'https://via.placeholder.com/150'} 
                     />
                 </div>
-                <h4>Trần Thị Bích</h4>
+                <h4>HUỲNH YÊN TRUNG</h4>
                 <p className="role">Photographer chuyên nghiệp</p>
                 <p className="description">
                   Sẵn sàng tư vấn khách hàng khi có khiếu nại hoặc yêu cầu đặc biệt về dịch vụ.
                 </p>
                 <div className="social-links">
-                  <a href="#" target="_blank" rel="noreferrer"><Facebook size={20}/></a>
-                  <a href="#" target="_blank" rel="noreferrer"><Instagram size={20}/></a>
-                  <a href="#" target="_blank" rel="noreferrer"><Linkedin size={20}/></a>
+                  <a href="https://www.facebook.com/trunghuynh0209" target="_blank" rel="noreferrer"><Facebook size={20}/></a>
+                  <a href="https://www.facebook.com/trunghuynh0209" target="_blank" rel="noreferrer"><Instagram size={20}/></a>
+                  <a href="https://www.facebook.com/trunghuynh0209" target="_blank" rel="noreferrer"><Linkedin size={20}/></a>
                 </div>
               </div>
 

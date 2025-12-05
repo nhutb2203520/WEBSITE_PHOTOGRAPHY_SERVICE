@@ -13,7 +13,6 @@ const chatApi = {
     return axiosClient.get(`/chat/message/${conversationId}`);
   },
   
-  // 🔥 Gửi tin nhắn (Text + Ảnh)
   addMessage: (data) => {
     return axiosClient.post("/chat/message", data, {
         headers: { "Content-Type": "multipart/form-data" }
@@ -25,9 +24,11 @@ const chatApi = {
   },
 
   // --- ADMIN APIS ---
+  // 🔥 [SỬA QUAN TRỌNG] Thêm chữ "/admin" vào đường dẫn
   getConversationsAdmin: (adminId) => {
-    return axiosAdmin.get(`/chat/${adminId}`);
+    return axiosAdmin.get(`/chat/admin/${adminId}`);
   },
+  
   getComplaintGroupAdmin: (data) => {
     return axiosAdmin.post("/chat/complaint-group", data);
   },

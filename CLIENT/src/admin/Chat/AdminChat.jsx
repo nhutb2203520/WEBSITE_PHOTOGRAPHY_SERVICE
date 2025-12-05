@@ -5,7 +5,7 @@ import {
     Image as ImageIcon, Paperclip, Smile,
     AlertTriangle, Hash, X,
     FileText, CheckCircle, UploadCloud,
-    ChevronLeft, ChevronRight // ✅ Thêm icon điều hướng
+    ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import axios from 'axios'; 
 
@@ -40,7 +40,7 @@ const AdminChat = () => {
     const [payoutProof, setPayoutProof] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ✅ State Lightbox Mới (Lưu index thay vì url)
+    // State Lightbox
     const [lightboxIndex, setLightboxIndex] = useState(-1);
 
     const socket = useRef();
@@ -53,11 +53,9 @@ const AdminChat = () => {
         return path.startsWith('http') ? path : `${ENDPOINT}${path}`;
     };
 
-    // ✅ Gom tất cả ảnh trong chat thành 1 mảng phẳng để slide
     const allChatImages = useMemo(() => {
         return messages.reduce((acc, msg) => {
             if (msg.images && msg.images.length > 0) {
-                // Đảo ngược thứ tự ảnh trong 1 tin nhắn để khớp với hiển thị grid (nếu cần)
                 const imgUrls = msg.images.map(img => getImgUrl(img));
                 return [...acc, ...imgUrls];
             }
@@ -114,8 +112,14 @@ const AdminChat = () => {
                     if (isMyMessage) {
                         newReadBy = [myId]; 
                     } else if (currentChat && currentChat._id === arrivalMessage.conversationId) {
-                        if (!newReadBy.includes(myId)) newReadBy.push(myId); 
+                        // Nếu đang mở chat này thì tự động thêm mình vào ds đã đọc
+                        const alreadyRead = newReadBy.some(r => {
+                            const rId = (typeof r === 'object') ? r._id : r;
+                            return String(rId) === String(myId);
+                        });
+                        if (!alreadyRead) newReadBy.push(myId);
                     } else {
+                        // Tin nhắn mới từ người khác -> ds đã đọc chỉ có người gửi
                         newReadBy = [arrivalMessage.senderId]; 
                     }
 
@@ -151,23 +155,17 @@ const AdminChat = () => {
                     const data = res.data ? res.data : res;
 
                     if (Array.isArray(data)) {
-                        const sorted = data.sort((a, b) => {
-                            const dateA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt) : new Date(a.updatedAt);
-                            const dateB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt) : new Date(b.updatedAt);
-                            return dateB - dateA;
-                        });
-                        setConversations(sorted);
+                        setConversations(data);
                     }
                 } catch (err) {
                     console.error("❌ Lỗi lấy list chat:", err);
-                    setConversations([]);
                 }
             };
             getConversations();
         }
     }, [adminInfo]);
 
-    // 4. Get Messages
+    // 4. Get Messages (Sửa logic update readBy để ẩn số đỏ ngay lập tức)
     useEffect(() => {
         if (currentChat && adminInfo) {
             const myId = adminInfo._id || adminInfo.id;
@@ -182,11 +180,25 @@ const AdminChat = () => {
                         userId: myId
                     });
 
+                    // 🔥 UPDATE LOCAL STATE: Đánh dấu đã đọc ngay lập tức
                     setConversations(prev => prev.map(c => {
                         if (c._id === currentChat._id && c.lastMessage) {
                             const currentReadBy = c.lastMessage.readBy || [];
-                            if (!currentReadBy.includes(myId)) {
-                                return { ...c, lastMessage: { ...c.lastMessage, readBy: [...currentReadBy, myId] } };
+                            
+                            // Kiểm tra kỹ ID (dù là object hay string)
+                            const alreadyRead = currentReadBy.some(r => {
+                                const rId = (typeof r === 'object') ? r._id : r;
+                                return String(rId) === String(myId);
+                            });
+
+                            if (!alreadyRead) {
+                                return { 
+                                    ...c, 
+                                    lastMessage: { 
+                                        ...c.lastMessage, 
+                                        readBy: [...currentReadBy, myId] 
+                                    } 
+                                };
                             }
                         }
                         return c;
@@ -208,7 +220,7 @@ const AdminChat = () => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, previewImages]);
 
-    // ✅ Handle Keyboard for Lightbox
+    // Handle Keyboard
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (lightboxIndex === -1) return;
@@ -220,16 +232,30 @@ const AdminChat = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [lightboxIndex, allChatImages]);
 
-    // --- HELPER INFO ---
+    // ==========================================================
+    // 🔥 CORE LOGIC: LẤY THÔNG TIN & TRẠNG THÁI KHIẾU NẠI
+    // ==========================================================
     const getChatInfo = (conversation) => {
         if (!conversation) return { name: "Đang tải...", avatar: "", isGroup: false };
-        const myId = adminInfo?._id || adminInfo?.id;
         
-        const complaintObj = conversation.complaint_id; 
-        const complaintId = typeof complaintObj === 'object' ? complaintObj?._id : complaintObj;
-        const complaintStatus = typeof complaintObj === 'object' ? complaintObj?.status : null;
+        const complaintData = conversation.complaint_id; 
+        
+        let complaintId = null;
+        let complaintStatus = null;
 
-        const displayCode = complaintId && complaintId.length > 10 
+        if (complaintData) {
+            if (typeof complaintData === 'object' && complaintData !== null) {
+                // Đã populate
+                complaintId = complaintData._id;
+                complaintStatus = complaintData.status;
+            } else {
+                // Chưa populate (chỉ có ID string)
+                complaintId = complaintData;
+                complaintStatus = 'pending'; 
+            }
+        }
+
+        const displayCode = complaintId && typeof complaintId === 'string' && complaintId.length > 10 
             ? "#" + complaintId.slice(-6).toUpperCase() 
             : (complaintId ? "#" + complaintId : "");
 
@@ -247,6 +273,8 @@ const AdminChat = () => {
             };
         }
         
+        // Logic user thường
+        const myId = adminInfo?._id || adminInfo?.id;
         const validMembers = conversation.members?.filter(m => m !== null) || [];
         const otherMember = validMembers.find(m => {
             const memberId = typeof m === 'string' ? m : (m._id || m.id);
@@ -268,7 +296,6 @@ const AdminChat = () => {
         return { name: "Người dùng", avatar: null };
     };
 
-    // --- FILTER ---
     const filteredConversations = conversations.filter(c => {
         const info = getChatInfo(c);
         return (info.name || "").toLowerCase().includes(searchTerm.toLowerCase());
@@ -276,7 +303,6 @@ const AdminChat = () => {
     const complaintChats = filteredConversations.filter(c => getChatInfo(c).isComplaint);
     const normalChats = filteredConversations.filter(c => !getChatInfo(c).isComplaint);
 
-    // --- CHAT ACTIONS ---
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -334,7 +360,6 @@ const AdminChat = () => {
         } catch (error) { console.error("Lỗi gửi tin nhắn:", error); }
     };
 
-    // --- LIGHTBOX ACTIONS ---
     const openLightbox = (imgUrl) => {
         const idx = allChatImages.indexOf(imgUrl);
         if (idx !== -1) setLightboxIndex(idx);
@@ -350,15 +375,18 @@ const AdminChat = () => {
 
     // --- HANDLE RESOLVE COMPLAINT ---
     const handleResolveSubmit = async () => {
-        // ... (Logic giữ nguyên)
         if (!refundProof || !payoutProof) return alert("Vui lòng tải lên đầy đủ biên lai!");
         if ((Number(refundPercent) + Number(photographerPercent)) > 100) return alert("Tổng % không được quá 100%!");
 
         setIsSubmitting(true);
         try {
-            const complaintId = getChatInfo(currentChat).complaintId;
+            const chatInfo = getChatInfo(currentChat);
+            const complaintId = chatInfo.complaintId;
             if (!complaintId) return alert("Lỗi ID khiếu nại");
 
+            const myId = adminInfo._id || adminInfo.id;
+
+            // 1. API Call
             const formData = new FormData();
             formData.append("complaintId", complaintId);
             formData.append("refundPercent", refundPercent);
@@ -367,18 +395,67 @@ const AdminChat = () => {
             formData.append("payoutProof", payoutProof);
 
             await adminComplaintService.resolveComplaintManual(formData);
-            alert("Thành công!");
+
+            // 2. Auto Chat
+            const autoMessageText = `Đã giải quyết thủ công: Hoàn khách ${refundPercent}%, Trả thợ ${photographerPercent}%.`;
+            let savedMsg = null;
+            try {
+                const chatFormData = new FormData();
+                chatFormData.append("senderId", myId);
+                chatFormData.append("conversationId", currentChat._id);
+                chatFormData.append("text", autoMessageText);
+                const resChat = await chatApi.addMessage(chatFormData);
+                savedMsg = resChat.data || resChat;
+
+                if (socket.current) {
+                    socket.current.emit("send_message", {
+                        senderId: myId, conversationId: currentChat._id,
+                        text: savedMsg.text, images: savedMsg.images, createdAt: savedMsg.createdAt
+                    });
+                }
+            } catch (chatError) { console.error("Auto chat error", chatError); }
+
+            alert("Đã giải quyết thành công!");
             setShowResolveModal(false);
 
-            if (currentChat && typeof currentChat.complaint_id === 'object') {
-                setCurrentChat(prev => ({ ...prev, complaint_id: { ...prev.complaint_id, status: 'resolved' } }));
-            }
-            setConversations(prev => prev.map(c => {
-                if (c._id === currentChat._id && typeof c.complaint_id === 'object') {
-                    return { ...c, complaint_id: { ...c.complaint_id, status: 'resolved' } };
+            // 3. UI Update Logic (Force update)
+            const forceResolveStatus = (chatObj) => {
+                let oldData = chatObj.complaint_id;
+                const idVal = (oldData && typeof oldData === 'object') ? oldData._id : oldData;
+                return {
+                    ...chatObj,
+                    complaint_id: {
+                        _id: idVal,
+                        status: 'resolved' 
+                    }
+                };
+            };
+
+            setCurrentChat(prev => prev ? forceResolveStatus(prev) : prev);
+            
+            setConversations(prev => {
+                const index = prev.findIndex(c => c._id === currentChat._id);
+                if (index !== -1) {
+                    let updatedConv = forceResolveStatus(prev[index]);
+                    if (savedMsg) {
+                        updatedConv = { 
+                            ...updatedConv, 
+                            lastMessage: { text: savedMsg.text, sender: myId, readBy: [myId], createdAt: Date.now() }, 
+                            updatedAt: Date.now() 
+                        };
+                    }
+                    const newConvs = [...prev]; 
+                    newConvs.splice(index, 1); 
+                    newConvs.unshift(updatedConv); 
+                    return newConvs;
                 }
-                return c;
-            }));
+                return prev;
+            });
+
+            if (savedMsg) {
+                setMessages(prev => [...prev, { ...savedMsg, senderId: myId, createdAt: Date.now() }]);
+            }
+
         } catch (error) {
             alert("Lỗi: " + (error.message || "Thử lại"));
         } finally {
@@ -386,16 +463,27 @@ const AdminChat = () => {
         }
     };
 
-    // UI Component
+    // 🔥 [FIX QUAN TRỌNG] CHAT ITEM - XỬ LÝ UNREAD BADGE
     const ChatItem = ({ c }) => {
         const info = getChatInfo(c);
         const isActive = currentChat?._id === c._id;
         const myId = adminInfo?._id || adminInfo?.id;
+        
         const lastMsg = c.lastMessage || {};
-        const senderId = lastMsg.sender?._id || lastMsg.sender || lastMsg.senderId;
-        const isMyLastMsg = String(senderId) === String(myId);
-        const isRead = lastMsg.readBy?.includes(myId);
-        const isUnread = lastMsg.text && !isMyLastMsg && !isRead;
+        
+        // 1. Lấy ID người gửi (Xử lý cả Object và String)
+        const senderObj = lastMsg.sender;
+        const senderId = (senderObj && typeof senderObj === 'object') ? senderObj._id : senderObj;
+        
+        // 2. Kiểm tra xem Admin đã có trong danh sách readBy chưa
+        // Dùng .some() để duyệt mảng object/string một cách an toàn
+        const isRead = lastMsg.readBy?.some(reader => {
+            const readerId = (reader && typeof reader === 'object') ? reader._id : reader;
+            return String(readerId) === String(myId);
+        });
+
+        const isOwnMessage = senderId && String(senderId) === String(myId);
+        const isUnread = lastMsg.text && !isOwnMessage && !isRead;
 
         return (
              <div className={`chat-item ${isActive ? 'active' : ''}`} onClick={() => setCurrentChat(c)}>
@@ -414,7 +502,7 @@ const AdminChat = () => {
                     {info.subText && <span className="text-xs text-orange-600 font-medium mb-1 block">{info.subText}</span>}
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <p className={`chat-preview ${isUnread ? 'unread-preview' : ''}`}>
-                             {isMyLastMsg ? "Bạn: " : ""}
+                             {isOwnMessage ? "Bạn: " : ""}
                              {c.lastMessage?.text || (c.lastMessage?.images?.length > 0 ? "[Hình ảnh]" : "...")}
                         </p>
                         {isUnread && <div className="unread-dot-badge">1</div>}
@@ -425,7 +513,7 @@ const AdminChat = () => {
     };
 
     const currentChatInfo = getChatInfo(currentChat);
-    const isResolved = currentChatInfo.complaintStatus === 'resolved' || currentChatInfo.complaintStatus === 'completed';
+    const isResolved = currentChatInfo.complaintStatus === 'resolved';
 
     return (
         <div className="admin-layout">
@@ -435,7 +523,6 @@ const AdminChat = () => {
 
                 <div className="admin-chat-container">
                     <div className="chat-sidebar-area">
-                        {/* ... Sidebar content (giữ nguyên) ... */}
                         <div className="chat-sidebar-header">
                             <h3>Hỗ trợ khách hàng</h3>
                             <div className="chat-search-wrapper">
@@ -463,7 +550,6 @@ const AdminChat = () => {
                         {currentChat ? (
                             <>
                                 <div className="current-chat-header">
-                                    {/* ... Header content ... */}
                                     <div className="header-left">
                                         <div className="header-avatar">
                                             {currentChatInfo.isGroup ? (
@@ -490,8 +576,22 @@ const AdminChat = () => {
                                                 className={`resolve-btn ${isResolved ? 'resolved' : ''}`} 
                                                 onClick={() => { if (!isResolved) setShowResolveModal(true); }}
                                                 disabled={isResolved}
+                                                style={{
+                                                    backgroundColor: isResolved ? '#10b981' : '#3b82f6', 
+                                                    cursor: isResolved ? 'default' : 'pointer'
+                                                }}
                                             >
-                                                {isResolved ? <><CheckCircle size={16} style={{marginRight: 5}}/> Đã giải quyết</> : <><FileText size={16} style={{marginRight: 5}}/> Giải quyết & Hoàn tiền</>}
+                                                {isResolved ? (
+                                                    <>
+                                                        <CheckCircle size={16} style={{marginRight: 5}}/> 
+                                                        ĐÃ GIẢI QUYẾT
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FileText size={16} style={{marginRight: 5}}/> 
+                                                        Giải quyết & Hoàn tiền
+                                                    </>
+                                                )}
                                             </button>
                                         )}
                                         <button className="icon-btn"><Phone size={20}/></button>
@@ -517,7 +617,7 @@ const AdminChat = () => {
                                                                         src={getImgUrl(img)} 
                                                                         alt="" 
                                                                         className="msg-attached-image" 
-                                                                        onClick={() => openLightbox(getImgUrl(img))} // ✅ Click mở Lightbox
+                                                                        onClick={() => openLightbox(getImgUrl(img))} 
                                                                     />
                                                                 ))}
                                                             </div>
@@ -592,10 +692,9 @@ const AdminChat = () => {
                     </div>
                 )}
 
-                {/* ✅ LIGHTBOX MODAL CÓ NÚT CHUYỂN */}
+                {/* LIGHTBOX MODAL */}
                 {lightboxIndex !== -1 && (
                     <div className="image-zoom-overlay" onClick={() => setLightboxIndex(-1)}>
-                        {/* Nút Prev */}
                         <button className="lb-nav-btn prev" onClick={(e) => { e.stopPropagation(); navigateImage(-1); }}>
                             <ChevronLeft size={40} />
                         </button>
@@ -605,7 +704,6 @@ const AdminChat = () => {
                             <button className="close-zoom" onClick={() => setLightboxIndex(-1)}><X size={24}/></button>
                         </div>
 
-                        {/* Nút Next */}
                         <button className="lb-nav-btn next" onClick={(e) => { e.stopPropagation(); navigateImage(1); }}>
                             <ChevronRight size={40} />
                         </button>
