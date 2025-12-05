@@ -165,7 +165,7 @@ const AdminChat = () => {
         }
     }, [adminInfo]);
 
-    // 4. Get Messages (Sửa logic update readBy để ẩn số đỏ ngay lập tức)
+    // 4. Get Messages
     useEffect(() => {
         if (currentChat && adminInfo) {
             const myId = adminInfo._id || adminInfo.id;
@@ -180,12 +180,10 @@ const AdminChat = () => {
                         userId: myId
                     });
 
-                    // 🔥 UPDATE LOCAL STATE: Đánh dấu đã đọc ngay lập tức
+                    // Update local state read status
                     setConversations(prev => prev.map(c => {
                         if (c._id === currentChat._id && c.lastMessage) {
                             const currentReadBy = c.lastMessage.readBy || [];
-                            
-                            // Kiểm tra kỹ ID (dù là object hay string)
                             const alreadyRead = currentReadBy.some(r => {
                                 const rId = (typeof r === 'object') ? r._id : r;
                                 return String(rId) === String(myId);
@@ -220,7 +218,6 @@ const AdminChat = () => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, previewImages]);
 
-    // Handle Keyboard
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (lightboxIndex === -1) return;
@@ -233,23 +230,20 @@ const AdminChat = () => {
     }, [lightboxIndex, allChatImages]);
 
     // ==========================================================
-    // 🔥 CORE LOGIC: LẤY THÔNG TIN & TRẠNG THÁI KHIẾU NẠI
+    // HELPER FUNCTIONS
     // ==========================================================
     const getChatInfo = (conversation) => {
         if (!conversation) return { name: "Đang tải...", avatar: "", isGroup: false };
         
         const complaintData = conversation.complaint_id; 
-        
         let complaintId = null;
         let complaintStatus = null;
 
         if (complaintData) {
             if (typeof complaintData === 'object' && complaintData !== null) {
-                // Đã populate
                 complaintId = complaintData._id;
                 complaintStatus = complaintData.status;
             } else {
-                // Chưa populate (chỉ có ID string)
                 complaintId = complaintData;
                 complaintStatus = 'pending'; 
             }
@@ -273,7 +267,6 @@ const AdminChat = () => {
             };
         }
         
-        // Logic user thường
         const myId = adminInfo?._id || adminInfo?.id;
         const validMembers = conversation.members?.filter(m => m !== null) || [];
         const otherMember = validMembers.find(m => {
@@ -373,7 +366,7 @@ const AdminChat = () => {
         setLightboxIndex(newIndex);
     };
 
-    // --- HANDLE RESOLVE COMPLAINT ---
+    // --- HANDLE RESOLVE COMPLAINT (ĐÃ SỬA) ---
     const handleResolveSubmit = async () => {
         if (!refundProof || !payoutProof) return alert("Vui lòng tải lên đầy đủ biên lai!");
         if ((Number(refundPercent) + Number(photographerPercent)) > 100) return alert("Tổng % không được quá 100%!");
@@ -386,7 +379,7 @@ const AdminChat = () => {
 
             const myId = adminInfo._id || adminInfo.id;
 
-            // 1. API Call
+            // 1. API Call (Giải quyết & Lưu DB Complaints)
             const formData = new FormData();
             formData.append("complaintId", complaintId);
             formData.append("refundPercent", refundPercent);
@@ -396,7 +389,7 @@ const AdminChat = () => {
 
             await adminComplaintService.resolveComplaintManual(formData);
 
-            // 2. Auto Chat
+            // 2. Tự động gửi tin nhắn thông báo vào Chat
             const autoMessageText = `Đã giải quyết thủ công: Hoàn khách ${refundPercent}%, Trả thợ ${photographerPercent}%.`;
             let savedMsg = null;
             try {
@@ -404,6 +397,12 @@ const AdminChat = () => {
                 chatFormData.append("senderId", myId);
                 chatFormData.append("conversationId", currentChat._id);
                 chatFormData.append("text", autoMessageText);
+                
+                // 🔥 [FIX QUAN TRỌNG] Gửi kèm 2 ảnh bằng chứng vào tin nhắn chat
+                // Lưu ý: Key phải là "images" để khớp với upload.array("images") ở Backend
+                if (refundProof) chatFormData.append("images", refundProof);
+                if (payoutProof) chatFormData.append("images", payoutProof);
+
                 const resChat = await chatApi.addMessage(chatFormData);
                 savedMsg = resChat.data || resChat;
 
@@ -418,7 +417,7 @@ const AdminChat = () => {
             alert("Đã giải quyết thành công!");
             setShowResolveModal(false);
 
-            // 3. UI Update Logic (Force update)
+            // 3. UI Update (Force UI to Resolved)
             const forceResolveStatus = (chatObj) => {
                 let oldData = chatObj.complaint_id;
                 const idVal = (oldData && typeof oldData === 'object') ? oldData._id : oldData;
@@ -463,20 +462,15 @@ const AdminChat = () => {
         }
     };
 
-    // 🔥 [FIX QUAN TRỌNG] CHAT ITEM - XỬ LÝ UNREAD BADGE
     const ChatItem = ({ c }) => {
         const info = getChatInfo(c);
         const isActive = currentChat?._id === c._id;
         const myId = adminInfo?._id || adminInfo?.id;
         
         const lastMsg = c.lastMessage || {};
-        
-        // 1. Lấy ID người gửi (Xử lý cả Object và String)
         const senderObj = lastMsg.sender;
         const senderId = (senderObj && typeof senderObj === 'object') ? senderObj._id : senderObj;
         
-        // 2. Kiểm tra xem Admin đã có trong danh sách readBy chưa
-        // Dùng .some() để duyệt mảng object/string một cách an toàn
         const isRead = lastMsg.readBy?.some(reader => {
             const readerId = (reader && typeof reader === 'object') ? reader._id : reader;
             return String(readerId) === String(myId);
