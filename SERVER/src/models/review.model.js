@@ -5,7 +5,7 @@ const ReviewSchema = new mongoose.Schema(
     // ✅ Đơn hàng nào được đánh giá
     OrderId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Order', 
+      ref: 'Orders', // 🔥 [SỬA LẠI] Khớp với tên model trong order.model.js
       required: true,
     },
     
@@ -19,14 +19,14 @@ const ReviewSchema = new mongoose.Schema(
     // ✅ Photographer bị đánh giá
     PhotographerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'KhachHang',
+      ref: 'bangKhachHang', // 🔥 [SỬA LẠI] Khớp với tên model User của bạn
       required: true,
     },
     
     // ✅ Khách hàng đánh giá
     CustomerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'KhachHang',
+      ref: 'bangKhachHang', // 🔥 [SỬA LẠI] Khớp với tên model User của bạn
       required: true,
     },
     
@@ -50,7 +50,7 @@ const ReviewSchema = new mongoose.Schema(
       type: String,
     }],
     
-    // ✅ Trạng thái chỉnh sửa (Cho phép sửa 1 lần)
+    // ✅ Trạng thái chỉnh sửa
     is_edited: {
         type: Boolean,
         default: false
@@ -63,7 +63,6 @@ const ReviewSchema = new mongoose.Schema(
       default: 'approved',
     },
     
-    // ✅ Helpful count (số người thấy hữu ích)
     HelpfulCount: {
       type: Number,
       default: 0,
@@ -75,48 +74,48 @@ const ReviewSchema = new mongoose.Schema(
   }
 );
 
-// ✅ Index
+// Index
 ReviewSchema.index({ PackageId: 1, Status: 1 });
 ReviewSchema.index({ PhotographerId: 1, Status: 1 });
 ReviewSchema.index({ CustomerId: 1 });
-ReviewSchema.index({ OrderId: 1 }, { unique: true }); // Mỗi đơn chỉ đánh giá 1 lần
+ReviewSchema.index({ OrderId: 1 }, { unique: true });
 
-// ✅ Middleware: Tự động cập nhật rating của package khi tạo/xóa/sửa review
+// --- MIDDLEWARE TÍNH ĐIỂM ĐÁNH GIÁ TRUNG BÌNH ---
 const updatePackageRating = async (packageId, ServicePackage) => {
-  const Review = mongoose.model('Review');
-  
-  const reviews = await Review.find({
-    PackageId: packageId,
-    Status: 'approved'
-  });
-  
-  if (reviews.length === 0) {
-    await ServicePackage.findByIdAndUpdate(packageId, {
-      DanhGia: 0,
-      SoLuotDanhGia: 0
-    });
-    return;
+  try {
+      const Review = mongoose.model('Review');
+      
+      const reviews = await Review.find({
+        PackageId: packageId,
+        Status: 'approved'
+      });
+      
+      if (reviews.length === 0) {
+        await ServicePackage.findByIdAndUpdate(packageId, {
+          DanhGia: 0,
+          SoLuotDanhGia: 0
+        });
+        return;
+      }
+      
+      const totalRating = reviews.reduce((sum, r) => sum + r.Rating, 0);
+      const avgRating = (totalRating / reviews.length).toFixed(1); // Làm tròn 1 số thập phân
+      
+      await ServicePackage.findByIdAndUpdate(packageId, {
+        DanhGia: parseFloat(avgRating),
+        SoLuotDanhGia: reviews.length
+      });
+  } catch (err) {
+      console.error("Lỗi cập nhật rating package:", err);
   }
-  
-  const totalRating = reviews.reduce((sum, r) => sum + r.Rating, 0);
-  const avgRating = totalRating / reviews.length;
-  
-  await ServicePackage.findByIdAndUpdate(packageId, {
-    DanhGia: avgRating,
-    SoLuotDanhGia: reviews.length
-  });
 };
 
 ReviewSchema.post('save', async function() {
-  const ServicePackage = mongoose.model('ServicePackage');
-  await updatePackageRating(this.PackageId, ServicePackage);
+  // Cần try-catch để tránh crash nếu model chưa đăng ký
+  try {
+      const ServicePackage = mongoose.model('ServicePackage');
+      await updatePackageRating(this.PackageId, ServicePackage);
+  } catch (e) { console.log("ServicePackage model chưa load"); }
 });
 
-ReviewSchema.post('remove', async function() {
-  const ServicePackage = mongoose.model('ServicePackage');
-  await updatePackageRating(this.PackageId, ServicePackage);
-});
-
-const Review = mongoose.model('Review', ReviewSchema);
-
-export default Review;
+export default mongoose.model("Review", ReviewSchema);

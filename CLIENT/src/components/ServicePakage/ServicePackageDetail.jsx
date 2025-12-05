@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   Star, Heart, MapPin, Clock, Check, Phone, Mail, Camera, ArrowLeft, Share2, 
-  MessageCircle, ChevronLeft, ChevronRight, Truck, Info, CalendarDays, AlertTriangle
+  MessageCircle, ChevronLeft, ChevronRight, Truck, Info, CalendarDays, AlertTriangle, ChevronDown, X
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import axios from 'axios'; 
 import './ServicePackageDetail.css';
 
 // Import Layout
@@ -13,24 +14,37 @@ import MainLayout from '../../layouts/MainLayout/MainLayout';
 
 // Import APIs
 import servicePackageApi from '../../apis/ServicePackageService';
-import chatApi from '../../apis/chatApi'; // ✅ Import API Chat
+import chatApi from '../../apis/chatApi'; 
 
 // Import Component Chat
-import ChatMessage from '../ChatMessage/ChatMessage'; // ✅ Import Component Chat (Kiểm tra lại đường dẫn nếu cần)
+import ChatMessage from '../ChatMessage/ChatMessage'; 
 
 export default function ServicePackageDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector(state => state.user);
   
+  // --- STATE DỮ LIỆU ---
   const [packageData, setPackageData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // State cho ảnh chính của gói (Banner)
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
+  
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
 
-  // ✅ State quản lý Chat
+  // ✅ STATE ĐÁNH GIÁ (REVIEW)
+  const [reviews, setReviews] = useState([]);
+  const [visibleReviews, setVisibleReviews] = useState(3);
+
+  // ✅ NEW: STATE CHO ZOOM ẢNH REVIEW
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewImagesList, setReviewImagesList] = useState([]); // Danh sách ảnh của review đang xem
+  const [currentReviewImgIndex, setCurrentReviewImgIndex] = useState(0);
+
+  // ✅ STATE CHAT
   const [showChat, setShowChat] = useState(false);
   const [chatConversation, setChatConversation] = useState(null);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
@@ -42,8 +56,20 @@ export default function ServicePackageDetail() {
   const fetchPackageDetail = async () => {
     try {
       setLoading(true);
+      
+      // 1. Lấy thông tin gói dịch vụ
       const data = await servicePackageApi.getPackageById(id);
       setPackageData(data);
+
+      // 2. Lấy danh sách đánh giá của Nhiếp ảnh gia
+      if (data && data.PhotographerId) {
+          const photographerId = typeof data.PhotographerId === 'object' 
+            ? data.PhotographerId._id 
+            : data.PhotographerId;
+          
+          fetchReviews(photographerId);
+      }
+
     } catch (error) {
       console.error('❌ Error fetching package detail:', error);
       toast.error('Không thể tải thông tin gói dịch vụ');
@@ -53,6 +79,24 @@ export default function ServicePackageDetail() {
     }
   };
 
+  // HÀM LẤY ĐÁNH GIÁ
+  const fetchReviews = async (photographerId) => {
+      try {
+          const res = await axios.get(`http://localhost:5000/api/reviews?photographerId=${photographerId}`);
+          const fetchedData = res.data?.data || []; 
+          const approvedReviews = Array.isArray(fetchedData) ? fetchedData : [];
+          setReviews(approvedReviews);
+      } catch (error) {
+          console.error("❌ Lỗi lấy đánh giá:", error);
+          setReviews([]);
+      }
+  };
+
+  const handleLoadMoreReviews = () => {
+      setVisibleReviews(prev => prev + 5);
+  };
+
+  // --- CÁC HÀM TIỆN ÍCH ---
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return "https://via.placeholder.com/1200x600?text=No+Image";
     if (imageUrl.startsWith("http")) return imageUrl;
@@ -110,40 +154,31 @@ export default function ServicePackageDetail() {
     navigate('/order-service', { state: { packageId: id } });
   };
 
-  // ✅ LOGIC XỬ LÝ NHẮN TIN VỚI NHIẾP ẢNH GIA
+  // --- LOGIC CHAT ---
   const handleContactPhotographer = async () => {
-    // 1. Kiểm tra đăng nhập
     if (!user) {
       toast.info('Vui lòng đăng nhập để liên hệ');
       navigate('/signin', { state: { from: `/package/${id}` } });
       return;
     }
-
-    // 2. Kiểm tra dữ liệu Photographer
     const photographer = packageData?.PhotographerId;
     if (!photographer) {
         toast.error("Không tìm thấy thông tin nhiếp ảnh gia");
         return;
     }
-
-    // 3. Lấy ID (xử lý trường hợp populate object hoặc string ID)
     const photographerId = photographer._id || photographer;
     const myId = user._id || user.id;
 
-    // 4. Chặn tự chat với chính mình
     if (photographerId === myId) {
         toast.info("Bạn không thể nhắn tin cho chính mình!");
         return;
     }
-
-    // 5. Gọi API tạo hội thoại
     setIsCreatingChat(true);
     try {
         const res = await chatApi.createConversation(myId, photographerId);
         const conversationData = res.data || res;
-
         setChatConversation(conversationData);
-        setShowChat(true); // Mở modal chat
+        setShowChat(true); 
     } catch (error) {
         console.error("Lỗi tạo hội thoại:", error);
         toast.error("Không thể kết nối trò chuyện lúc này.");
@@ -152,41 +187,40 @@ export default function ServicePackageDetail() {
     }
   };
 
+  // --- LOGIC ẢNH GÓI (BANNER) ---
   const nextImage = () => {
     const images = getAllImages();
-    if (images.length > 0) {
-      setCurrentImageIndex((prev) => (prev + 1) % images.length);
-    }
+    if (images.length > 0) setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
-
   const prevImage = () => {
     const images = getAllImages();
-    if (images.length > 0) {
-      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    if (images.length > 0) setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  // ✅ NEW: LOGIC ZOOM ẢNH REVIEW
+  const openReviewImageModal = (images, index) => {
+    setReviewImagesList(images);
+    setCurrentReviewImgIndex(index);
+    setShowReviewModal(true);
+  };
+
+  const nextReviewImage = (e) => {
+    e.stopPropagation();
+    if (reviewImagesList.length > 0) {
+      setCurrentReviewImgIndex((prev) => (prev + 1) % reviewImagesList.length);
     }
   };
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="package-detail-loading">
-          <div className="spinner"></div>
-          <p>Đang tải thông tin gói dịch vụ...</p>
-        </div>
-      </MainLayout>
-    );
-  }
+  const prevReviewImage = (e) => {
+    e.stopPropagation();
+    if (reviewImagesList.length > 0) {
+      setCurrentReviewImgIndex((prev) => (prev - 1 + reviewImagesList.length) % reviewImagesList.length);
+    }
+  };
 
-  if (!packageData) {
-    return (
-      <MainLayout>
-        <div className="package-detail-error">
-          <h2>Không tìm thấy gói dịch vụ</h2>
-          <Link to="/service-package" className="btn-back">Quay lại danh sách</Link>
-        </div>
-      </MainLayout>
-    );
-  }
+
+  if (loading) return <MainLayout><div className="package-detail-loading"><div className="spinner"></div><p>Đang tải...</p></div></MainLayout>;
+  if (!packageData) return <MainLayout><div className="package-detail-error"><h2>Không tìm thấy gói</h2><Link to="/service-package" className="btn-back">Quay lại</Link></div></MainLayout>;
 
   const { min: minPrice, max: maxPrice } = getPriceRange(packageData.DichVu);
   const images = getAllImages();
@@ -196,30 +230,23 @@ export default function ServicePackageDetail() {
       <div className="package-detail-page">
         <div className="container">
           <button onClick={() => navigate(-1)} className="btn-back-nav">
-            <ArrowLeft size={20} />
-            Quay lại
+            <ArrowLeft size={20} /> Quay lại
           </button>
         </div>
 
         <div className="container">
           <div className="package-detail-content">
             
-            {/* LEFT SIDE - IMAGES & DETAILS */}
+            {/* --- CỘT TRÁI --- */}
             <div className="package-images-section">
               
-              {/* Main Image Gallery */}
+              {/* Ảnh chính & Thumbnail */}
               <div className="package-main-image">
                 {images.length > 0 ? (
-                  <img 
-                    src={getImageUrl(images[currentImageIndex])}
-                    alt={packageData.TenGoi}
-                    onClick={() => setShowImageModal(true)}
-                    onError={(e) => { e.target.src = "https://via.placeholder.com/1200x600?text=No+Image"; }}
-                  />
+                  <img src={getImageUrl(images[currentImageIndex])} alt={packageData.TenGoi} onClick={() => setShowImageModal(true)} />
                 ) : (
                   <img src="https://via.placeholder.com/1200x600?text=Chưa+có+ảnh" alt="No images" />
                 )}
-                
                 {images.length > 1 && (
                   <>
                     <button onClick={prevImage} className="image-nav-btn prev"><ChevronLeft size={24} /></button>
@@ -228,31 +255,20 @@ export default function ServicePackageDetail() {
                   </>
                 )}
               </div>
-
-              {/* Thumbnail Gallery */}
               {images.length > 1 && (
                 <div className="thumbnail-gallery">
                   {images.map((img, index) => (
-                    <div
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`thumbnail-item ${currentImageIndex === index ? 'active' : ''}`}
-                    >
-                      <img 
-                        src={getImageUrl(img)}
-                        alt={`Thumbnail ${index + 1}`}
-                        onError={(e) => { e.target.src = "https://via.placeholder.com/120x80?text=No+Image"; }}
-                      />
+                    <div key={index} onClick={() => setCurrentImageIndex(index)} className={`thumbnail-item ${currentImageIndex === index ? 'active' : ''}`}>
+                      <img src={getImageUrl(img)} alt={`Thumb ${index}`} onError={(e) => { e.target.src = "https://via.placeholder.com/120x80?text=Err"; }} />
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Description Section */}
+              {/* Mô tả */}
               <section className="package-section">
                 <h2>Mô tả chi tiết</h2>
                 <p className="package-description">{packageData.MoTa}</p>
-                
                 <div className="flex gap-4 mt-4 items-center flex-wrap">
                     <div className="created-date">
                         <CalendarDays size={16} />
@@ -261,16 +277,12 @@ export default function ServicePackageDetail() {
                 </div>
               </section>
 
-              {/* Services Included */}
+              {/* Dịch vụ bao gồm */}
               <section className="package-section">
                 <h2>Dịch vụ bao gồm</h2>
                 <div className="services-grid">
                   {packageData.DichVu?.map((service, index) => (
-                    <div 
-                      key={index} 
-                      className={`service-card ${selectedService === index ? 'selected' : ''}`}
-                      onClick={() => setSelectedService(index)}
-                    >
+                    <div key={index} className={`service-card ${selectedService === index ? 'selected' : ''}`} onClick={() => setSelectedService(index)}>
                       <div className="service-icon"><Check size={20} /></div>
                       <div className="service-info">
                         <h3>{service.name}</h3>
@@ -281,7 +293,74 @@ export default function ServicePackageDetail() {
                 </div>
               </section>
 
-              {/* Base Location Section */}
+              {/* ✅ VỊ TRÍ MỚI: ĐÁNH GIÁ (Nằm ngay sau dịch vụ để dễ thấy nhất) */}
+              <section className="package-section" id="reviews-section">
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: '15px'}}>
+                   <h2>Đánh giá từ khách hàng ({reviews.length})</h2>
+                   <div style={{display:'flex', alignItems:'center', gap:'5px', color:'#fbbf24', fontWeight:'bold'}}>
+                      <span style={{fontSize:'24px'}}>{(packageData.DanhGia || 0).toFixed(1)}</span> <Star fill="#fbbf24" size={24} />
+                   </div>
+                </div>
+                
+                {reviews.length > 0 ? (
+                  <div className="reviews-list-container">
+                    {reviews.slice(0, visibleReviews).map((review, index) => (
+                      <div key={index} className="review-item-card">
+                        <div className="review-avatar-col">
+                          <img 
+                            src={getImageUrl(review.CustomerId?.Avatar)} 
+                            alt="User" 
+                            className="review-user-avatar" 
+                            onError={(e) => e.target.src = "https://via.placeholder.com/50?text=U"}
+                          />
+                        </div>
+                        <div className="review-content-col">
+                          <div className="review-header">
+                            <span className="review-user-name">{review.CustomerId?.HoTen || 'Người dùng ẩn danh'}</span>
+                            <div className="review-stars-row">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={14} fill={i < review.Rating ? "#fbbf24" : "#e5e7eb"} color={i < review.Rating ? "#fbbf24" : "#e5e7eb"}/>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="review-text">{review.Comment}</p>
+                          
+                          {/* ✅ Ảnh đánh giá có tính năng CLICK ZOOM */}
+                          {review.Images && review.Images.length > 0 && (
+                            <div className="review-images-row">
+                              {review.Images.map((img, idx) => (
+                                <img 
+                                  key={idx} 
+                                  src={getImageUrl(img)} 
+                                  alt="Review" 
+                                  className="review-img-thumb" 
+                                  style={{cursor: 'zoom-in', objectFit: 'cover', width: '80px', height: '80px', borderRadius: '8px', border: '1px solid #eee'}}
+                                  onClick={() => openReviewImageModal(review.Images, idx)}
+                                />
+                              ))}
+                            </div>
+                          )}
+                          <span className="review-date">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {visibleReviews < reviews.length && (
+                      <div className="load-more-reviews-wrapper">
+                        <button className="btn-load-more-reviews" onClick={handleLoadMoreReviews}>
+                          Xem thêm đánh giá <ChevronDown size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="no-reviews-state">
+                    <p>Chưa có đánh giá nào cho nhiếp ảnh gia này.</p>
+                  </div>
+                )}
+              </section>
+
+              {/* Địa điểm */}
               {packageData.baseLocation && (packageData.baseLocation.address || packageData.baseLocation.city) && (
                 <section className="package-section">
                   <h2>Khu vực hoạt động</h2>
@@ -290,22 +369,9 @@ export default function ServicePackageDetail() {
                       <MapPin size={20} className="text-red-500" />
                       <div>
                         <strong>Địa điểm cơ sở: </strong>
-                        <span>
-                          {[
-                            packageData.baseLocation.address, 
-                            packageData.baseLocation.district, 
-                            packageData.baseLocation.city
-                          ].filter(Boolean).join(', ')}
-                        </span>
+                        <span>{[packageData.baseLocation.address, packageData.baseLocation.district, packageData.baseLocation.city].filter(Boolean).join(', ')}</span>
                         {packageData.baseLocation.mapLink && (
-                          <a 
-                            href={packageData.baseLocation.mapLink} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="map-link-text"
-                          >
-                            (Xem bản đồ)
-                          </a>
+                          <a href={packageData.baseLocation.mapLink} target="_blank" rel="noopener noreferrer" className="map-link-text">(Xem bản đồ)</a>
                         )}
                       </div>
                     </div>
@@ -313,48 +379,16 @@ export default function ServicePackageDetail() {
                 </section>
               )}
 
-              {/* Travel Fee Policy Section */}
+              {/* Phí di chuyển */}
               {packageData.travelFeeConfig && packageData.travelFeeConfig.enabled && (
                 <section className="package-section">
                   <h2>Chính sách phí di chuyển</h2>
                   <div className="travel-fee-card">
-                    <div className="tf-header">
-                      <Truck size={24} />
-                      <span>Có tính phí di chuyển ngoại thành/xa</span>
-                    </div>
+                    <div className="tf-header"><Truck size={24} /><span>Có tính phí di chuyển ngoại thành/xa</span></div>
                     <div className="tf-body">
-                      <div className="tf-item">
-                        <span className="tf-label">Miễn phí trong bán kính:</span>
-                        <span className="tf-value">{packageData.travelFeeConfig.freeDistanceKm} km</span>
-                      </div>
-                      <div className="tf-item">
-                        <span className="tf-label">Phí vượt trội:</span>
-                        <span className="tf-value">{formatPrice(packageData.travelFeeConfig.feePerKm)} đ/km</span>
-                      </div>
-                      {packageData.travelFeeConfig.maxFee && (
-                        <div className="tf-item">
-                          <span className="tf-label">Phí tối đa:</span>
-                          <span className="tf-value">{formatPrice(packageData.travelFeeConfig.maxFee)} đ</span>
-                        </div>
-                      )}
-                      {packageData.travelFeeConfig.note && (
-                        <div className="tf-note">
-                          <Info size={16} />
-                          <span>{packageData.travelFeeConfig.note}</span>
-                        </div>
-                      )}
+                      <div className="tf-item"><span className="tf-label">Miễn phí:</span><span className="tf-value">{packageData.travelFeeConfig.freeDistanceKm} km</span></div>
+                      <div className="tf-item"><span className="tf-label">Phí:</span><span className="tf-value">{formatPrice(packageData.travelFeeConfig.feePerKm)} đ/km</span></div>
                     </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Time Info */}
-              {packageData.ThoiGianThucHien && (
-                <section className="package-section">
-                  <h2>Thời gian thực hiện</h2>
-                  <div className="time-info">
-                    <Clock size={20} />
-                    <span>{packageData.ThoiGianThucHien}</span>
                   </div>
                 </section>
               )}
@@ -365,135 +399,56 @@ export default function ServicePackageDetail() {
                   <h2>Thông tin Photographer</h2>
                   <div className="photographer-card">
                     <div className="photographer-avatar-wrapper">
-                      <img
-                        src={getImageUrl(packageData.PhotographerId?.Avatar)}
-                        alt={packageData.PhotographerId.HoTen}
-                        className="photographer-avatar"
-                        onError={(e) => { e.target.src = "https://via.placeholder.com/200?text=Avatar"; }}
-                      />
+                      <img src={getImageUrl(packageData.PhotographerId?.Avatar)} alt={packageData.PhotographerId.HoTen} className="photographer-avatar" onError={(e) => { e.target.src = "https://via.placeholder.com/200?text=Avatar"; }} />
                     </div>
                     <h3 className="photographer-name">{packageData.PhotographerId.HoTen}</h3>
                     <p className="photographer-username">@{packageData.PhotographerId.TenDangNhap}</p>
-                    <div className="photographer-info-column">
-                      {packageData.PhotographerId.Email && (
-                        <div className="contact-item">
-                          <Mail size={16} /> {packageData.PhotographerId.Email}
-                        </div>
-                      )}
-                      {packageData.PhotographerId.DiaChi && (
-                        <div className="contact-item">
-                          <MapPin size={16} /> {packageData.PhotographerId.DiaChi}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* ✅ NÚT NHẮN TIN ĐÃ ĐƯỢC TÍCH HỢP */}
-                    <button 
-                        className="btn-contact-photographer" 
-                        onClick={handleContactPhotographer}
-                        disabled={isCreatingChat}
-                        style={{ opacity: isCreatingChat ? 0.7 : 1, cursor: isCreatingChat ? 'wait' : 'pointer' }}
-                    >
-                      <MessageCircle size={18} /> 
-                      {isCreatingChat ? "Đang kết nối..." : "Nhắn tin"}
+                    <button className="btn-contact-photographer" onClick={handleContactPhotographer} disabled={isCreatingChat}>
+                      <MessageCircle size={18} /> {isCreatingChat ? "Đang kết nối..." : "Nhắn tin"}
                     </button>
                   </div>
                 </section>
               )}
+
             </div>
 
-            {/* RIGHT SIDE - PACKAGE INFO */}
+            {/* --- CỘT PHẢI --- */}
             <div className="package-sidebar">
               <div className="sidebar-sticky">
-                
-                {/* Package Header Card */}
                 <div className="package-header-card">
                   <div className="package-badge">{packageData.LoaiGoi}</div>
                   <h1>{packageData.TenGoi}</h1>
-                  
                   <div className="package-meta">
                     <div className="rating">
                       <Star fill="#fbbf24" color="#fbbf24" size={20} />
                       <span>{(packageData.DanhGia || 0).toFixed(1)}</span>
-                      <span className="reviews">({packageData.SoLuotDanhGia || 0} đánh giá)</span>
+                      <a href="#reviews-section" className="reviews" style={{textDecoration:'underline'}}>({packageData.SoLuotDanhGia || 0} đánh giá)</a>
                     </div>
-                    
                     <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '10px', alignItems: 'center'}}>
-                        <div className="booking-count">
-                            <Camera size={18} />
-                            <span>{packageData.SoLuongDaDat || 0} lượt đặt</span>
-                        </div>
-                        
-                        <div style={{display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: packageData.SoLuongKhieuNai > 0 ? '#ef4444' : '#6b7280', fontWeight: packageData.SoLuongKhieuNai > 0 ? '600' : '400'}}>
-                            <AlertTriangle size={16} />
-                            <span>{packageData.SoLuongKhieuNai || 0} khiếu nại</span>
-                        </div>
+                        <div className="booking-count"><Camera size={18} /><span>{packageData.SoLuongDaDat || 0} lượt đặt</span></div>
                     </div>
-
                   </div>
                 </div>
 
-                {/* Price Card */}
                 <div className="price-card">
                   <div className="price-header">
                     <h3>Giá gói dịch vụ</h3>
                     <div className="price-actions">
-                      <button 
-                        className={`btn-icon ${isFavorite ? 'active' : ''}`}
-                        onClick={handleToggleFavorite}
-                        title="Yêu thích"
-                      >
-                        <Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : 'currentColor'} />
-                      </button>
-                      <button className="btn-icon" onClick={handleShare} title="Chia sẻ">
-                        <Share2 size={20} />
-                      </button>
+                      <button className={`btn-icon ${isFavorite ? 'active' : ''}`} onClick={handleToggleFavorite}><Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : 'currentColor'} /></button>
+                      <button className="btn-icon" onClick={handleShare}><Share2 size={20} /></button>
                     </div>
                   </div>
-
                   <div className="price-content">
                     <div className="price-range">
-                      {minPrice === maxPrice ? (
-                        <span className="price">{formatPrice(minPrice)} VNĐ</span>
-                      ) : (
-                        <>
-                          <span className="price">{formatPrice(minPrice)} VNĐ</span>
-                          <span className="price-separator">-</span>
-                          <span className="price">{formatPrice(maxPrice)} VNĐ</span>
-                        </>
-                      )}
+                      {minPrice === maxPrice ? <span className="price">{formatPrice(minPrice)} VNĐ</span> : <><span className="price">{formatPrice(minPrice)} VNĐ</span><span className="price-separator">-</span><span className="price">{formatPrice(maxPrice)} VNĐ</span></>}
                     </div>
-                    <p className="price-note">* Giá có thể thay đổi tùy dịch vụ</p>
                   </div>
-
-                  <div className="price-features">
-                    <h4>Gói này bao gồm:</h4>
-                    <ul>
-                      {packageData.DichVu?.slice(0, 3).map((service, index) => (
-                        <li key={index}>
-                          <Check size={16} /> {service.name}
-                        </li>
-                      ))}
-                      {packageData.DichVu?.length > 3 && (
-                        <li className="more">
-                          <Check size={16} /> Và {packageData.DichVu.length - 3} dịch vụ khác
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-
-                  <button className="btn-book-now" onClick={handleBookNow}>
-                    Đặt hàng ngay
-                  </button>
+                  <button className="btn-book-now" onClick={handleBookNow}>Đặt hàng ngay</button>
                 </div>
-
-                {/* Contact Card */}
+                
                 <div className="contact-card">
                   <h4>Cần tư vấn?</h4>
-                  <p>Liên hệ với chúng tôi để được hỗ trợ tốt nhất</p>
-                  <a href="tel:0776560735" className="btn-contact">
-                    <Phone size={18} /> Gọi ngay
-                  </a>
+                  <a href="tel:0776560735" className="btn-contact"><Phone size={18} /> Gọi ngay</a>
                 </div>
               </div>
             </div>
@@ -502,10 +457,10 @@ export default function ServicePackageDetail() {
         </div>
       </div>
 
-      {/* Image Modal */}
+      {/* Modal Ảnh Gói Dịch Vụ (Cũ) */}
       {showImageModal && (
         <div className="image-modal-overlay" onClick={() => setShowImageModal(false)}>
-          <button onClick={() => setShowImageModal(false)} className="modal-close-btn">×</button>
+          <button onClick={() => setShowImageModal(false)} className="modal-close-btn"><X size={32}/></button>
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
             {images.length > 0 && <img src={getImageUrl(images[currentImageIndex])} alt="Full view" />}
             {images.length > 1 && (
@@ -519,13 +474,37 @@ export default function ServicePackageDetail() {
         </div>
       )}
 
-      {/* ✅ HIỂN THỊ MODAL CHAT KHI CÓ CONVERSATION */}
+      {/* ✅ NEW: Modal Zoom Ảnh Review (Mới) */}
+      {showReviewModal && (
+        <div className="image-modal-overlay" style={{zIndex: 9999}} onClick={() => setShowReviewModal(false)}>
+          <button onClick={() => setShowReviewModal(false)} className="modal-close-btn"><X size={32}/></button>
+          
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            {reviewImagesList.length > 0 && (
+                <img 
+                    src={getImageUrl(reviewImagesList[currentReviewImgIndex])} 
+                    alt="Review Full view" 
+                    style={{maxHeight: '90vh', maxWidth: '90vw', objectFit: 'contain'}}
+                />
+            )}
+            
+            {/* Chỉ hiện nút Next/Prev nếu review có nhiều hơn 1 ảnh */}
+            {reviewImagesList.length > 1 && (
+              <>
+                <button onClick={prevReviewImage} className="modal-nav-btn prev"><ChevronLeft size={28} /></button>
+                <button onClick={nextReviewImage} className="modal-nav-btn next"><ChevronRight size={28} /></button>
+                <div className="modal-image-counter">
+                    Ảnh {currentReviewImgIndex + 1} / {reviewImagesList.length}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Chat */}
       {showChat && chatConversation && (
-        <ChatMessage 
-            conversation={chatConversation}
-            currentUser={user}
-            onClose={() => setShowChat(false)}
-        />
+        <ChatMessage conversation={chatConversation} currentUser={user} onClose={() => setShowChat(false)} />
       )}
 
     </MainLayout>
