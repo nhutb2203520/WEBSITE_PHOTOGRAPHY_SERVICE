@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { io } from "socket.io-client";
 import { 
     Search, Send, Image as ImageIcon, Paperclip, Smile,
-    ArrowLeft, AlertTriangle, Users, MessageSquare, Hash, X
+    ArrowLeft, AlertTriangle, Users, MessageSquare, Hash, X,
+    ChevronLeft, ChevronRight // ✅ Thêm icon điều hướng
 } from 'lucide-react';
-import axios from 'axios'; // ✅ Import axios
+import axios from 'axios'; 
 
 import chatApi from '../../apis/chatApi'; 
 import userApi from '../../apis/UserService'; 
@@ -27,9 +28,30 @@ const UserChatPage = () => {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [previewImages, setPreviewImages] = useState([]);
     
+    // ✅ State Lightbox
+    const [lightboxIndex, setLightboxIndex] = useState(-1);
+    
     const socket = useRef();
     const scrollRef = useRef();
     const fileInputRef = useRef();
+
+    // --- UTILS ---
+    const getImgUrl = (path) => {
+        if (!path) return null;
+        if (path.startsWith('blob:')) return path;
+        return path.startsWith('http') ? path : `${ENDPOINT}${path}`;
+    };
+
+    // ✅ Gom ảnh để slide
+    const allChatImages = useMemo(() => {
+        return messages.reduce((acc, msg) => {
+            if (msg.images && msg.images.length > 0) {
+                const imgUrls = msg.images.map(img => getImgUrl(img));
+                return [...acc, ...imgUrls];
+            }
+            return acc;
+        }, []);
+    }, [messages]);
 
     // 1. Lấy thông tin User & Kết nối Socket
     useEffect(() => {
@@ -67,7 +89,6 @@ const UserChatPage = () => {
                     const res = await chatApi.getUserConversations(userId);
                     const data = res.data || res; 
                     if (Array.isArray(data)) {
-                        // Sắp xếp tin nhắn mới nhất lên đầu
                         const sorted = data.sort((a, b) => {
                             const dateA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt) : new Date(a.updatedAt);
                             const dateB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt) : new Date(b.updatedAt);
@@ -92,18 +113,14 @@ const UserChatPage = () => {
             const myId = userInfo._id || userInfo.id;
             const isMyMessage = arrivalMessage.senderId === myId;
 
-            // Nếu đang mở đúng chat đó -> Thêm tin nhắn & Mark read
             if (currentChat && arrivalMessage.conversationId === currentChat._id && !isMyMessage) {
                 setMessages((prev) => [...prev, arrivalMessage]);
-                
-                // 🔥 Mark read realtime
                 axios.put(`${ENDPOINT}/api/chat/mark-read`, {
                     conversationId: currentChat._id,
                     userId: myId
                 });
             }
             
-            // Cập nhật Sidebar
             setConversations(prev => {
                 if (!Array.isArray(prev)) return [];
                 const index = prev.findIndex(c => c._id === arrivalMessage.conversationId);
@@ -114,15 +131,12 @@ const UserChatPage = () => {
                         ? (arrivalMessage.text || "[Hình ảnh]") 
                         : arrivalMessage.text;
 
-                    // 🔥 LOGIC READBY
                     let newReadBy = targetConv.lastMessage?.readBy || [];
-                    
                     if (isMyMessage) {
-                        newReadBy = [myId]; // Mình gửi -> đã đọc
+                        newReadBy = [myId]; 
                     } else if (currentChat && currentChat._id === arrivalMessage.conversationId) {
-                        if (!newReadBy.includes(myId)) newReadBy.push(myId); // Đang xem -> đã đọc
+                        if (!newReadBy.includes(myId)) newReadBy.push(myId); 
                     } else {
-                        // Tin mới đến mà không xem -> Reset về người gửi
                         newReadBy = [arrivalMessage.senderId]; 
                     }
 
@@ -148,7 +162,7 @@ const UserChatPage = () => {
         }
     }, [arrivalMessage, currentChat, userInfo]);
 
-    // 4. Lấy tin nhắn chi tiết & Đánh dấu đã đọc
+    // 4. Lấy tin nhắn chi tiết
     useEffect(() => {
         if (currentChat && userInfo) {
             const myId = userInfo._id || userInfo.id;
@@ -159,23 +173,18 @@ const UserChatPage = () => {
                     const msgs = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
                     setMessages(msgs);
                     
-                    // 🔥 Gọi API đánh dấu đã đọc
                     await axios.put(`${ENDPOINT}/api/chat/mark-read`, {
                         conversationId: currentChat._id,
                         userId: myId
                     });
 
-                    // 🔥 Cập nhật UI Sidebar (Bỏ in đậm)
                     setConversations(prev => prev.map(c => {
                         if (c._id === currentChat._id && c.lastMessage) {
                             const currentReadBy = c.lastMessage.readBy || [];
                             if (!currentReadBy.includes(myId)) {
                                 return {
                                     ...c,
-                                    lastMessage: {
-                                        ...c.lastMessage,
-                                        readBy: [...currentReadBy, myId]
-                                    }
+                                    lastMessage: { ...c.lastMessage, readBy: [...currentReadBy, myId] }
                                 };
                             }
                         }
@@ -195,10 +204,21 @@ const UserChatPage = () => {
         }
     }, [currentChat, userInfo]);
 
-    // 5. Scroll
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [messages, previewImages]);
+
+    // ✅ Handle Keyboard
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (lightboxIndex === -1) return;
+            if (e.key === 'Escape') setLightboxIndex(-1);
+            if (e.key === 'ArrowRight') navigateImage(1);
+            if (e.key === 'ArrowLeft') navigateImage(-1);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxIndex, allChatImages]);
 
     // --- XỬ LÝ FILE ---
     const handleFileChange = (e) => {
@@ -219,13 +239,11 @@ const UserChatPage = () => {
         setPreviewImages(newPreviews);
     };
 
-    // 6. Gửi tin nhắn
     const handleSend = async (e) => {
         e.preventDefault();
         if ((!newMessage.trim() && selectedFiles.length === 0) || !userInfo) return;
 
         const myId = userInfo._id || userInfo.id;
-        
         const formData = new FormData();
         formData.append("senderId", myId);
         formData.append("conversationId", currentChat._id);
@@ -234,19 +252,13 @@ const UserChatPage = () => {
             formData.append("images", file);
         });
 
-        // Optimistic UI update
         const optimisticMsg = { 
-            senderId: myId,
-            conversationId: currentChat._id,
-            text: newMessage,
-            images: previewImages, 
-            createdAt: Date.now() 
+            senderId: myId, conversationId: currentChat._id, text: newMessage,
+            images: previewImages, createdAt: Date.now() 
         };
 
         setMessages(prev => [...prev, optimisticMsg]);
-        setNewMessage("");
-        setSelectedFiles([]);
-        setPreviewImages([]);
+        setNewMessage(""); setSelectedFiles([]); setPreviewImages([]);
 
         try {
             const res = await chatApi.addMessage(formData);
@@ -259,43 +271,36 @@ const UserChatPage = () => {
 
             if (socket.current) {
                 socket.current.emit("send_message", {
-                    senderId: myId,
-                    conversationId: currentChat._id,
-                    text: savedMsg.text,
-                    images: savedMsg.images, 
-                    createdAt: savedMsg.createdAt
+                    senderId: myId, conversationId: currentChat._id,
+                    text: savedMsg.text, images: savedMsg.images, createdAt: savedMsg.createdAt
                 });
             }
             
-            // Update Sidebar
             setConversations(prev => {
                 const index = prev.findIndex(c => c._id === currentChat._id);
                 if (index !== -1) {
-                    const lastText = savedMsg.images && savedMsg.images.length > 0 
-                        ? (savedMsg.text || "[Hình ảnh]") 
-                        : savedMsg.text;
-
-                    const updatedConv = { 
-                        ...prev[index], 
-                        lastMessage: { 
-                            text: lastText, 
-                            sender: myId, 
-                            readBy: [myId], 
-                            createdAt: Date.now() 
-                        }, 
-                        updatedAt: Date.now() 
-                    };
-                    const newConvs = [...prev];
-                    newConvs.splice(index, 1);
-                    newConvs.unshift(updatedConv);
-                    return newConvs;
+                    const lastText = savedMsg.images && savedMsg.images.length > 0 ? (savedMsg.text || "[Hình ảnh]") : savedMsg.text;
+                    const updatedConv = { ...prev[index], lastMessage: { text: lastText, sender: myId, readBy: [myId], createdAt: Date.now() }, updatedAt: Date.now() };
+                    const newConvs = [...prev]; newConvs.splice(index, 1); newConvs.unshift(updatedConv); return newConvs;
                 }
                 return prev;
             });
 
-        } catch (error) {
-            console.error("❌ API addMessage lỗi:", error);
-        }
+        } catch (error) { console.error("❌ API addMessage lỗi:", error); }
+    };
+
+    // --- LIGHTBOX ACTIONS ---
+    const openLightbox = (imgUrl) => {
+        const idx = allChatImages.indexOf(imgUrl);
+        if (idx !== -1) setLightboxIndex(idx);
+    };
+
+    const navigateImage = (direction) => {
+        if (lightboxIndex === -1) return;
+        let newIndex = lightboxIndex + direction;
+        if (newIndex < 0) newIndex = allChatImages.length - 1;
+        if (newIndex >= allChatImages.length) newIndex = 0;
+        setLightboxIndex(newIndex);
     };
 
     // --- HELPER INFO ---
@@ -313,9 +318,7 @@ const UserChatPage = () => {
         if (conversation.type === 'complaint' || conversation.title || members.length > 2) {
             return { 
                 name: conversation.title || "Giải quyết khiếu nại", 
-                avatar: "", 
-                isGroup: true,
-                isComplaint: true, 
+                avatar: "", isGroup: true, isComplaint: true, 
                 subText: displayCode ? `Mã: ${displayCode}` : "Admin, Thợ & Khách"
             };
         }
@@ -327,29 +330,15 @@ const UserChatPage = () => {
         if (otherMember) {
             return {
                 name: otherMember.HoTen || otherMember.username || "Người dùng",
-                avatar: otherMember.Avatar || "",
-                isGroup: false,
-                isComplaint: false,
-                subText: ""
+                avatar: otherMember.Avatar || "", isGroup: false, isComplaint: false, subText: ""
             };
         }
         if (members.some(m => m === null)) {
              return {
-                name: "Hỗ trợ viên (Admin)",
-                avatar: "", 
-                isGroup: false,
-                isAdmin: true,
-                isComplaint: true, 
-                subText: "Hỗ trợ hệ thống"
+                name: "Hỗ trợ viên (Admin)", avatar: "", isGroup: false, isAdmin: true, isComplaint: true, subText: "Hỗ trợ hệ thống"
             };
         }
         return { name: "Cuộc trò chuyện", avatar: "", isGroup: false };
-    };
-
-    const getImgUrl = (path) => {
-        if (!path) return null;
-        if (path.startsWith('blob:')) return path;
-        return path.startsWith('http') ? path : `${ENDPOINT}${path}`;
     };
 
     const getSenderDetails = (senderId) => {
@@ -379,56 +368,34 @@ const UserChatPage = () => {
         const info = getChatInfo(c);
         const isActive = currentChat?._id === c._id;
         const myId = userInfo?._id || userInfo?.id;
-        
-        // --- LOGIC CHECK UNREAD USER ---
         const lastMsg = c.lastMessage || {};
         const senderId = lastMsg.sender?._id || lastMsg.sender || lastMsg.senderId;
         const isMyLastMsg = String(senderId) === String(myId);
-        
-        // Check readBy
         const isRead = lastMsg.readBy?.includes(myId);
-
-        // Hiển thị nếu: Có tin, không phải mình gửi, chưa đọc
         const isUnread = lastMsg.text && !isMyLastMsg && !isRead;
 
         return (
-            <div 
-                className={`chat-item ${isActive ? 'active' : ''}`}
-                onClick={() => setCurrentChat(c)}
-            >
+            <div className={`chat-item ${isActive ? 'active' : ''}`} onClick={() => setCurrentChat(c)}>
                 <div className="chat-item-avatar">
                     {(info.isGroup || info.isAdmin) ? (
-                        <div className="group-avatar-placeholder" 
-                            style={{ background: info.isComplaint ? '#fff3cd' : '#dbeafe', color: info.isComplaint ? '#856404' : '#1e40af' }}>
+                        <div className="group-avatar-placeholder" style={{ background: info.isComplaint ? '#fff3cd' : '#dbeafe', color: info.isComplaint ? '#856404' : '#1e40af' }}>
                             {info.isComplaint ? <AlertTriangle size={20} /> : <MessageSquare size={20} />}
                         </div>
                     ) : (
-                        <img 
-                            src={getImgUrl(info.avatar) || "https://placehold.co/150"} 
-                            alt="ava" onError={e => e.target.src="https://placehold.co/150"}
-                        />
+                        <img src={getImgUrl(info.avatar) || "https://placehold.co/150"} alt="ava" onError={e => e.target.src="https://placehold.co/150"}/>
                     )}
                 </div>
                 <div className="chat-item-info">
                     <div className="chat-item-top">
-                        {/* Tên in đậm nếu chưa đọc */}
                         <span className={`chat-name ${isUnread ? 'unread-name' : ''}`}>{info.name}</span>
-                        <span className="chat-time">
-                            {c.lastMessage?.createdAt 
-                                ? new Date(c.lastMessage.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) 
-                                : ''}
-                        </span>
+                        <span className="chat-time">{c.lastMessage?.createdAt ? new Date(c.lastMessage.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</span>
                     </div>
                     {info.subText && <span className={`text-xs font-medium mb-1 block ${info.isComplaint ? 'text-orange-600' : 'text-blue-600'}`}>{info.subText}</span>}
-                    
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                        {/* Tin nhắn in đậm nếu chưa đọc */}
                         <p className={`chat-preview ${isUnread ? 'unread-preview' : ''}`}>
                             {isMyLastMsg ? "Bạn: " : ""}
                             {c.lastMessage?.text || (c.lastMessage?.images?.length > 0 ? "[Hình ảnh]" : "Chạm để bắt đầu...")}
                         </p>
-                        
-                        {/* 🔥 BADGE CHẤM XANH BÁO TIN MỚI 🔥 */}
                         {isUnread && <div className="unread-dot-badge">1</div>}
                     </div>
                 </div>
@@ -449,18 +416,8 @@ const UserChatPage = () => {
                             </div>
                         </div>
                         <div className="chat-list">
-                            {supportChats.length > 0 && (
-                                <div className="sidebar-section">
-                                    <div className="sidebar-section-title">Hỗ trợ & Khiếu nại</div>
-                                    {supportChats.map(c => <ChatItem key={c._id} c={c} />)}
-                                </div>
-                            )}
-                            {directChats.length > 0 && (
-                                <div className="sidebar-section">
-                                    <div className="sidebar-section-title">Tin nhắn cá nhân</div>
-                                    {directChats.map(c => <ChatItem key={c._id} c={c} />)}
-                                </div>
-                            )}
+                            {supportChats.length > 0 && <div className="sidebar-section"><div className="sidebar-section-title">Hỗ trợ & Khiếu nại</div>{supportChats.map(c => <ChatItem key={c._id} c={c} />)}</div>}
+                            {directChats.length > 0 && <div className="sidebar-section"><div className="sidebar-section-title">Tin nhắn cá nhân</div>{directChats.map(c => <ChatItem key={c._id} c={c} />)}</div>}
                         </div>
                     </div>
 
@@ -498,12 +455,7 @@ const UserChatPage = () => {
                                             <div key={idx} className={`msg-row ${isOwn ? 'msg-own' : 'msg-other'}`}>
                                                 {!isOwn && (
                                                     <div className="msg-avatar-container">
-                                                        <img 
-                                                            src={getImgUrl(sender.avatar) || "https://placehold.co/150"} 
-                                                            alt="" 
-                                                            className="msg-avatar-img"
-                                                            onError={e => e.target.src="https://placehold.co/150"}
-                                                        />
+                                                        <img src={getImgUrl(sender.avatar) || "https://placehold.co/150"} alt="" className="msg-avatar-img" onError={e => e.target.src="https://placehold.co/150"}/>
                                                     </div>
                                                 )}
                                                 <div className="msg-content-wrapper">
@@ -515,17 +467,15 @@ const UserChatPage = () => {
                                                                     <img 
                                                                         key={i} 
                                                                         src={getImgUrl(img)} 
-                                                                        alt="attachment" 
-                                                                        className="msg-attached-image"
-                                                                        onClick={() => window.open(getImgUrl(img), '_blank')}
+                                                                        alt="" 
+                                                                        className="msg-attached-image" 
+                                                                        onClick={() => openLightbox(getImgUrl(img))} // ✅ Click mở Lightbox
                                                                     />
                                                                 ))}
                                                             </div>
                                                         )}
-                                                        {m.text && <p className="msg-text">{m.text}</p>}
-                                                        <span className="msg-timestamp">
-                                                            {new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                                                        </span>
+                                                        {m.text && <p className="msg-text" style={{margin:0}}>{m.text}</p>}
+                                                        <span className="msg-timestamp">{new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -574,6 +524,26 @@ const UserChatPage = () => {
                         )}
                     </div>
                 </div>
+
+                {/* ✅ LIGHTBOX MODAL CHO USER */}
+                {lightboxIndex !== -1 && (
+                    <div className="image-zoom-overlay" onClick={() => setLightboxIndex(-1)}>
+                        {/* Nút Prev */}
+                        <button className="lb-nav-btn prev" onClick={(e) => { e.stopPropagation(); navigateImage(-1); }}>
+                            <ChevronLeft size={40} />
+                        </button>
+
+                        <div className="image-zoom-content" onClick={(e) => e.stopPropagation()}>
+                            <img src={allChatImages[lightboxIndex]} alt="Zoomed" />
+                            <button className="close-zoom" onClick={() => setLightboxIndex(-1)}><X size={24}/></button>
+                        </div>
+
+                        {/* Nút Next */}
+                        <button className="lb-nav-btn next" onClick={(e) => { e.stopPropagation(); navigateImage(1); }}>
+                            <ChevronRight size={40} />
+                        </button>
+                    </div>
+                )}
             </div>
         </MainLayout>
     );

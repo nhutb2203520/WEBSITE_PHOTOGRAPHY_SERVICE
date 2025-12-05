@@ -1,100 +1,81 @@
 /* =========================================
-   GLOBAL LAYOUT & UTILS
+   1. GLOBAL LAYOUT & TYPOGRAPHY
    ========================================= */
 .admin-main {
-    padding: 20px 30px;
-    background-color: #f8f9fa;
+    padding: 30px;
+    background-color: #f3f4f6;
+    /* Xám nhạt hiện đại */
     min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 30px;
 }
 
 .page-header h2 {
-    font-size: 24px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin-top: 20px;
-}
-
-/* Error Banner */
-.error-banner {
-    background-color: #fee2e2;
-    border: 1px solid #ef4444;
-    color: #b91c1c;
-    padding: 12px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
+    font-size: 26px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-}
-
-.error-banner button {
-    background: #b91c1c;
-    color: white;
-    border: none;
-    padding: 5px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-}
-
-/* Text Muted */
-.text-muted {
-    color: #6b7280;
-    font-size: 14px;
+    gap: 12px;
 }
 
 /* =========================================
-   BUTTONS
+   2. BUTTONS (MODERN STYLE)
    ========================================= */
 .btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     padding: 10px 20px;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 14px;
     border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn:active {
+    transform: scale(0.98);
 }
 
 .add-method {
     background-color: #2563eb;
     color: white;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .add-method:hover {
     background-color: #1d4ed8;
+    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
 }
 
 .btn-verify {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background-color: #10b981;
-    color: white;
-    border: none;
     padding: 6px 12px;
     border-radius: 6px;
-    cursor: pointer;
     font-size: 13px;
-    font-weight: 500;
+    background-color: #10b981;
+    color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
 .btn-verify:hover {
     background-color: #059669;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
 }
 
 /* =========================================
-   PAYMENT METHODS (CARDS)
+   3. PAYMENT CARDS (CLEAN & SHADOW)
    ========================================= */
 .payment-methods-section {
     margin-bottom: 40px;
@@ -102,169 +83,165 @@
 
 .section-title {
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
     color: #374151;
-    margin-bottom: 15px;
-    border-left: 4px solid #2563eb;
-    padding-left: 10px;
+    margin-bottom: 20px;
+    border-left: 5px solid #2563eb;
+    padding-left: 12px;
+    line-height: 1.2;
 }
 
 .cards-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
 }
 
 .payment-card {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    padding: 20px;
-    border: 1px solid #e5e7eb;
-    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #f3f4f6;
+    /* Viền rất nhạt */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
     position: relative;
+    overflow: hidden;
 }
 
 .payment-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-color: #e5e7eb;
+}
+
+.payment-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #2563eb;
+    opacity: 0;
+    transition: 0.3s;
+}
+
+.payment-card:hover::before {
+    opacity: 1;
 }
 
 .payment-card.inactive-mode {
-    background-color: #f3f4f6;
-    opacity: 0.9;
-    border: 1px dashed #9ca3af;
+    background-color: #f9fafb;
+    opacity: 0.85;
+    border: 1px dashed #d1d5db;
 }
 
-/* Card Header */
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f3f4f6;
 }
 
 .card-title {
     font-size: 16px;
+    font-weight: 700;
     color: #111827;
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
 .inactive-tag {
     font-size: 11px;
+    font-weight: 600;
     color: #ef4444;
-    background: #fee2e2;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-top: 4px;
+    background: #fef2f2;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid #fee2e2;
+    display: inline-block;
     width: fit-content;
 }
 
-/* Icons */
 .card-icons {
     display: flex;
-    gap: 10px;
-}
-
-.icon-edit,
-.icon-save,
-.icon-trash {
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.icon-edit {
-    color: #6b7280;
+    gap: 12px;
+    color: #9ca3af;
 }
 
 .icon-edit:hover {
     color: #2563eb;
-}
-
-.icon-save {
-    color: #10b981;
+    transform: scale(1.1);
 }
 
 .icon-save:hover {
-    color: #059669;
-}
-
-.icon-trash {
-    color: #ef4444;
+    color: #10b981;
+    transform: scale(1.1);
 }
 
 .icon-trash:hover {
-    color: #b91c1c;
+    color: #ef4444;
+    transform: scale(1.1);
 }
 
-/* Form Inside Card */
-.card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
+/* Form inputs inside card */
 .form-group label {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: #6b7280;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
 }
 
 .form-group input {
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     font-size: 14px;
+    font-weight: 500;
     color: #1f2937;
-    background: #fff;
+    background: #f9fafb;
+    transition: all 0.2s;
     outline: none;
-    transition: border-color 0.2s;
 }
 
 .form-group input:focus {
+    background: white;
     border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-group input[readonly] {
-    background-color: #f9fafb;
+    background-color: transparent;
     border-color: transparent;
     padding-left: 0;
-    font-weight: 500;
+    font-weight: 600;
     color: #111827;
+    cursor: default;
 }
 
-.form-group-row {
-    display: flex;
-    gap: 10px;
-}
-
-.form-group-row .form-group {
-    flex: 1;
-}
-
-/* Toggle Switch */
+/* Switch */
 .form-toggle {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
 }
 
 .switch {
     position: relative;
     display: inline-block;
-    width: 40px;
-    height: 22px;
+    width: 44px;
+    height: 24px;
 }
 
 .switch input {
@@ -280,21 +257,22 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
+    background-color: #e5e7eb;
+    transition: .3s;
     border-radius: 34px;
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 16px;
-    width: 16px;
+    height: 18px;
+    width: 18px;
     left: 3px;
     bottom: 3px;
     background-color: white;
-    transition: .4s;
+    transition: .3s;
     border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 input:checked+.slider {
@@ -302,296 +280,54 @@ input:checked+.slider {
 }
 
 input:checked+.slider:before {
-    transform: translateX(18px);
+    transform: translateX(20px);
 }
 
 /* =========================================
-   ORDERS TABLE
+   4. DATA TABLE (PROFESSIONAL)
    ========================================= */
 .orders-section {
     background: white;
-    border-radius: 12px;
-    padding: 25px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.table-wrapper {
-    overflow-x: auto;
-}
-
-.admin-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 800px;
-}
-
-.admin-table th {
-    text-align: left;
-    padding: 15px;
-    background-color: #f9fafb;
-    color: #6b7280;
-    font-weight: 600;
-    font-size: 13px;
-    text-transform: uppercase;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.admin-table td {
-    padding: 15px;
-    border-bottom: 1px solid #f3f4f6;
-    color: #374151;
-    font-size: 14px;
-    vertical-align: middle;
-}
-
-.admin-table tr:last-child td {
-    border-bottom: none;
-}
-
-.admin-table tr:hover td {
-    background-color: #f9fafb;
-}
-
-.price-text {
-    font-weight: 600;
-    color: #059669;
-}
-
-/* Status Badges */
-.status-badge {
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: capitalize;
-    white-space: nowrap;
-}
-
-.status-badge.warning {
-    background-color: #fff7ed;
-    color: #ea580c;
-    border: 1px solid #ffedd5;
-}
-
-.status-badge.info {
-    background-color: #eff6ff;
-    color: #2563eb;
-    border: 1px solid #dbeafe;
-}
-
-.status-badge.success {
-    background-color: #ecfdf5;
-    color: #059669;
-    border: 1px solid #d1fae5;
-}
-
-.status-badge.danger {
-    background-color: #fef2f2;
-    color: #dc2626;
-    border: 1px solid #fee2e2;
-}
-
-.status-badge.primary {
-    background-color: #f0f9ff;
-    color: #0284c7;
-    border: 1px solid #e0f2fe;
-}
-
-.status-badge.default {
-    background-color: #f3f4f6;
-    color: #4b5563;
-}
-
-/* =========================================
-   MODAL
-   ========================================= */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease;
-}
-
-.modal-content {
-    background: white;
-    padding: 30px;
     border-radius: 16px;
-    width: 400px;
-    max-width: 90%;
-    text-align: center;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    padding: 30px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
 }
 
-.modal-header.confirm {
-    color: #10b981;
-    margin-bottom: 15px;
-}
-
-.modal-header h3 {
-    color: #111827;
-    margin-top: 10px;
-    font-size: 20px;
-}
-
-.modal-content p {
-    color: #6b7280;
-    margin-bottom: 25px;
-}
-
-.modal-buttons {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-}
-
-.btn-cancel {
-    padding: 10px 20px;
-    border: 1px solid #d1d5db;
-    background: white;
-    color: #374151;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-cancel:hover {
-    background: #f3f4f6;
-}
-
-.btn-confirm {
-    padding: 10px 20px;
-    border: none;
-    background: #10b981;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-confirm:hover {
-    background: #059669;
-}
-
-/* =========================================
-   LOADING SPINNER
-   ========================================= */
-.loading-screen {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 80vh;
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #2563eb;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes scaleUp {
-    from {
-        transform: scale(0.9);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* =========================================
-   HEADER & SEARCH BAR (CENTERED LAYOUT)
-   ========================================= */
 .orders-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    /* Trái - Giữa - Phải */
-    margin-bottom: 20px;
-    gap: 20px;
-}
-
-/* 1. Phần tiêu đề bên trái */
-.orders-header .section-title {
-    margin-bottom: 0;
-    border-left: 4px solid #2563eb;
-    padding-left: 10px;
-    min-width: 200px;
-    /* Đặt chiều rộng tối thiểu để cân bằng layout */
-}
-
-/* 2. Phần spacer bên phải (ẩn) để cân bằng */
-.header-spacer {
-    width: 200px;
-    visibility: hidden;
-}
-
-/* 3. Phần tìm kiếm ở giữa */
-.search-container {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    /* Căn giữa nội dung */
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f3f4f6;
 }
 
 .search-box {
     position: relative;
-    width: 100%;
-    max-width: 450px;
+    width: 320px;
 }
 
 .search-box input {
     width: 100%;
-    padding: 10px 40px 10px 40px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
+    padding: 10px 40px 10px 16px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
     font-size: 14px;
+    background-color: #f9fafb;
     outline: none;
     transition: all 0.2s;
-    background-color: #f9fafb;
 }
 
 .search-box input:focus {
+    background-color: white;
     border-color: #2563eb;
-    background-color: #fff;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .search-icon {
     position: absolute;
-    left: 12px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
@@ -599,49 +335,232 @@ input:checked+.slider:before {
 
 .clear-icon {
     position: absolute;
-    right: 12px;
+    right: 35px;
     top: 50%;
     transform: translateY(-50%);
     color: #d1d5db;
     cursor: pointer;
-    transition: color 0.2s;
 }
 
-.clear-icon:hover {
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #f3f4f6;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.admin-table th {
+    text-align: left;
+    padding: 16px 20px;
+    background: #f9fafb;
     color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.admin-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+    background-color: #f8fafc;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.price-text {
+    font-weight: 700;
+    color: #059669;
+    font-family: 'Roboto Mono', monospace;
+    /* Font số cho tiền */
+}
+
+/* Status Badges - Beautiful */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-badge.warning {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+}
+
+.status-badge.info {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #dbeafe;
+}
+
+.status-badge.success {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #d1fae5;
+}
+
+.status-badge.danger {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fee2e2;
+}
+
+.status-badge.purple {
+    background: #faf5ff;
+    color: #7e22ce;
+    border: 1px solid #e9d5ff;
+}
+
+.status-badge.blue {
+    background: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #e0f2fe;
+}
+
+.status-badge.default {
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
 }
 
 /* =========================================
-   PROOF IMAGE & ZOOM (NEW FEATURES)
+   5. MODAL (CỐT LÕI - Z-INDEX CAO & ĐẸP)
    ========================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(17, 24, 39, 0.75) !important;
+    /* Màu tối sang trọng */
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999 !important;
+    /* Đè lên tất cả */
+    backdrop-filter: blur(4px);
+    /* Hiệu ứng mờ nền */
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: opacity 0.2s;
+}
+
+.modal-content {
+    background: white !important;
+    padding: 0;
+    /* Reset padding để header đẹp hơn */
+    border-radius: 20px;
+    width: 550px;
+    max-width: 95%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    position: relative;
+    z-index: 100000 !important;
+    transform: none !important;
+    opacity: 1 !important;
+    overflow: hidden;
+    /* Bo góc cho content con */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Modal Header Styles */
+.modal-header {
+    padding: 24px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-header.confirm {
+    background: #ecfdf5;
+    /* Xanh nhẹ */
+    border-bottom-color: #d1fae5;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Modal Body */
+.modal-body {
+    padding: 24px;
+    color: #4b5563;
+    font-size: 15px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+.modal-body strong {
+    color: #111827;
+}
+
+/* Info Box trong Modal */
+.bg-gray-50 {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+    text-align: left;
+}
+
+.flex.justify-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Proof Image Area */
 .proof-image-section {
     margin: 20px 0;
     text-align: center;
 }
 
-.section-label {
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 10px;
-    display: block;
-}
-
 .proof-image-wrapper {
-    position: relative;
-    width: 200px;
-    height: 120px;
-    margin: 0 auto;
-    border-radius: 8px;
+    width: 100%;
+    max-width: 300px;
+    height: 180px;
+    margin: 12px auto;
+    border-radius: 12px;
     overflow: hidden;
-    border: 2px solid #e5e7eb;
-    cursor: pointer;
+    border: 2px dashed #d1d5db;
+    /* Viền nét đứt hiện đại */
+    position: relative;
+    cursor: zoom-in;
+    background: #f9fafb;
     transition: all 0.2s;
-    background-color: #f3f4f6;
 }
 
 .proof-image-wrapper:hover {
     border-color: #2563eb;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    border-style: solid;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 .proof-img {
@@ -662,96 +581,193 @@ input:checked+.slider:before {
 }
 
 .proof-image-wrapper:hover .proof-overlay {
-    opacity: 1;
+    opacity: 1 !important;
 }
 
 .no-proof-warning {
-    background-color: #fef2f2;
+    background: #fef2f2;
+    color: #ef4444;
+    padding: 20px;
+    border-radius: 12px;
     border: 1px dashed #ef4444;
-    color: #b91c1c;
-    padding: 15px;
-    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    margin: 15px 0;
 }
 
-.no-proof-warning p {
-    margin: 0;
+/* Modal Buttons */
+.modal-buttons {
+    padding: 20px 24px;
+    background: white;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn-cancel {
+    padding: 10px 20px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #4b5563;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.btn-cancel:hover {
+    background: #f9fafb;
+    color: #111827;
+    border-color: #d1d5db;
+}
+
+.btn-confirm {
+    padding: 10px 24px;
+    border: none;
+    background: #10b981;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+
+.btn-confirm:hover {
+    background: #059669;
+    box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.4);
+}
+
+/* Textarea input */
+.reject-reason-input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
     font-size: 14px;
-    font-weight: 500;
+    outline: none;
+    resize: vertical;
+    margin-top: 10px;
+    background-color: white;
+    font-family: inherit;
+    color: #1f2937;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Zoom Overlay */
+.reject-reason-input:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.close-modal-btn:hover {
+    background: #f3f4f6;
+    color: #111827;
+    transform: rotate(90deg);
+}
+
+/* =========================================
+   6. ZOOM OVERLAY & LOADING
+   ========================================= */
 .image-zoom-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.9);
-    z-index: 2000;
-    /* Cao hơn modal chính */
+    background-color: rgba(0, 0, 0, 0.95) !important;
+    z-index: 200000 !important;
+    /* Cao nhất vũ trụ */
     display: flex;
     justify-content: center;
     align-items: center;
-    animation: fadeIn 0.2s ease;
 }
 
 .image-zoom-content {
     position: relative;
-    max-width: 90vw;
-    max-height: 90vh;
+    animation: zoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .image-zoom-content img {
-    max-width: 100%;
+    max-width: 90vw;
     max-height: 90vh;
-    border-radius: 4px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
     object-fit: contain;
 }
 
 .close-zoom {
     position: absolute;
-    top: -40px;
-    right: -40px;
-    background: transparent;
+    top: -50px;
+    right: -50px;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: white;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s;
 }
 
 .close-zoom:hover {
+    background: rgba(255, 255, 255, 0.2);
     transform: scale(1.1);
 }
-/* TEXTAREA CHO LÝ DO TỪ CHỐI */
-.reject-reason-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    outline: none;
-    resize: vertical;
-    margin-top: 10px;
-    background-color: #f9fafb;
-    transition: border-color 0.2s;
-    font-family: inherit;
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
-.reject-reason-input:focus {
-    border-color: #ef4444;
-    /* Màu đỏ khi focus nhập lý do từ chối */
-    background-color: #fff;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+.loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+    background: rgba(255, 255, 255, 0.8);
 }
 
-/* THÊM STYLE CHO HEADER CÁC BƯỚC */
-.modal-header h3 {
-    margin-top: 15px;
-    /* Tăng khoảng cách title trong modal */
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }

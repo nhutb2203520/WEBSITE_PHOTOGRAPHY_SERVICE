@@ -7,17 +7,13 @@ import {
     ChevronLeft, ChevronRight, Share2, Copy, Check, Send, Star, PlusCircle
 } from 'lucide-react';
 
-// ✅ Import MainLayout
 import MainLayout from '../../layouts/MainLayout/MainLayout';
-
 import albumApi from '../../apis/albumApi'; 
 import orderApi from '../../apis/orderService';
-
-// ❌ Xóa import Header, Sidebar, Footer lẻ tẻ
 import './DetailAlbumManager.css';
 
 export default function DetailAlbumManager() {
-    const { orderId } = useParams(); 
+    const { orderId } = useParams(); // Note: Với job ngoài, orderId này chính là albumId
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const deliverInputRef = useRef(null); 
@@ -32,7 +28,7 @@ export default function DetailAlbumManager() {
     
     // Lightbox & Share
     const [lightboxIndex, setLightboxIndex] = useState(null);
-    const [lightboxSource, setLightboxSource] = useState('raw'); // 'raw' | 'edited'
+    const [lightboxSource, setLightboxSource] = useState('raw');
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareLink, setShareLink] = useState('');
     const [copied, setCopied] = useState(false);
@@ -61,18 +57,22 @@ export default function DetailAlbumManager() {
             
             let albumData = null;
             try {
+                // Thử lấy album theo ID (ID này có thể là order_id hoặc album_id)
                 const albumRes = await albumApi.getAlbumDetail(orderId);
                 if (albumRes.data) albumData = albumRes.data.data || albumRes.data;
             } catch (e) { }
 
             let orderData = null;
+            // Nếu album có order_id thì lấy detail order, nếu không thì thử lấy order bằng id từ URL (trường hợp URL là order_id)
             const idToCheckOrder = albumData?.order_id || orderId;
             try {
                 if (idToCheckOrder) {
                     const orderRes = await orderApi.getOrderDetail(idToCheckOrder);
                     if (orderRes.data) orderData = orderRes.data.data || orderRes.data;
                 }
-            } catch (e) { }
+            } catch (e) { 
+                // Job ngoài không có order nên API này lỗi là bình thường
+            }
 
             setAlbum(albumData);
             setOrder(orderData);
@@ -104,6 +104,7 @@ export default function DetailAlbumManager() {
         }
         try {
             setUploading(true);
+            // Nếu có album thì dùng ID album, nếu chưa có (lần đầu tạo từ order) thì dùng orderId
             const targetId = album ? album._id : orderId;
             const res = await albumApi.uploadPhotos(targetId, formData);
             toast.success(`Đã tải lên ${files.length} ảnh gốc!`);
@@ -147,37 +148,27 @@ export default function DetailAlbumManager() {
         } catch (error) { toast.error("Lỗi xóa album."); }
     };
 
-    // --- SHARE (ĐÃ CẬP NHẬT) ---
     const handleShare = async () => {
         if (!album) return toast.warning("Vui lòng tải ảnh lên trước khi chia sẻ.");
-        
         try {
-            console.log("Đang gọi API share..."); // Log kiểm tra
             const res = await albumApi.createShareLink(album._id);
-            
-            console.log("Response share:", res); // Log xem server trả về gì
-
-            // ✅ FIX: Kiểm tra linh hoạt (xử lý cả trường hợp axios trả về full response hoặc chỉ data)
             const data = res.data || res; 
-
             if (data && data.shareLink) {
                 setShareLink(data.shareLink);
                 setShowShareModal(true);
                 setCopied(false);
                 toast.success("Đã tạo link chia sẻ!");
             } else {
-                console.error("Cấu trúc response không đúng:", data);
                 toast.error("Server không trả về link chia sẻ.");
             }
         } catch (error) { 
-            console.error("Lỗi API Share:", error); // Log lỗi chi tiết
             toast.error(error.response?.data?.message || "Lỗi tạo link chia sẻ."); 
         }
     };
     
     const copyToClipboard = () => { navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
-    // --- [NEW] DELIVER ALBUM HANDLERS ---
+    // --- DELIVER ALBUM HANDLERS ---
     const handleDeliverClick = () => {
         if (!album) return toast.warning("Vui lòng tạo album trước.");
         setShowDeliverModal(true);
@@ -207,8 +198,13 @@ export default function DetailAlbumManager() {
             
             toast.success("Đã thêm ảnh chỉnh sửa và cập nhật trạng thái giao hàng!");
             
+            // Cập nhật lại state album
             setAlbum(res.data?.data || res.data);
-            setOrder(prev => ({ ...prev, status: 'delivered' }));
+            
+            // Nếu có order thì cập nhật trạng thái order, nếu không (job ngoài) thì album đã được cập nhật
+            if (order) {
+                setOrder(prev => ({ ...prev, status: 'delivered' }));
+            }
             
             setShowDeliverModal(false);
             setDeliverFiles([]);
@@ -245,10 +241,11 @@ export default function DetailAlbumManager() {
     if (loading) return <div className="pam-loading">Đang tải dữ liệu...</div>;
     if (!order && !album) return <div className="pam-error"><h3>Không tìm thấy dữ liệu!</h3><button onClick={() => navigate(-1)} className="btn-back-error">Quay lại</button></div>;
 
-    const isDelivered = order?.status === 'delivered' || order?.status === 'completed';
+    // ✅ CẬP NHẬT LOGIC: Job ngoài (không có order) kiểm tra status trên album
+    const isDelivered = (order?.status === 'delivered' || order?.status === 'completed') || 
+                        (album?.status === 'delivered' || album?.status === 'completed');
 
     return (
-        // ✅ Bọc toàn bộ nội dung trong MainLayout
         <MainLayout>
             <div className="pam-container">
                 <div className="pam-header">
@@ -260,7 +257,8 @@ export default function DetailAlbumManager() {
                     </div>
                     
                     <div className="header-actions-right">
-                        {order && (
+                        {/* ✅ CẬP NHẬT: Hiển thị nút Giao Album cho cả Job ngoài (chỉ cần có album) */}
+                        {album && (
                             <button 
                                 className={`btn-deliver-main ${isDelivered ? 'secondary' : ''}`} 
                                 onClick={handleDeliverClick}

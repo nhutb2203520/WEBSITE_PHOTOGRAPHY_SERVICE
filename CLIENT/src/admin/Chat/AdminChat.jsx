@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { io } from "socket.io-client";
 import { 
     Search, Send, Phone, Video, 
     Image as ImageIcon, Paperclip, Smile,
-    Users, User, AlertTriangle, MessageSquare, Hash, X
+    AlertTriangle, Hash, X,
+    FileText, CheckCircle, UploadCloud,
+    ChevronLeft, ChevronRight // ✅ Thêm icon điều hướng
 } from 'lucide-react';
-import axios from 'axios'; // ✅ Đảm bảo import axios
+import axios from 'axios'; 
 
 import adminAuthService from '../../apis/adminAuthService';
 import chatApi from '../../apis/chatApi';
+import adminComplaintService from '../../apis/adminComplaintService';
 import SidebarAdmin from "../AdminPage/SidebarAdmin";
 import HeaderAdmin from "../AdminPage/HeaderAdmin";
 import './AdminChat.css';
@@ -24,15 +27,45 @@ const AdminChat = () => {
     const [arrivalMessage, setArrivalMessage] = useState(null);
     const [adminInfo, setAdminInfo] = useState(null);
     
-    // State upload
+    // State upload chat images
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [previewImages, setPreviewImages] = useState([]);
     const fileInputRef = useRef();
     
+    // State Modal Giải quyết
+    const [showResolveModal, setShowResolveModal] = useState(false);
+    const [refundPercent, setRefundPercent] = useState(50);
+    const [photographerPercent, setPhotographerPercent] = useState(40);
+    const [refundProof, setRefundProof] = useState(null);
+    const [payoutProof, setPayoutProof] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // ✅ State Lightbox Mới (Lưu index thay vì url)
+    const [lightboxIndex, setLightboxIndex] = useState(-1);
+
     const socket = useRef();
     const scrollRef = useRef();
 
-    // 1. Khởi tạo Socket & Lấy Info Admin
+    // --- UTILS ---
+    const getImgUrl = (path) => {
+        if (!path) return null;
+        if (path.startsWith('blob:')) return path;
+        return path.startsWith('http') ? path : `${ENDPOINT}${path}`;
+    };
+
+    // ✅ Gom tất cả ảnh trong chat thành 1 mảng phẳng để slide
+    const allChatImages = useMemo(() => {
+        return messages.reduce((acc, msg) => {
+            if (msg.images && msg.images.length > 0) {
+                // Đảo ngược thứ tự ảnh trong 1 tin nhắn để khớp với hiển thị grid (nếu cần)
+                const imgUrls = msg.images.map(img => getImgUrl(img));
+                return [...acc, ...imgUrls];
+            }
+            return acc;
+        }, []);
+    }, [messages]);
+
+    // 1. Init Socket & Info
     useEffect(() => {
         const admin = adminAuthService.getCurrentAdmin();
         if (admin) {
@@ -53,24 +86,20 @@ const AdminChat = () => {
         return () => socket.current?.disconnect();
     }, []);
 
-    // 2. Xử lý tin nhắn đến Real-time
+    // 2. Handle Incoming Message
     useEffect(() => {
         if (arrivalMessage && adminInfo) {
             const myId = adminInfo._id || adminInfo.id;
             const isMyMessage = arrivalMessage.senderId === myId;
 
-            // Nếu đang mở đúng chat đó -> Thêm tin nhắn & Mark read
             if (currentChat && arrivalMessage.conversationId === currentChat._id && !isMyMessage) {
                 setMessages((prev) => [...prev, arrivalMessage]);
-                
-                // Gọi API đánh dấu đã đọc
                 axios.put(`${ENDPOINT}/api/chat/mark-read`, {
                     conversationId: currentChat._id,
                     userId: myId
                 });
             }
             
-            // Cập nhật Sidebar (Đưa lên đầu + Cập nhật trạng thái chưa đọc)
             setConversations(prev => {
                 if (!Array.isArray(prev)) return [];
                 const index = prev.findIndex(c => c._id === arrivalMessage.conversationId);
@@ -81,15 +110,12 @@ const AdminChat = () => {
                         ? (arrivalMessage.text || "[Hình ảnh]") 
                         : arrivalMessage.text;
 
-                    // --- LOGIC TRẠNG THÁI ĐỌC (READBY) ---
                     let newReadBy = targetConv.lastMessage?.readBy || [];
-                    
                     if (isMyMessage) {
-                        newReadBy = [myId]; // Nếu mình gửi -> Mình đã đọc
+                        newReadBy = [myId]; 
                     } else if (currentChat && currentChat._id === arrivalMessage.conversationId) {
-                        if (!newReadBy.includes(myId)) newReadBy.push(myId); // Đang mở chat -> Đã đọc
+                        if (!newReadBy.includes(myId)) newReadBy.push(myId); 
                     } else {
-                        // Tin đến mà không mở -> Reset về người gửi (nghĩa là mình chưa đọc)
                         newReadBy = [arrivalMessage.senderId]; 
                     }
 
@@ -115,7 +141,7 @@ const AdminChat = () => {
         }
     }, [arrivalMessage, currentChat, adminInfo]);
 
-    // 3. Lấy danh sách hội thoại
+    // 3. Get Conversations
     useEffect(() => {
         if (adminInfo) {
             const getConversations = async () => {
@@ -125,7 +151,6 @@ const AdminChat = () => {
                     const data = res.data ? res.data : res;
 
                     if (Array.isArray(data)) {
-                        // Sắp xếp theo tin nhắn mới nhất
                         const sorted = data.sort((a, b) => {
                             const dateA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt) : new Date(a.updatedAt);
                             const dateB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt) : new Date(b.updatedAt);
@@ -142,35 +167,26 @@ const AdminChat = () => {
         }
     }, [adminInfo]);
 
-    // 4. Lấy tin nhắn chi tiết & Đánh dấu đã đọc
+    // 4. Get Messages
     useEffect(() => {
         if (currentChat && adminInfo) {
             const myId = adminInfo._id || adminInfo.id;
-
             const getMessages = async () => {
                 try {
                     const res = await chatApi.getMessagesAdmin(currentChat._id);
                     const msgs = Array.isArray(res.data) ? res.data : [];
                     setMessages(msgs);
                     
-                    // 🔥 Gọi API đánh dấu đã đọc
                     await axios.put(`${ENDPOINT}/api/chat/mark-read`, {
                         conversationId: currentChat._id,
                         userId: myId
                     });
 
-                    // 🔥 Cập nhật UI Sidebar (Xóa trạng thái chưa đọc)
                     setConversations(prev => prev.map(c => {
                         if (c._id === currentChat._id && c.lastMessage) {
                             const currentReadBy = c.lastMessage.readBy || [];
                             if (!currentReadBy.includes(myId)) {
-                                return {
-                                    ...c,
-                                    lastMessage: {
-                                        ...c.lastMessage,
-                                        readBy: [...currentReadBy, myId]
-                                    }
-                                };
+                                return { ...c, lastMessage: { ...c.lastMessage, readBy: [...currentReadBy, myId] } };
                             }
                         }
                         return c;
@@ -188,12 +204,79 @@ const AdminChat = () => {
         }
     }, [currentChat, adminInfo]);
 
-    // 5. Scroll
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, previewImages]);
 
-    // --- XỬ LÝ FILE ---
+    // ✅ Handle Keyboard for Lightbox
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (lightboxIndex === -1) return;
+            if (e.key === 'Escape') setLightboxIndex(-1);
+            if (e.key === 'ArrowRight') navigateImage(1);
+            if (e.key === 'ArrowLeft') navigateImage(-1);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxIndex, allChatImages]);
+
+    // --- HELPER INFO ---
+    const getChatInfo = (conversation) => {
+        if (!conversation) return { name: "Đang tải...", avatar: "", isGroup: false };
+        const myId = adminInfo?._id || adminInfo?.id;
+        
+        const complaintObj = conversation.complaint_id; 
+        const complaintId = typeof complaintObj === 'object' ? complaintObj?._id : complaintObj;
+        const complaintStatus = typeof complaintObj === 'object' ? complaintObj?.status : null;
+
+        const displayCode = complaintId && complaintId.length > 10 
+            ? "#" + complaintId.slice(-6).toUpperCase() 
+            : (complaintId ? "#" + complaintId : "");
+
+        const isComplaint = conversation.type === 'complaint' || !!conversation.complaint_id;
+
+        if (conversation.isGroup || conversation.type === 'group' || isComplaint) {
+            return {
+                name: conversation.title || "Giải quyết khiếu nại",
+                avatar: "",
+                isGroup: true,
+                isComplaint: true,
+                subText: displayCode ? `Mã: ${displayCode}` : "Nhóm hỗ trợ",
+                complaintId: complaintId,
+                complaintStatus: complaintStatus 
+            };
+        }
+        
+        const validMembers = conversation.members?.filter(m => m !== null) || [];
+        const otherMember = validMembers.find(m => {
+            const memberId = typeof m === 'string' ? m : (m._id || m.id);
+            return memberId !== myId;
+        });
+        if (otherMember && typeof otherMember === 'object') {
+            return { name: otherMember.HoTen || "Người dùng", avatar: otherMember.Avatar || "", isGroup: false, subText: otherMember.Email || "" };
+        }
+        return { name: "User", avatar: "", isGroup: false };
+    };
+
+    const getSenderDetails = (senderId) => {
+        const myId = adminInfo?._id || adminInfo?.id;
+        if (senderId === myId) return { name: "Admin (Bạn)", avatar: adminInfo?.Avatar };
+        if (currentChat && currentChat.members) {
+            const member = currentChat.members.find(m => m && (m._id === senderId || m.id === senderId));
+            if (member) return { name: member.HoTen || member.username || "Người dùng", avatar: member.Avatar };
+        }
+        return { name: "Người dùng", avatar: null };
+    };
+
+    // --- FILTER ---
+    const filteredConversations = conversations.filter(c => {
+        const info = getChatInfo(c);
+        return (info.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+    });
+    const complaintChats = filteredConversations.filter(c => getChatInfo(c).isComplaint);
+    const normalChats = filteredConversations.filter(c => !getChatInfo(c).isComplaint);
+
+    // --- CHAT ACTIONS ---
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -212,199 +295,137 @@ const AdminChat = () => {
         setPreviewImages(newPreviews);
     };
 
-    // 6. Gửi tin nhắn
     const handleSend = async (e) => {
         e.preventDefault();
         if ((!newMessage.trim() && selectedFiles.length === 0) || !adminInfo) return;
-
         const myId = adminInfo._id || adminInfo.id;
         
         const formData = new FormData();
         formData.append("senderId", myId);
         formData.append("conversationId", currentChat._id);
         formData.append("text", newMessage);
-        selectedFiles.forEach(file => {
-            formData.append("images", file);
-        });
+        selectedFiles.forEach(file => formData.append("images", file));
 
         const optimisticMsg = { 
-            senderId: myId,
-            conversationId: currentChat._id,
-            text: newMessage,
-            images: previewImages, 
-            createdAt: Date.now() 
+            senderId: myId, conversationId: currentChat._id, text: newMessage,
+            images: previewImages, createdAt: Date.now() 
         };
-        
         setMessages(prev => [...prev, optimisticMsg]); 
-        setNewMessage("");
-        setSelectedFiles([]);
-        setPreviewImages([]);
+        setNewMessage(""); setSelectedFiles([]); setPreviewImages([]);
 
         try {
             const res = await chatApi.addMessage(formData);
             const savedMsg = res.data || res;
-
-            if (!savedMsg) {
-                console.error("❌ Không nhận được phản hồi từ server");
-                return;
-            }
-
-            if(socket.current) {
+            if (savedMsg && socket.current) {
                 socket.current.emit("send_message", {
-                    senderId: myId,
-                    conversationId: currentChat._id,
-                    text: savedMsg.text,
-                    images: savedMsg.images, 
-                    createdAt: savedMsg.createdAt
+                    senderId: myId, conversationId: currentChat._id,
+                    text: savedMsg.text, images: savedMsg.images, createdAt: savedMsg.createdAt
                 });
             }
-
-            // Cập nhật Sidebar
             setConversations(prev => {
                 const index = prev.findIndex(c => c._id === currentChat._id);
                 if (index !== -1) {
-                    const lastText = savedMsg.images && savedMsg.images.length > 0 
-                        ? (savedMsg.text || "[Hình ảnh]") 
-                        : savedMsg.text;
-
-                    const updatedConv = { 
-                        ...prev[index], 
-                        lastMessage: { 
-                            text: lastText, 
-                            sender: myId, 
-                            readBy: [myId], 
-                            createdAt: Date.now() 
-                        }, 
-                        updatedAt: Date.now() 
-                    };
-                    const newConvs = [...prev];
-                    newConvs.splice(index, 1);
-                    newConvs.unshift(updatedConv);
-                    return newConvs;
+                    const lastText = savedMsg.images && savedMsg.images.length > 0 ? (savedMsg.text || "[Hình ảnh]") : savedMsg.text;
+                    const updatedConv = { ...prev[index], lastMessage: { text: lastText, sender: myId, readBy: [myId], createdAt: Date.now() }, updatedAt: Date.now() };
+                    const newConvs = [...prev]; newConvs.splice(index, 1); newConvs.unshift(updatedConv); return newConvs;
                 }
                 return prev;
             });
+        } catch (error) { console.error("Lỗi gửi tin nhắn:", error); }
+    };
 
+    // --- LIGHTBOX ACTIONS ---
+    const openLightbox = (imgUrl) => {
+        const idx = allChatImages.indexOf(imgUrl);
+        if (idx !== -1) setLightboxIndex(idx);
+    };
+
+    const navigateImage = (direction) => {
+        if (lightboxIndex === -1) return;
+        let newIndex = lightboxIndex + direction;
+        if (newIndex < 0) newIndex = allChatImages.length - 1;
+        if (newIndex >= allChatImages.length) newIndex = 0;
+        setLightboxIndex(newIndex);
+    };
+
+    // --- HANDLE RESOLVE COMPLAINT ---
+    const handleResolveSubmit = async () => {
+        // ... (Logic giữ nguyên)
+        if (!refundProof || !payoutProof) return alert("Vui lòng tải lên đầy đủ biên lai!");
+        if ((Number(refundPercent) + Number(photographerPercent)) > 100) return alert("Tổng % không được quá 100%!");
+
+        setIsSubmitting(true);
+        try {
+            const complaintId = getChatInfo(currentChat).complaintId;
+            if (!complaintId) return alert("Lỗi ID khiếu nại");
+
+            const formData = new FormData();
+            formData.append("complaintId", complaintId);
+            formData.append("refundPercent", refundPercent);
+            formData.append("photographerPercent", photographerPercent);
+            formData.append("refundProof", refundProof);
+            formData.append("payoutProof", payoutProof);
+
+            await adminComplaintService.resolveComplaintManual(formData);
+            alert("Thành công!");
+            setShowResolveModal(false);
+
+            if (currentChat && typeof currentChat.complaint_id === 'object') {
+                setCurrentChat(prev => ({ ...prev, complaint_id: { ...prev.complaint_id, status: 'resolved' } }));
+            }
+            setConversations(prev => prev.map(c => {
+                if (c._id === currentChat._id && typeof c.complaint_id === 'object') {
+                    return { ...c, complaint_id: { ...c.complaint_id, status: 'resolved' } };
+                }
+                return c;
+            }));
         } catch (error) {
-            console.error("Lỗi gửi tin nhắn API:", error);
+            alert("Lỗi: " + (error.message || "Thử lại"));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const getImgUrl = (path) => {
-        if (!path) return null;
-        if (path.startsWith('blob:')) return path;
-        return path.startsWith('http') ? path : `${ENDPOINT}${path}`;
-    };
-
-    // --- HELPER INFO ---
-    const getChatInfo = (conversation) => {
-        if (!conversation) return { name: "Đang tải...", avatar: "", isGroup: false };
-        const myId = adminInfo?._id || adminInfo?.id;
-        
-        const complaintCode = conversation.complaint_id 
-            ? (typeof conversation.complaint_id === 'object' ? (conversation.complaint_id._id || "Đơn hàng") : conversation.complaint_id)
-            : "";
-        const displayCode = complaintCode && complaintCode.length > 10 
-            ? "#" + complaintCode.slice(-6).toUpperCase() 
-            : (complaintCode ? "#" + complaintCode : "");
-
-        if (conversation.isGroup || conversation.type === 'group' || conversation.type === 'complaint') {
-            return {
-                name: conversation.title || "Giải quyết khiếu nại",
-                avatar: "",
-                isGroup: true,
-                isComplaint: true,
-                subText: displayCode ? `Mã: ${displayCode}` : "Nhóm hỗ trợ"
-            };
-        }
-        
-        const validMembers = conversation.members?.filter(m => m !== null) || [];
-        const otherMember = validMembers.find(m => {
-            const memberId = typeof m === 'string' ? m : (m._id || m.id);
-            return memberId !== myId;
-        });
-
-        if (otherMember && typeof otherMember === 'object') {
-            return {
-                name: otherMember.HoTen || otherMember.username || "Người dùng",
-                avatar: otherMember.Avatar || "",
-                isGroup: false,
-                subText: otherMember.Email || ""
-            };
-        }
-        return { name: `User #${String(otherMember || "Unknown").slice(-4)}`, avatar: "", isGroup: false };
-    };
-
-    const getSenderDetails = (senderId) => {
-        const myId = adminInfo?._id || adminInfo?.id;
-        if (senderId === myId) return { name: "Admin (Bạn)", avatar: adminInfo?.Avatar };
-        if (currentChat && currentChat.members) {
-            const member = currentChat.members.find(m => m && (m._id === senderId || m.id === senderId));
-            if (member) return { name: member.HoTen || member.username || "Người dùng", avatar: member.Avatar };
-        }
-        return { name: "Người dùng", avatar: null };
-    };
-
-    const filteredConversations = conversations.filter(c => {
-        const info = getChatInfo(c);
-        return (info.name || "").toLowerCase().includes(searchTerm.toLowerCase());
-    });
-    const complaintChats = filteredConversations.filter(c => getChatInfo(c).isComplaint);
-    const normalChats = filteredConversations.filter(c => !getChatInfo(c).isComplaint);
-
-    // ✅✅✅ COMPONENT ITEM SIDEBAR CÓ BADGE ✅✅✅
+    // UI Component
     const ChatItem = ({ c }) => {
         const info = getChatInfo(c);
         const isActive = currentChat?._id === c._id;
         const myId = adminInfo?._id || adminInfo?.id;
-
-        // LOGIC CHECK UNREAD
         const lastMsg = c.lastMessage || {};
         const senderId = lastMsg.sender?._id || lastMsg.sender || lastMsg.senderId;
         const isMyLastMsg = String(senderId) === String(myId);
-        
-        // Kiểm tra xem mình đã đọc chưa
         const isRead = lastMsg.readBy?.includes(myId);
-
-        // Hiển thị chưa đọc nếu: Có tin nhắn + Không phải mình gửi + Chưa có ID mình trong readBy
         const isUnread = lastMsg.text && !isMyLastMsg && !isRead;
 
         return (
              <div className={`chat-item ${isActive ? 'active' : ''}`} onClick={() => setCurrentChat(c)}>
                 <div className="chat-item-avatar">
                     {info.isGroup ? (
-                        <div className="group-avatar-placeholder" style={{background: '#fff3cd', color: '#856404'}}>
-                            <AlertTriangle size={20}/>
-                        </div>
+                        <div className="group-avatar-placeholder" style={{background: '#fff3cd', color: '#856404'}}><AlertTriangle size={20}/></div>
                     ) : (
-                        <img src={getImgUrl(info.avatar) || "https://via.placeholder.com/40"} alt="ava" onError={e => e.target.src="https://via.placeholder.com/40"}/>
+                        <img src={getImgUrl(info.avatar) || "https://via.placeholder.com/40"} alt="" onError={e => e.target.src="https://via.placeholder.com/40"}/>
                     )}
                 </div>
                 <div className="chat-item-info">
                     <div className="chat-item-top">
-                        {/* Nếu chưa đọc thì in đậm tên */}
                         <span className={`chat-name ${isUnread ? 'unread-name' : ''}`}>{info.name}</span>
-                        <span className="chat-time">
-                            {c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}
-                        </span>
+                        <span className="chat-time">{c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</span>
                     </div>
                     {info.subText && <span className="text-xs text-orange-600 font-medium mb-1 block">{info.subText}</span>}
-                    
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <p className={`chat-preview ${isUnread ? 'unread-preview' : ''}`}>
                              {isMyLastMsg ? "Bạn: " : ""}
                              {c.lastMessage?.text || (c.lastMessage?.images?.length > 0 ? "[Hình ảnh]" : "...")}
                         </p>
-                        
-                        {/* 🔥 BADGE SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC 🔥 */}
-                        {isUnread && (
-                            <div className="unread-dot-badge">1</div> 
-                        )}
+                        {isUnread && <div className="unread-dot-badge">1</div>}
                     </div>
                 </div>
             </div>
         )
     };
+
+    const currentChatInfo = getChatInfo(currentChat);
+    const isResolved = currentChatInfo.complaintStatus === 'resolved' || currentChatInfo.complaintStatus === 'completed';
 
     return (
         <div className="admin-layout">
@@ -414,6 +435,7 @@ const AdminChat = () => {
 
                 <div className="admin-chat-container">
                     <div className="chat-sidebar-area">
+                        {/* ... Sidebar content (giữ nguyên) ... */}
                         <div className="chat-sidebar-header">
                             <h3>Hỗ trợ khách hàng</h3>
                             <div className="chat-search-wrapper">
@@ -421,7 +443,6 @@ const AdminChat = () => {
                                 <input type="text" placeholder="Tìm kiếm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
                             </div>
                         </div>
-
                         <div className="chat-list">
                              {complaintChats.length > 0 && (
                                 <div className="sidebar-section">
@@ -435,9 +456,6 @@ const AdminChat = () => {
                                     {normalChats.map(c => <ChatItem key={c._id} c={c} />)}
                                 </div>
                             )}
-                            {complaintChats.length === 0 && normalChats.length === 0 && (
-                                <div style={{padding: 20, textAlign: 'center', color: '#888'}}>Không có tin nhắn nào.</div>
-                            )}
                         </div>
                     </div>
 
@@ -445,27 +463,37 @@ const AdminChat = () => {
                         {currentChat ? (
                             <>
                                 <div className="current-chat-header">
+                                    {/* ... Header content ... */}
                                     <div className="header-left">
                                         <div className="header-avatar">
-                                            {getChatInfo(currentChat).isGroup ? (
+                                            {currentChatInfo.isGroup ? (
                                                 <div className="avatar-group-icon lg" style={{background: '#fff3cd', color: '#856404'}}><AlertTriangle size={24}/></div>
                                             ) : (
-                                                <img src={getImgUrl(getChatInfo(currentChat).avatar)} onError={e => e.target.src="https://via.placeholder.com/40"} alt="" />
+                                                <img src={getImgUrl(currentChatInfo.avatar)} onError={e => e.target.src="https://via.placeholder.com/40"} alt="" />
                                             )}
                                         </div>
                                         <div className="header-info">
-                                            <h4>{getChatInfo(currentChat).name}</h4>
+                                            <h4>{currentChatInfo.name}</h4>
                                             <div className="flex items-center gap-2">
-                                                <span className="status-dot online">{getChatInfo(currentChat).isGroup ? "Đang hoạt động" : "User Online"}</span>
-                                                {getChatInfo(currentChat).isComplaint && (
+                                                <span className="status-dot online">{currentChatInfo.isGroup ? "Đang hoạt động" : "User Online"}</span>
+                                                {currentChatInfo.isComplaint && (
                                                     <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                        <Hash size={10} /> {getChatInfo(currentChat).subText.replace("Mã: ", "")}
+                                                        <Hash size={10} /> {currentChatInfo.subText.replace("Mã: ", "")}
                                                     </span>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                     <div className="header-actions">
+                                        {currentChatInfo.isComplaint && (
+                                            <button 
+                                                className={`resolve-btn ${isResolved ? 'resolved' : ''}`} 
+                                                onClick={() => { if (!isResolved) setShowResolveModal(true); }}
+                                                disabled={isResolved}
+                                            >
+                                                {isResolved ? <><CheckCircle size={16} style={{marginRight: 5}}/> Đã giải quyết</> : <><FileText size={16} style={{marginRight: 5}}/> Giải quyết & Hoàn tiền</>}
+                                            </button>
+                                        )}
                                         <button className="icon-btn"><Phone size={20}/></button>
                                         <button className="icon-btn"><Video size={20}/></button>
                                     </div>
@@ -475,17 +503,11 @@ const AdminChat = () => {
                                     {messages.length > 0 ? messages.map((m, idx) => {
                                         const isOwn = m.senderId === (adminInfo?._id || adminInfo?.id);
                                         const sender = getSenderDetails(m.senderId);
-
                                         return (
                                             <div key={idx} className={`msg-row ${isOwn ? 'msg-own' : 'msg-other'}`}>
-                                                {!isOwn && (
-                                                    <div className="msg-avatar-container">
-                                                        <img src={getImgUrl(sender.avatar) || "https://via.placeholder.com/40"} alt="" className="msg-avatar-img" onError={e => e.target.src="https://via.placeholder.com/40"}/>
-                                                    </div>
-                                                )}
+                                                {!isOwn && <div className="msg-avatar-container"><img src={getImgUrl(sender.avatar)} alt="" className="msg-avatar-img"/></div>}
                                                 <div className="msg-content-wrapper">
                                                     {!isOwn && <span className="msg-sender-name">{sender.name}</span>}
-                                                    
                                                     <div className={`msg-bubble ${m.images?.length > 0 ? 'has-images' : ''}`}>
                                                         {m.images && m.images.length > 0 && (
                                                             <div className="msg-images-grid">
@@ -493,25 +515,20 @@ const AdminChat = () => {
                                                                     <img 
                                                                         key={i} 
                                                                         src={getImgUrl(img)} 
-                                                                        alt="attachment" 
-                                                                        className="msg-attached-image"
-                                                                        onClick={() => window.open(getImgUrl(img), '_blank')}
+                                                                        alt="" 
+                                                                        className="msg-attached-image" 
+                                                                        onClick={() => openLightbox(getImgUrl(img))} // ✅ Click mở Lightbox
                                                                     />
                                                                 ))}
                                                             </div>
                                                         )}
-
                                                         {m.text && <p className="msg-text" style={{margin:0}}>{m.text}</p>}
-                                                        <span className="msg-timestamp">
-                                                            {new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                                                        </span>
+                                                        <span className="msg-timestamp">{new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         )
-                                    }) : (
-                                        <div style={{textAlign:'center', marginTop: 50, color:'#999'}}>Bắt đầu cuộc trò chuyện.</div>
-                                    )}
+                                    }) : (<div style={{textAlign:'center', marginTop: 50, color:'#999'}}>Bắt đầu cuộc trò chuyện.</div>)}
                                     <div ref={scrollRef} /> 
                                 </div>
 
@@ -541,14 +558,60 @@ const AdminChat = () => {
                             </>
                         ) : (
                             <div className="no-chat-selected">
-                                <div className="empty-state-content">
-                                    <h3>Admin Chat System</h3>
-                                    <p>Chọn một cuộc hội thoại để xử lý.</p>
-                                </div>
+                                <div className="empty-state-content"><h3>Admin Chat System</h3><p>Chọn một cuộc hội thoại để xử lý.</p></div>
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* MODAL GIẢI QUYẾT */}
+                {showResolveModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-content resolve-modal">
+                            <div className="modal-header">
+                                <h3>Giải quyết & Hoàn tiền</h3>
+                                <button className="close-btn" onClick={() => setShowResolveModal(false)}><X size={24}/></button>
+                            </div>
+                            <div className="modal-body">
+                                <p className="modal-note">Vui lòng nhập tỷ lệ % hoàn tiền theo thỏa thuận và tải lên biên lai chuyển khoản.</p>
+                                <div className="form-row">
+                                    <div className="form-group"><label>% Hoàn Khách</label><input type="number" value={refundPercent} onChange={(e) => setRefundPercent(e.target.value)} min="0" max="100" /></div>
+                                    <div className="form-group"><label>% Trả Thợ</label><input type="number" value={photographerPercent} onChange={(e) => setPhotographerPercent(e.target.value)} min="0" max="100" /></div>
+                                </div>
+                                <div className="system-fee-info"><span>Còn lại: </span><b>{100 - Number(refundPercent) - Number(photographerPercent)}%</b></div>
+                                <div className="upload-section">
+                                    <div className="upload-box"><label>Biên lai Khách</label><div className="file-input-wrapper"><input type="file" accept="image/*" onChange={(e) => setRefundProof(e.target.files[0])} />{refundProof ? <span className="file-name text-green"><CheckCircle size={14}/> {refundProof.name}</span> : <span className="file-placeholder"><UploadCloud size={16}/> Chọn ảnh</span>}</div></div>
+                                    <div className="upload-box"><label>Biên lai Thợ</label><div className="file-input-wrapper"><input type="file" accept="image/*" onChange={(e) => setPayoutProof(e.target.files[0])} />{payoutProof ? <span className="file-name text-green"><CheckCircle size={14}/> {payoutProof.name}</span> : <span className="file-placeholder"><UploadCloud size={16}/> Chọn ảnh</span>}</div></div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn-cancel" onClick={() => setShowResolveModal(false)}>Hủy</button>
+                                <button className="btn-confirm" onClick={handleResolveSubmit} disabled={isSubmitting}>{isSubmitting ? "Xử lý..." : "Xác nhận"}</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ✅ LIGHTBOX MODAL CÓ NÚT CHUYỂN */}
+                {lightboxIndex !== -1 && (
+                    <div className="image-zoom-overlay" onClick={() => setLightboxIndex(-1)}>
+                        {/* Nút Prev */}
+                        <button className="lb-nav-btn prev" onClick={(e) => { e.stopPropagation(); navigateImage(-1); }}>
+                            <ChevronLeft size={40} />
+                        </button>
+
+                        <div className="image-zoom-content" onClick={(e) => e.stopPropagation()}>
+                            <img src={allChatImages[lightboxIndex]} alt="Zoomed" />
+                            <button className="close-zoom" onClick={() => setLightboxIndex(-1)}><X size={24}/></button>
+                        </div>
+
+                        {/* Nút Next */}
+                        <button className="lb-nav-btn next" onClick={(e) => { e.stopPropagation(); navigateImage(1); }}>
+                            <ChevronRight size={40} />
+                        </button>
+                    </div>
+                )}
+
             </main>
         </div>
     );

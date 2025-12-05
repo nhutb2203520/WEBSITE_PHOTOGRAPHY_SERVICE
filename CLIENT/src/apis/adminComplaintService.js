@@ -1,36 +1,37 @@
-import { axiosInstance } from "./adminAuthService"; // ✅ Dùng axiosInstance của Admin để tự động kèm Token
+import { axiosInstance } from "./adminAuthService";
 
 const API_PATH = "/complaints";
 
 /**
  * Lấy tất cả danh sách khiếu nại (Dành cho Admin)
+ * Method: GET
+ * Endpoint: /api/complaints/all
  */
 const getAllComplaints = async () => {
   try {
-    // Gọi API GET /api/complaints/admin/all
-    const response = await axiosInstance.get(`${API_PATH}/admin/all`);
+    // ⚠️ SỬA: Đường dẫn khớp với route backend: router.get("/all", ...)
+    const response = await axiosInstance.get(`${API_PATH}/all`);
     
-    // ✅ Xử lý kết quả trả về giống paymentMethodService
-    // Nếu response.data tồn tại thì trả về nó, ngược lại trả về nguyên response
     if (response && response.data) return response.data;
     return response; 
   } catch (error) {
     console.error("Error fetching complaints:", error);
-    // Ném lỗi ra để Component (ComplaintManager) bắt được và hiển thị toast
     throw error.response?.data || error;
   }
 };
 
 /**
- * Xử lý khiếu nại (Duyệt hoặc Từ chối)
+ * Xử lý khiếu nại cơ bản (Duyệt hoặc Từ chối - Không chia tiền)
+ * Method: PUT
+ * Endpoint: /api/complaints/:id
  * @param {string} id - ID của Complaint
  * @param {string} status - 'resolved' hoặc 'rejected'
  * @param {string} admin_response - Phản hồi của admin
  */
 const processComplaint = async (id, status, admin_response) => {
   try {
-    // Gọi API PUT /api/complaints/:id/process
-    const response = await axiosInstance.put(`${API_PATH}/${id}/process`, {
+    // ⚠️ SỬA: Đường dẫn khớp với route backend: router.put("/:id", ...)
+    const response = await axiosInstance.put(`${API_PATH}/${id}`, {
       status,
       admin_response
     });
@@ -42,7 +43,32 @@ const processComplaint = async (id, status, admin_response) => {
   }
 };
 
+/**
+ * [NEW] Giải quyết khiếu nại thủ công & Upload biên lai
+ * Method: POST
+ * Endpoint: /api/complaints/resolve-manual
+ * @param {FormData} formData - Chứa complaintId, refundPercent, photographerPercent, file ảnh
+ */
+const resolveComplaintManual = async (formData) => {
+    try {
+        // Gọi API POST /api/complaints/resolve-manual
+        // Lưu ý: Khi gửi FormData, axios thường tự set Content-Type, 
+        // nhưng để chắc chắn ta có thể set header multipart/form-data
+        const response = await axiosInstance.post(`${API_PATH}/resolve-manual`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        return response.data || response;
+    } catch (error) {
+        console.error("Error resolving complaint manually:", error);
+        throw error.response?.data || error;
+    }
+};
+
 export default {
   getAllComplaints,
-  processComplaint
+  processComplaint,
+  resolveComplaintManual // ✅ Export hàm mới
 };

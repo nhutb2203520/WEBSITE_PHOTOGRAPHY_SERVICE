@@ -1,0 +1,748 @@
+/* =========================================
+   1. LAYOUT & HEADER
+   ========================================= */
+.pam-container {
+    padding: 30px;
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+.pam-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.pam-header h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+}
+
+.btn-back {
+    background: white;
+    border: 1px solid #e5e7eb;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-back:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+/* Main Actions */
+.header-actions-right {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-deliver-main,
+.btn-share-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-deliver-main {
+    background-color: #10b981;
+    color: white;
+}
+
+.btn-deliver-main:hover {
+    background-color: #059669;
+}
+
+.btn-deliver-main.secondary {
+    background-color: white;
+    color: #10b981;
+    border: 1px solid #10b981;
+}
+
+.btn-share-main {
+    background-color: white;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
+}
+
+.btn-share-main:hover {
+    background-color: #eff6ff;
+    border-color: #2563eb;
+}
+
+/* =========================================
+   2. MAIN CONTENT GRID
+   ========================================= */
+.pam-content {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    /* Cột trái cố định, cột phải dãn */
+    gap: 24px;
+    align-items: start;
+}
+
+/* --- LEFT COLUMN: INFO CARD --- */
+.info-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
+    position: sticky;
+    top: 30px;
+    /* Dính khi cuộn */
+}
+
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 12px;
+}
+
+.card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.status-badge.success {
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.value.highlight {
+    font-weight: 700;
+    color: #2563eb;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.info-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.info-item svg {
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+.sub-label {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin: 0 0 2px 0;
+    font-weight: 600;
+}
+
+.main-text {
+    font-size: 14px;
+    color: #1f2937;
+    font-weight: 500;
+    margin: 0;
+}
+
+.price-box {
+    margin-top: 24px;
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+}
+
+.price-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: #059669;
+}
+
+.info-tag.freelance {
+    display: inline-block;
+    background: #fffbeb;
+    color: #d97706;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #fcd34d;
+    width: 100%;
+    text-align: center;
+}
+
+/* --- RIGHT COLUMN: ALBUM CONTENT --- */
+.pam-album-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.album-header-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.no-album-state {
+    text-align: center;
+    padding: 40px;
+    color: #9ca3af;
+}
+
+.view-info .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.view-info h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 8px 0;
+}
+
+.album-desc {
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.btn-icon-edit {
+    border: none;
+    background: none;
+    color: #9ca3af;
+    cursor: pointer;
+}
+
+.btn-icon-edit:hover {
+    color: #2563eb;
+}
+
+.btn-delete-album {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #ef4444;
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.btn-delete-album:hover {
+    background: #fee2e2;
+}
+
+/* Edit Form */
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.edit-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+}
+
+.edit-input.title {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.btn-save {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.btn-cancel {
+    background: white;
+    border: 1px solid #d1d5db;
+    color: #4b5563;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+/* Photos Sections */
+.photos-container {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.photos-container.edited-section {
+    border: 2px solid #fbbf24;
+    /* Vàng nổi bật */
+    background: #fffbeb;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.sh-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sh-title h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: #1f2937;
+}
+
+.count-badge {
+    background: #e5e7eb;
+    color: #4b5563;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.btn-add-more-final {
+    background: #d97706;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-add-more-final:hover {
+    background: #b45309;
+}
+
+/* Upload Zone */
+.upload-zone {
+    margin-bottom: 24px;
+}
+
+.upload-label {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f9fafb;
+}
+
+.upload-label:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.upload-label.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Photo Grid */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.photo-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid #e5e7eb;
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.photo-item:hover img {
+    transform: scale(1.05);
+}
+
+.photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.photo-item:hover .photo-overlay {
+    opacity: 1;
+}
+
+.btn-delete-photo {
+    background: rgba(239, 68, 68, 0.9);
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: white;
+}
+
+.btn-delete-photo:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+/* =========================================
+   3. MODALS (Deliver & Share)
+   ========================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(17, 24, 39, 0.8) !important;
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999 !important;
+    /* Luôn trên cùng */
+    backdrop-filter: blur(4px);
+}
+
+.modal-content.deliver-modal,
+.modal-content.share-modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    z-index: 100000;
+    overflow: hidden;
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-header.deliver-header {
+    background: #ecfdf5;
+    border-bottom: 1px solid #d1fae5;
+}
+
+.modal-header.deliver-header h2 {
+    color: #065f46;
+}
+
+.modal-body {
+    padding: 24px;
+    text-align: center;
+}
+
+.modal-desc {
+    color: #4b5563;
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* Deliver Upload Area */
+.deliver-upload-area {
+    border: 2px dashed #10b981;
+    background: #f0fdf4;
+    border-radius: 12px;
+    padding: 30px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.deliver-upload-area:hover {
+    background: #d1fae5;
+}
+
+.sub-text-upload {
+    font-size: 12px;
+    color: #6b7280;
+    display: block;
+    margin-top: 4px;
+}
+
+.selected-files-list {
+    text-align: left;
+    background: #f9fafb;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.file-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.file-tag {
+    background: white;
+    border: 1px solid #e5e7eb;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-cancel-modal {
+    background: white;
+    border: 1px solid #d1d5db;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-confirm-deliver {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-confirm-deliver:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Share Modal */
+.share-input-group {
+    display: flex;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.share-input-group input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+    background: #f9fafb;
+    color: #4b5563;
+}
+
+.share-input-group button {
+    padding: 10px 14px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.share-input-group button.copied {
+    background: #10b981;
+}
+
+.btn-open-link {
+    width: 100%;
+    padding: 12px;
+    background: white;
+    border: 1px solid #2563eb;
+    color: #2563eb;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-open-link:hover {
+    background: #eff6ff;
+}
+
+/* =========================================
+   4. LIGHTBOX (Z-INDEX CAO NHẤT)
+   ========================================= */
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95) !important;
+    z-index: 200000 !important;
+    /* CAO HƠN CẢ MODAL */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.lb-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.lb-image-wrapper {
+    max-width: 90%;
+    max-height: 90vh;
+    position: relative;
+}
+
+.lb-image {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.lb-caption {
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: white;
+    font-size: 14px;
+    text-shadow: 0 1px 2px black;
+}
+
+.lb-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    z-index: 200001;
+}
+
+.lb-nav-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 200001;
+}
+
+.lb-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lb-nav-btn.prev {
+    left: 20px;
+}
+
+.lb-nav-btn.next {
+    right: 20px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .pam-content {
+        grid-template-columns: 1fr;
+    }
+
+    .info-card {
+        position: static;
+    }
+}

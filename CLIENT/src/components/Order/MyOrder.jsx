@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from "react-dom"; // ✅ IMPORT PORTAL
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, Clock, DollarSign,
@@ -80,7 +81,6 @@ export default function MyOrder() {
         if (statusFilter === 'processing_group') {
             filtered = filtered.filter(o => ['in_progress', 'processing', 'delivered'].includes(o.status));
         } else if (statusFilter === 'cancelled') {
-            // ✅ Gộp cả refund_pending vào tab Đã hủy để hiển thị thống nhất
             filtered = filtered.filter(o => ['cancelled', 'refund_pending'].includes(o.status));
         } else {
             filtered = filtered.filter(order => order.status === statusFilter);
@@ -109,11 +109,8 @@ export default function MyOrder() {
         case 'waiting_final_payment': 
         case 'final_payment_pending': return { label: 'Chờ thanh toán', icon: <Hourglass size={16}/>, className: 'status-payment' };
         case 'completed': return { label: 'Hoàn thành', icon: <Star size={16}/>, className: 'status-completed' };
-        
-        // ✅ Cập nhật: refund_pending hiển thị label là "Đã hủy" giống cancelled
         case 'cancelled': 
         case 'refund_pending': return { label: 'Đã hủy', icon: <XCircle size={16}/>, className: 'status-cancelled' };
-        
         case 'complaint': return { label: 'Đang khiếu nại', icon: <AlertTriangle size={16}/>, className: 'status-cancelled' };
         default: return { label: status, icon: <HelpCircle size={16}/>, className: 'status-default' };
     }
@@ -139,10 +136,8 @@ export default function MyOrder() {
 
     try {
       setProcessingAction(true);
-      
       let nextStatus = 'cancelled';
       let cancelNote = "Khách hàng hủy đơn.";
-
       const isDepositPaid = selectedOrder.deposit_paid || selectedOrder.status === 'confirmed';
       
       if (isDepositPaid) {
@@ -151,7 +146,6 @@ export default function MyOrder() {
       }
 
       await orderApi.updateOrderStatus(selectedOrder.order_id || selectedOrder._id, nextStatus, cancelNote);
-      
       toast.success("Đã gửi yêu cầu hủy đơn thành công.");
       setShowCancelModal(false);
       fetchOrders(); 
@@ -282,20 +276,16 @@ export default function MyOrder() {
     navigate("/payment", { state: { order, transfer_code: order.payment_info?.transfer_code, deposit_required: amountToPay, is_remaining: isRemaining } });
   };
 
-  // --- COMPONENT CON: ORDER CARD ---
   const OrderCard = ({ order }) => {
     const statusInfo = getStatusInfo(order.status);
     const isCompleted = order.status === 'completed';
     const isPaidRemaining = order.payment_info?.remaining_status === 'paid';
-    
     const hasReviewed = order.review && (order.review.is_reviewed === true || order.review.rating > 0 || order.review.Rating > 0);
-
     const showPayDeposit = order.status === 'pending_payment';
     const showPayRemaining = ['confirmed', 'processing', 'delivered', 'in_progress'].includes(order.status) && !isPaidRemaining && order.status !== 'final_payment_pending';
     const showViewAlbum = (order.has_album || ['delivered', 'completed'].includes(order.status)) && isPaidRemaining;
     const showCompleteBtn = order.status === 'delivered' && isPaidRemaining;
     const showComplaintBtn = ['processing', 'delivered', 'in_progress'].includes(order.status);
-    
     const canCancel = ['pending_payment', 'pending', 'confirmed'].includes(order.status);
 
     return (
@@ -326,23 +316,14 @@ export default function MyOrder() {
           </div>
           <div className="action-buttons">
             {canCancel && (
-                <button 
-                    className="btn-cancel-order" 
-                    onClick={() => handleOpenCancel(order)}
-                    style={{
-                        borderColor: '#dc2626', color: '#dc2626', borderWidth: '1px', borderStyle: 'solid', 
-                        background: 'white', marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '5px'
-                    }}
-                >
+                <button className="btn-cancel-order" onClick={() => handleOpenCancel(order)} style={{borderColor: '#dc2626', color: '#dc2626', borderWidth: '1px', borderStyle: 'solid', background: 'white', marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '5px'}}>
                     <XCircle size={16} /> Hủy đơn
                 </button>
             )}
-
             {showPayDeposit && <button className="btn-pay-now" onClick={() => handleContinuePayment(order)}>Thanh toán cọc</button>}
             {showPayRemaining && <button className="btn-pay-now btn-remaining" onClick={() => handleContinuePayment(order)}>Thanh toán nốt</button>}
             {showViewAlbum && <button className="btn-success" onClick={() => navigate(`/albums/detail/${order.order_id}`)}><ImageIcon size={16}/> Xem Album</button>}
             {showCompleteBtn && <button className="btn-complete" onClick={() => {setSelectedOrder(order); setShowCompleteModal(true);}}><ThumbsUp size={16}/> Đã nhận ảnh</button>}
-            
             {isCompleted && (
                 <button className={`btn-review ${hasReviewed ? 'reviewed' : ''}`} onClick={() => openReviewModal(order)}>
                     {hasReviewed ? <><CheckCircle size={16}/> Xem đánh giá</> : <><Star size={16}/> Đánh giá ngay</>}
@@ -356,13 +337,10 @@ export default function MyOrder() {
 
   // --- RENDER MAIN ---
   return (
-    // ✅ Bọc trong MainLayout
     <MainLayout>
       <div className="my-orders-page">
         <div className="container">
           <div className="page-header"><h1>Đơn hàng của tôi</h1></div>
-          
-          {/* FILTERS */}
           <div className="filters-section">
             <div className="search-box"><Search size={18} /><input value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="Tìm mã đơn, tên gói..."/></div>
             <div className="status-filters">
@@ -371,8 +349,6 @@ export default function MyOrder() {
               ))}
             </div>
           </div>
-
-          {/* GRID */}
           {loading ? <div className="loading-state">Loading...</div> : 
             <div className="orders-grid">
               {filteredOrders.length > 0 ? filteredOrders.map(o => <OrderCard key={o._id} order={o} />) : <div className="no-orders">Không có đơn hàng nào.</div>}
@@ -381,17 +357,16 @@ export default function MyOrder() {
         </div>
       </div>
 
-      {/* --- MODALS --- */}
+      {/* ✅ CÁC MODAL DÙNG PORTAL: RENDER TRỰC TIẾP VÀO BODY */}
       
       {/* Cancel Modal */}
-      {showCancelModal && selectedOrder && (
+      {showCancelModal && selectedOrder && createPortal(
           <div className="modal-overlay" onClick={()=>setShowCancelModal(false)}>
               <div className="modal-content cancel-modal" onClick={e=>e.stopPropagation()}>
                   <div className="modal-header">
                       <h2>Hủy đơn hàng #{selectedOrder.order_id}</h2>
                       <button onClick={()=>setShowCancelModal(false)}>×</button>
                   </div>
-                  
                   <div className="modal-body">
                       <div className="alert-box error" style={{backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px', borderRadius: '6px', marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'start'}}>
                           <AlertTriangle size={24} style={{flexShrink: 0}} />
@@ -402,25 +377,19 @@ export default function MyOrder() {
                               </p>
                           </div>
                       </div>
-
                       <div className="modal-actions" style={{marginTop: '20px'}}>
                           <button className="btn-secondary" onClick={()=>setShowCancelModal(false)}>Đóng</button>
-                          <button 
-                            className="btn-confirm-cancel" 
-                            style={{backgroundColor: '#dc2626', color: 'white', border: 'none'}}
-                            onClick={handleCancelOrder} 
-                            disabled={processingAction}
-                          >
+                          <button className="btn-confirm-cancel" style={{backgroundColor: '#dc2626', color: 'white', border: 'none'}} onClick={handleCancelOrder} disabled={processingAction}>
                             {processingAction ? 'Đang xử lý...' : 'Xác nhận hủy'}
                           </button>
                       </div>
                   </div>
               </div>
-          </div>
+          </div>, document.body
       )}
 
       {/* Review Modal */}
-      {showReviewModal && selectedOrder && (
+      {showReviewModal && selectedOrder && createPortal(
         <div className="modal-overlay" onClick={() => setShowReviewModal(false)}>
             <div className="modal-content review-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
@@ -466,11 +435,11 @@ export default function MyOrder() {
                     )}
                 </div>
             </div>
-        </div>
+        </div>, document.body
       )}
 
-      {/* Complete & Complaint Modals */}
-      {showCompleteModal && selectedOrder && (
+      {/* Complete Modal */}
+      {showCompleteModal && selectedOrder && createPortal(
           <div className="modal-overlay" onClick={()=>setShowCompleteModal(false)}>
               <div className="modal-content small-modal" onClick={e=>e.stopPropagation()}>
                   <div className="modal-header"><h2>Xác nhận</h2><button onClick={()=>setShowCompleteModal(false)}>×</button></div>
@@ -483,10 +452,11 @@ export default function MyOrder() {
                       </div>
                   </div>
               </div>
-          </div>
+          </div>, document.body
       )}
 
-      {showComplaintModal && selectedOrder && (
+      {/* Complaint Modal */}
+      {showComplaintModal && selectedOrder && createPortal(
           <div className="modal-overlay" onClick={()=>setShowComplaintModal(false)}>
               <div className="modal-content" onClick={e=>e.stopPropagation()}>
                   <div className="modal-header warning-header"><h2>Khiếu nại dịch vụ</h2><button onClick={()=>setShowComplaintModal(false)}>×</button></div>
@@ -506,7 +476,7 @@ export default function MyOrder() {
                       </div>
                   </div>
               </div>
-          </div>
+          </div>, document.body
       )}
     </MainLayout>
   );

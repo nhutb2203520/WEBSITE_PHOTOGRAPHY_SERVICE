@@ -4,7 +4,7 @@ const ComplaintSchema = new mongoose.Schema(
   {
     order_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Orders", 
+      ref: "Orders", // Đảm bảo khớp với tên model Order của bạn
       required: true,
       unique: true 
     },
@@ -13,7 +13,6 @@ const ComplaintSchema = new mongoose.Schema(
       ref: "bangKhachHang",
       required: true
     },
-    // 👇 ĐÃ SỬA: Trỏ về bangKhachHang vì bạn không có bảng thợ riêng
     photographer_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "bangKhachHang" 
@@ -31,14 +30,14 @@ const ComplaintSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        'pending',  // Đang chờ duyệt (Mặc định khi mới tạo)
-        'resolved', // Khiếu nại thành công (Admin chấp nhận -> Khách thắng)
-        'rejected'  // Khiếu nại thất bại (Admin từ chối -> Khách thua)
+        'pending',  // Đang chờ xử lý
+        'resolved', // Đã giải quyết xong (Thỏa thuận thành công)
+        'rejected'  // Bị từ chối
       ],
       default: 'pending'
     },
 
-    // Phản hồi của Admin (Lý do chấp nhận hoặc từ chối)
+    // Phản hồi của Admin
     admin_response: {
       type: String,
       default: ""
@@ -47,8 +46,19 @@ const ComplaintSchema = new mongoose.Schema(
     // Người giải quyết (Admin ID)
     resolved_by: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin", // Hoặc "User" tùy vào hệ thống admin của bạn
+      ref: "Admin", // Hoặc "User" tùy hệ thống Auth của bạn
       default: null
+    },
+
+    // --- [NEW] CHI TIẾT GIẢI QUYẾT TÀI CHÍNH (THỦ CÔNG) ---
+    resolution_details: {
+        refund_amount: { type: Number, default: 0 },       // Tiền đã hoàn lại cho khách
+        photographer_amount: { type: Number, default: 0 }, // Tiền đã trả cho thợ
+        system_fee: { type: Number, default: 0 },          // Phí sàn giữ lại
+        
+        // Ảnh biên lai Admin đã banking (Bằng chứng thanh toán)
+        refund_proof_image: { type: String, default: "" }, 
+        payout_proof_image: { type: String, default: "" }
     }
   },
   {

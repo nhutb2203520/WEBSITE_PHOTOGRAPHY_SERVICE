@@ -1,34 +1,8 @@
 /* ===================================
-   PHOTOGRAPHER ORDER MANAGEMENT CSS
+   PHOTOGRAPHER ORDER CSS
    =================================== */
 
-/* Layout Wrapper */
-.layout-wrapper {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background: #f8f9fc;
-}
-
-.layout-body {
-    display: flex;
-    flex: 1;
-    gap: 0;
-}
-
-.layout-sidebar {
-    flex-shrink: 0;
-}
-
-.layout-content {
-    flex: 1;
-    overflow-y: auto;
-}
-
-/* ===================================
-   PHOTOGRAPHER ORDER PAGE
-   =================================== */
-
+/* Animation xuất hiện trang */
 .photographer-order-page {
     padding: 2rem;
     animation: fadeIn 0.4s ease-in-out;
@@ -52,9 +26,8 @@
 }
 
 /* ===================================
-   PAGE HEADER
+   PAGE HEADER (Gradient & Shadow)
    =================================== */
-
 .page-header {
     background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
     border-radius: 24px;
@@ -70,6 +43,7 @@
     overflow: hidden;
 }
 
+/* Hiệu ứng nền trang trí */
 .page-header::before {
     content: '';
     position: absolute;
@@ -115,7 +89,7 @@
     font-weight: 400;
 }
 
-/* Search Box */
+/* Search Box Styles */
 .search-box-wrapper {
     flex: 1;
     min-width: 300px;
@@ -130,7 +104,7 @@
 }
 
 .search-box input {
-    width: 80%;
+    width: 100%;
     padding: 1rem 1.5rem;
     border: none;
     border-radius: 16px;
@@ -139,20 +113,14 @@
     transition: all 0.3s ease;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     font-weight: 500;
+    outline: none;
 }
 
 .search-box input:focus {
-    outline: none;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
     transform: translateY(-2px);
 }
 
-.search-box input::placeholder {
-    color: #9ca3af;
-    font-weight: 400;
-}
-
-/* Header Actions */
 .header-actions {
     display: flex;
     gap: 1rem;
@@ -183,9 +151,8 @@
 }
 
 /* ===================================
-   STATS GRID
+   STATS GRID (Thống kê)
    =================================== */
-
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -229,23 +196,22 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    /* Fallback */
     letter-spacing: -1px;
 }
 
 .stat-info p {
-    font-size: 1rem;
-    color: #6b7280;
     margin: 0;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-size: 0.85rem;
+    color: #6b7280;
 }
 
 /* ===================================
    FILTER TABS
    =================================== */
-
 .filter-tabs {
     display: flex;
     gap: 1rem;
@@ -289,9 +255,8 @@
 }
 
 /* ===================================
-   ORDERS GRID
+   ORDERS GRID & CARDS
    =================================== */
-
 .orders-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
@@ -317,6 +282,14 @@
     border-color: rgba(124, 58, 237, 0.1);
 }
 
+/* Image Wrapper */
+.img-wrapper {
+    overflow: hidden;
+    border-radius: 24px 24px 0 0;
+    cursor: zoom-in;
+    position: relative;
+}
+
 .order-img {
     width: 100%;
     height: 240px;
@@ -324,10 +297,11 @@
     transition: transform 0.6s ease;
 }
 
-.order-card:hover .order-img {
+.img-wrapper:hover .order-img {
     transform: scale(1.1);
 }
 
+/* Order Info */
 .order-main-info {
     padding: 1.75rem;
     flex: 1;
@@ -373,13 +347,12 @@
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     border-radius: 12px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
     white-space: nowrap;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     letter-spacing: 0.3px;
     text-transform: uppercase;
-    font-size: 0.75rem;
 }
 
 .status-pending {
@@ -402,7 +375,7 @@
     color: #991b1b;
 }
 
-/* Price Column */
+/* Price */
 .order-price-col {
     padding: 0 1.75rem 1.25rem;
     display: flex;
@@ -422,17 +395,7 @@
     letter-spacing: -0.5px;
 }
 
-.deposit-tag {
-    padding: 0.4rem 0.875rem;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    white-space: nowrap;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Order Actions */
+/* Actions Buttons */
 .order-actions {
     padding: 1.25rem 1.75rem 1.75rem;
     display: flex;
@@ -474,9 +437,63 @@
 }
 
 /* ===================================
-   RESPONSIVE
+   ✅ ZOOM MODAL FIX (Z-Index Cao & Portal)
    =================================== */
+.image-zoom-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.95) !important;
+    /* ✅ Z-INDEX CỰC ĐẠI: Đè lên Sidebar (50) và Header (100) */
+    z-index: 99999 !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.2s ease-out;
+}
 
+.image-zoom-content {
+    position: relative;
+    max-width: 95vw;
+    max-height: 95vh;
+}
+
+.image-zoom-content img {
+    max-width: 100%;
+    max-height: 95vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.close-zoom {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.close-zoom:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1) rotate(90deg);
+}
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
 @media (max-width: 1200px) {
     .orders-grid {
         grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -495,20 +512,12 @@
     }
 
     .page-title h1 {
-        font-size: 1.5rem;
+        font-size: 1.75rem;
     }
 
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
-    }
-
-    .stat-card {
-        padding: 1.25rem;
-    }
-
-    .stat-info h3 {
-        font-size: 1.5rem;
     }
 
     .orders-grid {
@@ -535,7 +544,7 @@
 
 @media (max-width: 480px) {
     .page-title h1 {
-        font-size: 1.25rem;
+        font-size: 1.5rem;
     }
 
     .stats-grid {

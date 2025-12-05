@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from "react-dom"; // ✅ IMPORT PORTAL
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -6,13 +7,13 @@ import {
   Calendar, MapPin, Clock, DollarSign,
   Search, CheckCircle, XCircle, Eye,
   Briefcase, Image as ImageIcon, FolderOpen,
-  CheckSquare
+  CheckSquare, X
 } from 'lucide-react';
 
 // ✅ Import MainLayout
 import MainLayout from '../../layouts/MainLayout/MainLayout';
 
-// Import API (Đảm bảo tên file chính xác, thường là OrderService viết hoa)
+// Import API
 import orderApi from '../../apis/OrderService'; 
 
 import './PhotographerOrderManagement.css';
@@ -27,11 +28,13 @@ export default function PhotographerOrderManagement() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, income: 0 });
+  
+  // ✅ State cho Modal Zoom Ảnh (Dùng Portal)
+  const [previewImage, setPreviewImage] = useState(null);
 
-  // 1. Hàm tải dữ liệu (dùng useCallback để tái sử dụng)
+  // 1. Hàm tải dữ liệu
   const fetchOrders = useCallback(async () => {
     try {
-      // Chỉ hiện loading lần đầu, những lần refresh ngầm không hiện loading toàn trang
       if (orders.length === 0) setLoading(true); 
       
       const res = await orderApi.getPhotographerOrders();
@@ -53,35 +56,24 @@ export default function PhotographerOrderManagement() {
     setStats({ total: data.length, pending, confirmed, income });
   };
 
-  // 2. Effect: Tải dữ liệu khi mount VÀ khi cửa sổ được focus lại (khi ấn nút Quay lại)
+  // 2. Effect
   useEffect(() => {
     fetchOrders();
-
-    // Sự kiện này giúp tự động refresh data khi bạn quay lại từ trang khác
     const onFocus = () => fetchOrders();
     window.addEventListener("focus", onFocus);
-    
     return () => window.removeEventListener("focus", onFocus);
   }, [fetchOrders]);
 
   // --- HÀM XỬ LÝ SỰ KIỆN ---
-
   const handleDeliverAlbum = (order) => {
-      // Logic:
-      // - Nếu đã có album (has_album = true) -> Chuyển sang trang xem ảnh khách chọn
-      // - Nếu chưa có -> Chuyển sang trang Upload/Quản lý Album
-      
       if (order.has_album) {
-          // Điều hướng đến trang quản lý file chọn
           navigate(`/orders/${order.order_id}/manage-selection`);
       } else {
-          // Điều hướng đến trang tạo Album mới
           navigate(`/photographer/album-detail/${order.order_id}`);
       }
   };
 
   const handleViewDetail = (orderId) => {
-    // Xem chi tiết đơn hàng (Cũng dẫn đến trang quản lý album để xem thông tin)
     navigate(`/photographer/album-detail/${orderId}`);
   };
 
@@ -90,7 +82,6 @@ export default function PhotographerOrderManagement() {
   };
 
   // --- FILTER & HELPERS ---
-
   const filteredOrders = orders.filter(order => {
     let matchesStatus = false;
     if (filterStatus === 'all') matchesStatus = true;
@@ -137,7 +128,6 @@ export default function PhotographerOrderManagement() {
   };
 
   return (
-    // ✅ Bọc trong MainLayout
     <MainLayout>
         <div className="photographer-order-page">
           <div className="pam-container">
@@ -200,7 +190,14 @@ export default function PhotographerOrderManagement() {
               <div className="orders-grid">
                 {filteredOrders.map(order => (
                   <div key={order._id} className="order-card">
-                    <img src={getImg(order.service_package_id)} alt="" className="order-img" />
+                    {/* ✅ Thêm sự kiện click zoom ảnh */}
+                    <div 
+                        className="img-wrapper" 
+                        onClick={() => setPreviewImage(getImg(order.service_package_id))}
+                        style={{cursor: 'zoom-in', overflow: 'hidden', borderRadius: '24px 24px 0 0'}}
+                    >
+                        <img src={getImg(order.service_package_id)} alt="" className="order-img" />
+                    </div>
 
                     <div className="order-main-info">
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -220,7 +217,6 @@ export default function PhotographerOrderManagement() {
 
                     <div className="order-price-col">
                       <span className="price-tag">{formatPrice(order.final_amount)}</span>
-                      {/* Đã xóa trạng thái cọc ở đây theo yêu cầu */}
                     </div>
 
                     <div className="order-actions">
@@ -252,6 +248,17 @@ export default function PhotographerOrderManagement() {
             )}
           </div>
         </div>
+
+        {/* ✅ MODAL ZOOM ẢNH (PORTAL) - Fix lỗi bị che khuất */}
+        {previewImage && createPortal(
+            <div className="image-zoom-overlay" onClick={() => setPreviewImage(null)}>
+                <div className="image-zoom-content" onClick={e => e.stopPropagation()}>
+                    <img src={previewImage} alt="Zoom" />
+                    <button className="close-zoom" onClick={() => setPreviewImage(null)}><X size={32}/></button>
+                </div>
+            </div>,
+            document.body
+        )}
     </MainLayout>
   );
 }

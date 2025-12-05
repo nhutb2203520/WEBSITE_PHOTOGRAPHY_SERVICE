@@ -12,8 +12,6 @@ import axiosUser from "../../apis/axiosUser";
 // ✅ Import MainLayout
 import MainLayout from "../../layouts/MainLayout/MainLayout";
 
-// ❌ Xóa import Header, Sidebar, Footer riêng lẻ
-
 const SelectionPhoto = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
@@ -37,7 +35,7 @@ const SelectionPhoto = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                console.log("🚀 Bắt đầu tải dữ liệu cho Order:", orderId);
+                // console.log("🚀 Bắt đầu tải dữ liệu cho Order:", orderId);
                 
                 const [albumRes, orderRes] = await Promise.all([
                     axiosUser.get(`/albums/${orderId}`).catch(() => null),
@@ -105,11 +103,8 @@ const SelectionPhoto = () => {
     const handleSubmit = async () => {
         if (selectedIds.length === 0) return toast.warning("Vui lòng chọn ít nhất 1 ảnh gốc.");
         
-        const confirmMsg = hasSubmitted 
-            ? `Bạn đang cập nhật lại danh sách chọn (${selectedIds.length} ảnh). Xác nhận gửi lại?`
-            : `Xác nhận gửi ${selectedIds.length} ảnh này cho nhiếp ảnh gia?`;
-
-        if (!window.confirm(confirmMsg)) return;
+        // ❌ ĐÃ BỎ PHẦN CONFIRM (window.confirm)
+        // Gửi thẳng luôn
 
         try {
             setSubmitting(true);

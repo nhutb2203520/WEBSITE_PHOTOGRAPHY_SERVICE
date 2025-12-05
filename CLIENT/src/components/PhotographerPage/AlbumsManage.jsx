@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
     Search, Plus, Image as ImageIcon, 
-    Calendar, User, Loader2, X, Eye, CheckSquare
+    Calendar, Loader2, X, Eye, CheckSquare
 } from 'lucide-react';
 
 import albumApi from '../../apis/albumApi';
@@ -11,8 +11,6 @@ import './AlbumsManage.css';
 
 // ✅ Import MainLayout
 import MainLayout from '../../layouts/MainLayout/MainLayout';
-
-// ❌ Đã xóa import Header, Sidebar, Footer lẻ tẻ
 
 export default function AlbumsManage() {
     const navigate = useNavigate();
@@ -75,10 +73,14 @@ export default function AlbumsManage() {
             const res = await albumApi.createFreelanceAlbum(newAlbumData);
             toast.success("Tạo album thành công!");
             setShowModal(false);
+            setNewAlbumData({ title: '', client_name: '', description: '' });
             
             const newId = res.data?.data?._id || res.data?._id;
             // ✅ Cập nhật route: chuyển hướng đến trang chi tiết album mới tạo
             if(newId) navigate(`/photographer/album-detail/${newId}`);
+            
+            // Reload list nếu không navigate
+            fetchData();
         } catch (error) {
             toast.error("Lỗi tạo album.");
         } finally {
@@ -89,16 +91,17 @@ export default function AlbumsManage() {
     // Chuyển đến trang Quản lý/Upload ảnh cho Album
     const handleViewDetail = (e, item) => {
         e && e.stopPropagation(); 
+        // Ưu tiên lấy order_id nếu có (để giữ logic cũ), nếu là freelance thì lấy _id của album
         const id = item.order_id || item._id;
-        // ✅ Cập nhật route: chuyển hướng giống PhotographerOrderManagement
         navigate(`/photographer/album-detail/${id}`);
     };
 
     // Chuyển đến trang Xem ảnh khách đã chọn
     const handleViewSelection = (e, item) => {
         e && e.stopPropagation();
-        if (!item.order_id) return toast.info("Album này không hỗ trợ tính năng chọn ảnh (Job ngoài).");
-        navigate(`/orders/${item.order_id}/manage-selection`);
+        // ✅ CẬP NHẬT: Cho phép xem chọn với cả Job ngoài (dùng _id album)
+        const targetId = item.order_id || item._id;
+        navigate(`/orders/${targetId}/manage-selection`);
     };
 
     // --- FILTER & HELPER ---
@@ -117,7 +120,6 @@ export default function AlbumsManage() {
     };
 
     return (
-        // ✅ Bọc trong MainLayout
         <MainLayout>
             <div className="am-container">
                 <div className="am-header">
@@ -173,10 +175,6 @@ export default function AlbumsManage() {
                                             </div>
                                         )}
                                         <div className="meta-row">
-                                            <User size={14}/>
-                                            <span>{item.client_name || "Khách vãng lai"}</span>
-                                        </div>
-                                        <div className="meta-row">
                                             <Calendar size={14}/>
                                             <span>{new Date(item.createdAt).toLocaleDateString('vi-VN')}</span>
                                         </div>
@@ -201,15 +199,14 @@ export default function AlbumsManage() {
                                             <Eye size={16}/> Chi tiết
                                         </button>
 
-                                        {item.type === 'order' && (
-                                            <button 
-                                                className={`btn-action-card ${item.status === 'selection_completed' ? 'highlight' : ''}`}
-                                                onClick={(e) => handleViewSelection(e, item)}
-                                                title="Xem danh sách ảnh khách đã chọn"
-                                            >
-                                                <CheckSquare size={16}/> Xem Chọn
-                                            </button>
-                                        )}
+                                        {/* ✅ CẬP NHẬT: Hiển thị nút Xem Chọn cho cả Job ngoài */}
+                                        <button 
+                                            className={`btn-action-card ${item.status === 'selection_completed' ? 'highlight' : ''}`}
+                                            onClick={(e) => handleViewSelection(e, item)}
+                                            title="Xem danh sách ảnh khách đã chọn"
+                                        >
+                                            <CheckSquare size={16}/> Xem Chọn
+                                        </button>
                                     </div>
                                 </div>
                             </div>

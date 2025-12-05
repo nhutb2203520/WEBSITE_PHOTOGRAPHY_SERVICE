@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import SidebarAdmin from "./SidebarAdmin";
 import HeaderAdmin from "./HeaderAdmin";
-import "./OrderManage.css"; 
+import "./OrderManage.css"; // Đảm bảo file CSS nằm cùng thư mục
 import { 
   CheckCircle2, 
   DollarSign, 
@@ -62,16 +63,17 @@ export default function OrderManage() {
   };
 
   const openPaymentModal = (order, earning) => {
+    // Defensive coding: Đảm bảo không crash nếu photographer_id null
     const photographer = order.photographer_id || {};
     const bankName = photographer.TenNganHang || "";     
     const accountNumber = photographer.SoTaiKhoan || ""; 
     const accountHolder = photographer.TenChuTaiKhoan || photographer.HoTen || ""; 
     const paymentAmount = earning > 0 ? earning : 0;
-    const transactionCode = `TT don ${order.order_id}`;
+    const transactionCode = `TT don ${order.order_id || '...'}`;
 
     let qrUrl = null;
     if (bankName && accountNumber && paymentAmount > 0) {
-        const cleanAccNumber = accountNumber.replace(/\s/g, '');
+        const cleanAccNumber = String(accountNumber).replace(/\s/g, ''); // Ép kiểu String để an toàn
         const cleanBankName = bankName.trim(); 
         qrUrl = `https://img.vietqr.io/image/${cleanBankName}-${cleanAccNumber}-compact2.png?amount=${paymentAmount}&addInfo=${encodeURIComponent(transactionCode)}&accountName=${encodeURIComponent(accountHolder)}`;
     }
@@ -106,15 +108,16 @@ export default function OrderManage() {
   };
 
   const handleCopy = (text) => {
+      if (!text) return;
       navigator.clipboard.writeText(text);
       toast.success("Đã sao chép!");
   };
 
   const filteredOrders = orders.filter((order) => {
     const term = searchTerm.toLowerCase();
-    const orderId = order.order_id || "";
-    const cusName = order.customer_id?.full_name || order.customer_name || "";
-    const matchSearch = orderId.toLowerCase().includes(term) || cusName.toLowerCase().includes(term);
+    const orderId = String(order.order_id || "").toLowerCase();
+    const cusName = (order.customer_id?.full_name || order.customer_name || "").toLowerCase();
+    const matchSearch = orderId.includes(term) || cusName.includes(term);
 
     if (filterStatus === "all") return matchSearch;
     if (filterStatus === "completed") return matchSearch && (order.status === "completed" || order.status === "cancelled");
@@ -139,8 +142,8 @@ export default function OrderManage() {
                     className={`btn ${filterStatus === status ? 'add-method' : 'btn-cancel'}`} 
                     onClick={() => setFilterStatus(status)}
                     style={
-                        filterStatus === status && status === 'unsettled' ? {background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)', color:'#fff', borderColor:'transparent'} : 
-                        filterStatus === status && status === 'settled' ? {background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color:'#fff', borderColor:'transparent'} : {}
+                        filterStatus === status && status === 'unsettled' ? {background: '#ea580c', color:'#fff', borderColor:'transparent'} : 
+                        filterStatus === status && status === 'settled' ? {background: '#059669', color:'#fff', borderColor:'transparent'} : {}
                     }
                 >
                     {status === 'all' ? 'Tất cả đơn' : 
@@ -183,24 +186,19 @@ export default function OrderManage() {
                         const isCancelled = order.status === 'cancelled';
                         const isPaid = order.settlement_status === 'paid';
                         
-                        // Lấy dữ liệu đã tính toán sẵn từ Backend
-                        // 1. Doanh thu (Actual Revenue)
                         let displayRevenue = isCancelled 
                             ? (order.deposit_amount || order.deposit_required || 0) 
                             : order.total_amount;
 
-                        // 2. Phí sàn và Phần trăm
                         const feeAmount = order.platform_fee?.amount || 0;
                         const feePercent = order.platform_fee?.percentage || 0;
-
-                        // 3. Thực nhận
                         const earning = order.photographer_earning || 0;
 
                         return (
                         <tr key={order._id}>
                             <td>
                                 <div style={{display: 'flex', flexDirection: 'column'}}>
-                                    <span style={{fontWeight: 'bold', fontSize: '15px'}}>#{order.order_id}</span>
+                                    <span style={{fontWeight: 'bold', fontSize: '14px'}}>#{order.order_id}</span>
                                     <span className="text-muted" style={{fontSize: '12px', marginTop: '4px'}}>
                                         {order.service_package_id?.name || "Gói dịch vụ"}
                                     </span>
@@ -209,25 +207,25 @@ export default function OrderManage() {
                             <td>{formatDate(order.booking_date)}</td>
                             <td className="text-success">
                                 {formatCurrency(displayRevenue)}
-                                {isCancelled && <div style={{fontSize: '11px', fontStyle: 'italic', color: '#dc2626'}}>(Tiền cọc giữ lại)</div>}
+                                {isCancelled && <div style={{fontSize: '11px', fontStyle: 'italic', color: '#dc2626'}}>(Tiền cọc)</div>}
                             </td>
                             <td className="text-danger" style={{fontSize: '13px'}}>
                                 -{formatCurrency(feeAmount)} <span style={{color: '#999'}}>({feePercent}%)</span>
                             </td>
-                            <td style={{color: '#2563eb', fontWeight: 'bold', fontSize: '15px', fontFamily: 'Roboto Mono'}}>
+                            <td style={{color: '#2563eb', fontWeight: 'bold', fontSize: '14px', fontFamily: 'Roboto Mono'}}>
                                 {formatCurrency(earning)}
                             </td>
                             <td>
                                 <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
                                     {isCancelled ? (
-                                        <span className="status-badge" style={{backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #f87171'}}>Đã hủy</span>
+                                        <span className="status-badge" style={{backgroundColor: '#fee2e2', color: '#991b1b'}}>Đã hủy</span>
                                     ) : (
                                         <span className={`status-badge ${order.status === 'completed' ? 'success' : 'default'}`}>
                                             {order.status === 'completed' ? 'Hoàn thành' : order.status}
                                         </span>
                                     )}
                                     {isPaid ? (
-                                        <span className="status-badge success" style={{border: '1px solid green', backgroundColor: '#f0fdf4'}}>Đã trả thợ</span>
+                                        <span className="status-badge success" style={{backgroundColor: '#f0fdf4'}}>Đã trả thợ</span>
                                     ) : (
                                         <span className="status-badge warning">Chưa trả thợ</span>
                                     )}
@@ -254,16 +252,20 @@ export default function OrderManage() {
           </div>
         </div>
 
-        {showPaymentModal && (
+        {/* --- MODAL SECTION --- */}
+        {showPaymentModal && createPortal(
             <div className="modal-overlay">
-                <div className="modal-container big-modal">
+                <div className="modal-container compact-modal">
                     <div className="modal-header">
-                        <h3 className="modal-title"><DollarSign size={24}/> Quyết toán lương thợ ảnh</h3>
-                        <button onClick={() => setShowPaymentModal(false)} className="modal-close-btn"><X size={24}/></button>
+                        <h3 className="modal-title"><DollarSign size={20}/> Quyết toán lương</h3>
+                        <button onClick={() => setShowPaymentModal(false)} className="modal-close-btn"><X size={20}/></button>
                     </div>
                     <div className="modal-body">
-                        <div className="photographer-info-card big-card">
-                            <div className="avatar-circle big-avatar">{paymentInfo.photographerName.charAt(0)}</div>
+                        <div className="photographer-info-card">
+                            {/* Sửa lỗi charAt nếu tên null */}
+                            <div className="avatar-circle">
+                                {(paymentInfo.photographerName || "?").charAt(0)}
+                            </div>
                             <div>
                                 <p className="text-label">Người thụ hưởng</p>
                                 <p className="text-value-large">{paymentInfo.photographerName}</p>
@@ -271,39 +273,59 @@ export default function OrderManage() {
                         </div>
                         {paymentInfo.qrUrl ? (
                             <div className="qr-layout-vertical">
-                                <div className="qr-image-wrapper-big"><img src={paymentInfo.qrUrl} alt="VietQR Code" className="qr-img-display"/></div>
-                                <div className="bank-info-details big-details">
-                                    <div className="detail-row-big"><span className="detail-label">Ngân hàng</span><span className="detail-value">{paymentInfo.bankName}</span></div>
-                                    <div className="detail-row-big"><span className="detail-label">Chủ tài khoản</span><span className="detail-value text-uppercase">{paymentInfo.accountHolder}</span></div>
-                                    <div className="detail-row-big highlight-row">
-                                        <span className="detail-label">Số tài khoản</span>
-                                        <div className="copy-wrapper"><span className="text-acc-number">{paymentInfo.accountNumber}</span><button onClick={() => handleCopy(paymentInfo.accountNumber)} className="btn-copy-big"><Copy size={20}/></button></div>
+                                <div className="qr-image-wrapper-compact">
+                                    <img 
+                                        src={paymentInfo.qrUrl} 
+                                        alt="VietQR Code" 
+                                        className="qr-img-display"
+                                        onError={(e) => {e.target.style.display='none';}} // Ẩn ảnh nếu lỗi
+                                    />
+                                </div>
+                                <div className="bank-info-details">
+                                    <div className="detail-row"><span className="detail-label">Ngân hàng</span><span className="detail-value">{paymentInfo.bankName}</span></div>
+                                    <div className="detail-row"><span className="detail-label">Chủ tài khoản</span><span className="detail-value text-uppercase">{paymentInfo.accountHolder}</span></div>
+                                    
+                                    {/* Highlight Box cho Số TK */}
+                                    <div className="highlight-box">
+                                        <span className="detail-label">STK:</span>
+                                        <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                            <span className="text-acc-number">{paymentInfo.accountNumber}</span>
+                                            <button onClick={() => handleCopy(paymentInfo.accountNumber)} className="btn-copy-icon"><Copy size={16}/></button>
+                                        </div>
                                     </div>
-                                    <div className="detail-row-big highlight-row">
-                                        <span className="detail-label">Số tiền</span><span className="text-money-big">{formatCurrency(paymentInfo.amount)}</span>
+
+                                    {/* Highlight Box cho Số tiền */}
+                                    <div className="highlight-box" style={{background: '#fff1f2', borderColor:'#fecdd3'}}>
+                                        <span className="detail-label">Số tiền:</span>
+                                        <span className="text-money-compact">{formatCurrency(paymentInfo.amount)}</span>
                                     </div>
-                                    <div className="detail-row-big">
+
+                                    <div className="detail-row" style={{borderBottom:'none', paddingTop:'5px'}}>
                                         <span className="detail-label">Nội dung CK</span>
-                                        <div className="copy-wrapper"><span className="detail-value">{paymentInfo.transactionCode}</span><button onClick={() => handleCopy(paymentInfo.transactionCode)} className="btn-copy-big"><Copy size={18}/></button></div>
+                                        <div style={{display:'flex', alignItems:'center', gap:'5px'}}>
+                                            <span className="detail-value">{paymentInfo.transactionCode}</span>
+                                            <button onClick={() => handleCopy(paymentInfo.transactionCode)} className="btn-copy-icon"><Copy size={14}/></button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="missing-bank-alert big-alert">
-                                <AlertTriangle size={40} style={{marginBottom: '10px'}}/>
+                            <div className="missing-bank-alert">
+                                <AlertTriangle size={32} style={{marginBottom: '10px'}}/>
                                 <p className="alert-title">Thiếu thông tin ngân hàng</p>
                                 <p className="alert-desc">Thợ ảnh này chưa cập nhật Số tài khoản hoặc Ngân hàng.</p>
-                                <p className="alert-money-big">Cần trả: <strong>{formatCurrency(paymentInfo.amount)}</strong></p>
+                                <p style={{fontSize: '20px', fontWeight: 'bold', color: '#dc2626'}}>Cần trả: {formatCurrency(paymentInfo.amount)}</p>
                             </div>
                         )}
-                        <div className="modal-note">* Vui lòng quét mã QR hoặc chuyển khoản thủ công, sau đó nhấn xác nhận bên dưới.</div>
+                        <div className="modal-note">* Vui lòng quét mã QR hoặc chuyển khoản thủ công, sau đó nhấn xác nhận.</div>
                     </div>
                     <div className="modal-footer">
-                        <button onClick={() => setShowPaymentModal(false)} className="btn-modal-cancel big-btn">Hủy bỏ</button>
-                        <button onClick={handleConfirmTransfer} className="btn-modal-confirm big-btn"><CheckCircle size={20}/> Xác nhận đã chuyển tiền</button>
+                        <button onClick={() => setShowPaymentModal(false)} className="btn-modal-cancel">Hủy bỏ</button>
+                        <button onClick={handleConfirmTransfer} className="btn-modal-confirm"><CheckCircle size={16}/> Xác nhận chuyển tiền</button>
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body // Portal target
         )}
       </main>
     </div>

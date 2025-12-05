@@ -459,9 +459,8 @@
     border-color: #e5e7eb;
     color: #6b7280;
 }
-
 /* =========================================
-   4. MODALS (CHUNG)
+   MODALS - FIXED Z-INDEX & VISIBILITY
    ========================================= */
 .modal-overlay {
     position: fixed;
@@ -469,26 +468,38 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(15, 23, 42, 0.6);
+    background-color: rgba(15, 23, 42, 0.75) !important;
+    /* Đậm hơn để che nội dung bên dưới */
     backdrop-filter: blur(4px);
-    z-index: 1000;
-    display: flex;
+    z-index: 99999 !important;
+    /* Cao nhất hệ thống */
+    display: flex !important;
     justify-content: center;
     align-items: center;
-    animation: fadeIn 0.2s ease-out;
+
+    /* TẮT ANIMATION ĐỂ TRÁNH LỖI BIẾN MẤT */
+    opacity: 1 !important;
+    visibility: visible !important;
+    animation: none !important;
 }
 
 .modal-content {
-    background: white;
+    background: white !important;
     border-radius: 20px;
     width: 90%;
     max-width: 600px;
-    /* Default width */
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden;
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 100000 !important;
+    /* Cao hơn overlay */
+
+    /* Reset transform */
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
 }
 
 /* Modal Header */
@@ -513,20 +524,16 @@
     font-size: 1.5rem;
     color: #94a3b8;
     cursor: pointer;
-    transition: color 0.2s;
-    line-height: 1;
 }
 
-.modal-header button:hover {
-    color: #ef4444;
-}
-
-/* Modal Body */
+/* Modal Body & Actions */
 .modal-body {
     padding: 24px;
     font-size: 0.95rem;
     line-height: 1.6;
     color: #475569;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .modal-actions {
@@ -536,7 +543,11 @@
     margin-top: 20px;
 }
 
-/* Modal Types */
+.modal-actions.center {
+    justify-content: center;
+}
+
+/* Specific Modal Widths */
 .cancel-modal {
     max-width: 500px;
 }
@@ -549,58 +560,7 @@
     max-width: 600px;
 }
 
-/* Warning Header */
-.warning-header h2 {
-    color: #ef4444;
-}
-
-/* --- Buttons in Modal --- */
-.btn-secondary {
-    padding: 10px 20px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    color: #64748b;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.btn-secondary:hover {
-    background: #f8fafc;
-    color: #1e293b;
-}
-
-.btn-primary {
-    padding: 10px 20px;
-    border: none;
-    background: #2563eb;
-    color: white;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.btn-primary:hover {
-    background: #1d4ed8;
-}
-
-.btn-danger {
-    padding: 10px 20px;
-    border: none;
-    background: #ef4444;
-    color: white;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.btn-danger:hover {
-    background: #dc2626;
-}
-
-/* =========================================
-   5. REVIEW FORM & UPLOAD
-   ========================================= */
+/* Review Styles */
 .review-product-info {
     display: flex;
     align-items: center;
@@ -615,17 +575,6 @@
     height: 60px;
     border-radius: 8px;
     object-fit: cover;
-}
-
-.review-product-info h4 {
-    margin: 0;
-    color: #1e293b;
-}
-
-.review-product-info p {
-    margin: 0;
-    color: #64748b;
-    font-size: 0.85rem;
 }
 
 .star-rating-input {
@@ -644,14 +593,7 @@
     font-family: inherit;
     font-size: 0.95rem;
     resize: vertical;
-    outline: none;
-    transition: border 0.2s;
     background: #f8fafc;
-}
-
-.review-textarea:focus {
-    border-color: #8b5cf6;
-    background: white;
 }
 
 .review-image-upload {
@@ -667,16 +609,8 @@
     border-radius: 8px;
     color: #64748b;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s;
     width: 100%;
     justify-content: center;
-}
-
-.upload-btn:hover {
-    border-color: #8b5cf6;
-    color: #8b5cf6;
-    background: #f5f3ff;
 }
 
 .image-previews {
@@ -695,6 +629,37 @@
     border: 1px solid #e2e8f0;
 }
 
+/* Buttons inside Modal */
+.btn-secondary {
+    padding: 10px 20px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary {
+    padding: 10px 20px;
+    border: none;
+    background: #2563eb;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    border: none;
+    background: #ef4444;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .btn-submit-review {
     padding: 10px 24px;
     background: #fbbf24;
@@ -704,59 +669,6 @@
     font-weight: 700;
     cursor: pointer;
 }
-
-.btn-submit-review:hover {
-    background: #f59e0b;
-}
-
-/* View Only Review */
-.review-view-only {
-    text-align: center;
-}
-
-.view-rating {
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-    margin-bottom: 12px;
-    align-items: center;
-}
-
-.rating-text {
-    font-weight: 700;
-    color: #b45309;
-    margin-left: 8px;
-}
-
-.view-comment {
-    font-style: italic;
-    color: #334155;
-    margin-bottom: 16px;
-}
-
-.view-images {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 20px;
-}
-
-.view-images img {
-    width: 60px;
-    height: 60px;
-    border-radius: 6px;
-    object-fit: cover;
-}
-
-.btn-enable-edit {
-    background: none;
-    border: none;
-    color: #64748b;
-    cursor: pointer;
-    text-decoration: underline;
-    font-size: 0.9rem;
-}
-
 /* Animations */
 @keyframes fadeIn {
     from {

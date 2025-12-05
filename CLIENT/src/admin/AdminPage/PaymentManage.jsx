@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom"; // ✅ Sử dụng Portal để đưa Modal ra ngoài cùng
 import { toast } from "react-toastify";
 import SidebarAdmin from "./SidebarAdmin";
 import HeaderAdmin from "./HeaderAdmin";
@@ -16,8 +17,8 @@ import {
   Wallet,
   Eye,
   AlertOctagon,
-  ArrowLeft, // Icon quay lại
-  MessageSquareWarning // Icon cảnh báo
+  ArrowLeft,
+  MessageSquareWarning
 } from "lucide-react";
 
 import paymentMethodService from "../../apis/paymentMethodService";
@@ -35,266 +36,130 @@ export default function PaymentManage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // --- STATE MỚI CHO FORM XÁC NHẬN ---
-  // actionStep: 'view' | 'confirming' | 'rejecting'
+  // --- STATE FORM ---
   const [actionStep, setActionStep] = useState('view'); 
   const [rejectionReason, setRejectionReason] = useState("");
 
-  // Map màu sắc trạng thái
-  const statusColors = {
-    "pending_payment": "warning",
-    "pending": "info",
-    "confirmed": "success",
-    "final_payment_pending": "purple",
-    "processing": "blue",
-    "completed": "success",
-    "cancelled": "danger"
-  };
-
-  const statusLabels = {
-    "pending_payment": "Chờ cọc",
-    "pending": "Chờ duyệt cọc",
-    "confirmed": "Đã cọc (Chờ chụp)",
-    "final_payment_pending": "Chờ duyệt TT cuối",
-    "processing": "Đang xử lý (Hậu kỳ)",
-    "completed": "Hoàn thành",
-    "cancelled": "Đã hủy"
-  };
+  const statusColors = { "pending_payment": "warning", "pending": "info", "confirmed": "success", "final_payment_pending": "purple", "processing": "blue", "completed": "success", "cancelled": "danger" };
+  const statusLabels = { "pending_payment": "Chờ cọc", "pending": "Chờ duyệt cọc", "confirmed": "Đã cọc (Chờ chụp)", "final_payment_pending": "Chờ duyệt TT cuối", "processing": "Hậu kỳ", "completed": "Hoàn thành", "cancelled": "Đã hủy" };
 
   useEffect(() => {
-    adminAuthService.initAutoRefresh();
+    // adminAuthService.initAutoRefresh(); // Tạm tắt nếu Header đã gọi để tránh render thừa
     fetchData();
   }, []);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('vi-VN');
-  };
-
-  const getImageUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith("http")) return url;
-    return `http://localhost:5000/${url.replace(/^\/+/, "")}`;
-  };
+  const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
+  const formatDate = (d) => (!d ? "N/A" : new Date(d).toLocaleDateString('vi-VN'));
+  const getImageUrl = (url) => (!url ? null : (url.startsWith("http") ? url : `http://localhost:5000/${url.replace(/^\/+/, "")}`));
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      const methodsRes = await paymentMethodService.getAllPaymentMethods();
+      const [methodsRes, ordersRes] = await Promise.all([
+          paymentMethodService.getAllPaymentMethods(),
+          adminOrderService.getAllOrders()
+      ]);
+
       const methodsList = Array.isArray(methodsRes) ? methodsRes : (methodsRes?.data || []);
+      setPaymentMethods(methodsList.map(m => ({ ...m, id: m._id, editing: false })));
 
-      const formattedMethods = methodsList.map((method) => ({
-        id: method._id,
-        fullName: method.fullName,
-        accountNumber: method.accountNumber,
-        bank: method.bank,
-        branch: method.branch || "",
-        isActive: method.isActive,
-        editing: false,
-      }));
-      setPaymentMethods(formattedMethods);
-
-      const ordersRes = await adminOrderService.getAllOrders();
       const rawOrders = ordersRes.data?.data || ordersRes.data || [];
+      const formatted = rawOrders.map(o => {
+        const deposit = o.deposit_required || 0;
+        const total = o.final_amount || 0;
+        let amountToCollect = 0, paymentPhase = "-", proofImage = null;
 
-      const formattedOrders = rawOrders.map((order) => {
-        const customerName = order.customer_id?.HoTen || order.customer_id?.full_name || "Khách hàng";
-        
-        const deposit = order.deposit_required || 0;
-        const total = order.final_amount || 0;
-        const remaining = total - deposit;
-
-        let amountToCollect = 0;
-        let paymentPhase = "-";
-        let proofImage = null;
-
-        if (order.status === 'pending' || order.status === 'pending_payment') {
-            amountToCollect = deposit;
-            paymentPhase = "Tiền Cọc (30%)";
-            proofImage = getImageUrl(order.payment_info?.transfer_image);
-        } else if (order.status === 'final_payment_pending' || order.status === 'confirmed') {
-            amountToCollect = remaining;
-            paymentPhase = "Thanh toán nốt (70%)";
-            proofImage = getImageUrl(order.payment_info?.remaining_transfer_image);
+        if (o.status === 'pending' || o.status === 'pending_payment') {
+            amountToCollect = deposit; paymentPhase = "Tiền Cọc (30%)"; proofImage = getImageUrl(o.payment_info?.transfer_image);
+        } else if (o.status === 'final_payment_pending' || o.status === 'confirmed') {
+            amountToCollect = total - deposit; paymentPhase = "Thanh toán nốt"; proofImage = getImageUrl(o.payment_info?.remaining_transfer_image);
         }
 
         return {
-          id: order._id,
-          displayId: order.order_id,
-          customer: customerName,
+          id: o._id, displayId: o.order_id,
+          customer: o.customer_id?.HoTen || "Khách hàng",
           totalAmount: formatCurrency(total),
           depositAmount: formatCurrency(deposit),
           amountToCollectStr: formatCurrency(amountToCollect),
-          paymentPhase: paymentPhase,
-          proofImage: proofImage,
-          date: formatDate(order.createdAt),
-          status: order.status,
-          rawStatus: order.status
+          paymentPhase, proofImage,
+          date: formatDate(o.createdAt),
+          status: o.status, rawStatus: o.status
         };
       });
-
-      const sortedOrders = formattedOrders.sort((a, b) => {
-         const priority = { 'pending': 1, 'final_payment_pending': 1, 'confirmed': 3, 'processing': 4, 'completed': 5, 'cancelled': 6 };
-         return (priority[a.rawStatus] || 99) - (priority[b.rawStatus] || 99);
-      });
-
-      setPayments(sortedOrders);
-
-    } catch (error) {
-      console.error("Fetch error:", error);
-      toast.error("Lỗi khi tải dữ liệu.");
-    } finally {
-      setLoading(false);
-    }
+      setPayments(formatted.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    } catch (e) { console.error(e); toast.error("Lỗi tải dữ liệu"); } 
+    finally { setLoading(false); }
   };
 
-  // --- LOGIC MODAL ---
-  const openConfirmModal = (order) => {
-    setSelectedOrder(order);
-    setActionStep('view'); // Reset về xem
-    setRejectionReason(""); // Reset lý do
-    setModalOpen(true);
-  };
+  const openConfirmModal = (order) => { setSelectedOrder(order); setActionStep('view'); setRejectionReason(""); setModalOpen(true); };
+  const startReject = () => setActionStep('rejecting');
+  const startConfirm = () => setActionStep('confirming');
 
-  // ✅ CHUYỂN BƯỚC: Sang màn hình Từ chối
-  const startRejectProcess = () => {
-    setActionStep('rejecting');
-  };
-
-  // ✅ CHUYỂN BƯỚC: Sang màn hình Xác nhận
-  const startConfirmProcess = () => {
-    setActionStep('confirming');
-  };
-
-  // ✅ SUBMIT TỪ CHỐI
   const submitReject = async () => {
     if (!selectedOrder) return;
-    
-    // Nếu chưa nhập lý do thì cảnh báo (hoặc dùng mặc định)
-    const finalReason = rejectionReason.trim() || "Ảnh mờ hoặc thông tin không khớp";
-
     try {
-        let revertStatus = "";
-        let message = "Đã từ chối thanh toán.";
-
-        if (selectedOrder.rawStatus === "pending") {
-            revertStatus = "pending_payment";
-        } else if (selectedOrder.rawStatus === "final_payment_pending") {
-            revertStatus = "waiting_final_payment";
-        } else {
-            return;
-        }
-
-        // Gọi API với lý do
-        await adminOrderService.updateOrderStatus(selectedOrder.id, revertStatus, finalReason);
-        
-        toast.info(message);
-        setModalOpen(false);
-        fetchData();
-
-    } catch (error) {
-        console.error(error);
-        toast.error("Lỗi khi từ chối đơn hàng");
-    }
+        let revertStatus = selectedOrder.rawStatus === "pending" ? "pending_payment" : "waiting_final_payment";
+        await adminOrderService.updateOrderStatus(selectedOrder.id, revertStatus, rejectionReason || "Thông tin không khớp");
+        toast.info("Đã từ chối"); setModalOpen(false); fetchData();
+    } catch (e) { toast.error("Lỗi xử lý"); }
   };
 
-  // ✅ SUBMIT XÁC NHẬN
   const submitConfirm = async () => {
     if (!selectedOrder) return;
-
     try {
-      let nextStatus = "";
-      let message = "";
-
-      if (selectedOrder.rawStatus === "pending") {
-         nextStatus = "confirmed";
-         message = "Đã xác nhận tiền cọc thành công!";
-      } else if (selectedOrder.rawStatus === "final_payment_pending") {
-         nextStatus = "processing"; 
-         message = "Đã xác nhận thanh toán đủ!";
-      } else {
-         return;
-      }
-
-      await adminOrderService.updateOrderStatus(selectedOrder.id, nextStatus, "Admin xác nhận thanh toán");
-      
-      toast.success(message);
-      setModalOpen(false);
-      fetchData(); 
-
-    } catch (error) {
-      console.error(error);
-      toast.error("Lỗi khi cập nhật trạng thái");
-    }
+        let nextStatus = selectedOrder.rawStatus === "pending" ? "confirmed" : "processing";
+        await adminOrderService.updateOrderStatus(selectedOrder.id, nextStatus, "Admin xác nhận");
+        toast.success("Đã xác nhận"); setModalOpen(false); fetchData();
+    } catch (e) { toast.error("Lỗi xử lý"); }
   };
 
-  // --- Payment Methods CRUD ... (Giữ nguyên code cũ) ---
   const addPaymentMethod = () => {
-    const newId = `temp-${Date.now()}`;
-    setPaymentMethods((prev) => [
-      ...prev,
-      { id: newId, fullName: "", accountNumber: "", bank: "", branch: "", isActive: true, editing: true, isNew: true },
-    ]);
+    setPaymentMethods(prev => [...prev, { id: `temp-${Date.now()}`, fullName: "", accountNumber: "", bank: "", branch: "", isActive: true, editing: true, isNew: true }]);
   };
 
   const removePaymentMethod = async (id) => {
     const method = paymentMethods.find((m) => m.id === id);
     if (!method) return;
     if (method.isNew) {
-      setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+      setPaymentMethods(prev => prev.filter(m => m.id !== id));
       return;
     }
-    if (!window.confirm("Xóa tài khoản ngân hàng này?")) return;
+    if (!window.confirm("Xóa tài khoản này?")) return;
     try {
       await paymentMethodService.deletePaymentMethod(id);
-      setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
-      toast.success("Đã xóa tài khoản");
-    } catch (error) {
-      toast.error("Lỗi khi xóa");
-    }
-  };
-
-  const handleMethodChange = (id, field, value) => {
-    setPaymentMethods((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
+      setPaymentMethods(prev => prev.filter(m => m.id !== id));
+      toast.success("Đã xóa");
+    } catch (error) { toast.error("Lỗi xóa"); }
   };
 
   const toggleEdit = async (id) => {
     const method = paymentMethods.find((m) => m.id === id);
     if (!method) return;
     if (method.editing) {
-      if (!method.fullName || !method.accountNumber || !method.bank) {
-        return toast.error("Vui lòng nhập đủ thông tin");
-      }
+      if (!method.fullName || !method.accountNumber || !method.bank) return toast.error("Nhập đủ thông tin");
       try {
-        const payload = { fullName: method.fullName, accountNumber: method.accountNumber, bank: method.bank, branch: method.branch || "", isActive: method.isActive };
+        const payload = { ...method };
         let res;
         if (method.isNew) {
-          res = await paymentMethodService.createPaymentMethod(payload);
-          toast.success("Đã thêm mới");
+            res = await paymentMethodService.createPaymentMethod(payload);
+            toast.success("Đã thêm");
         } else {
-          res = await paymentMethodService.updatePaymentMethod(id, payload);
-          toast.success("Đã cập nhật");
+            res = await paymentMethodService.updatePaymentMethod(id, payload);
+            toast.success("Đã cập nhật");
         }
-        const updatedData = res?.data || res || {}; 
-        setPaymentMethods((prev) => prev.map((m) => m.id === id ? { ...m, id: updatedData._id || m.id, editing: false, isNew: false } : m));
-      } catch (error) {
-        toast.error("Lỗi khi lưu");
-      }
+        const updatedData = res?.data || res || {};
+        setPaymentMethods(prev => prev.map(m => m.id === id ? { ...m, id: updatedData._id || m.id, editing: false, isNew: false } : m));
+      } catch (error) { toast.error("Lỗi lưu"); }
     } else {
-      setPaymentMethods((prev) => prev.map((m) => (m.id === id ? { ...m, editing: true } : m)));
+      setPaymentMethods(prev => prev.map(m => m.id === id ? { ...m, editing: true } : m));
     }
   };
 
-  const filteredPayments = payments.filter((p) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return p.displayId?.toLowerCase().includes(term) || p.customer?.toLowerCase().includes(term);
-  });
+  const handleMethodChange = (id, field, value) => {
+    setPaymentMethods(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+  const filtered = payments.filter(p => !searchTerm || p.displayId.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (loading) return <div className="loading-screen"><div className="spinner"></div></div>;
 
@@ -303,14 +168,8 @@ export default function PaymentManage() {
       <SidebarAdmin />
       <main className="admin-main">
         <HeaderAdmin />
-        <div className="page-header">
-          <h2>Quản lý Thanh toán (Duyệt tiền vào)</h2>
-        </div>
-
-        <button className="btn add-method" onClick={addPaymentMethod}>
-          <PlusCircle size={20} /> Thêm tài khoản ngân hàng
-        </button>
-
+        <div className="page-header"><h2>Quản lý Thanh toán</h2></div>
+        
         <div className="payment-methods-section">
           <h3 className="section-title">Tài khoản nhận tiền ({paymentMethods.length})</h3>
           <div className="cards-container">
@@ -350,174 +209,102 @@ export default function PaymentManage() {
         </div>
 
         <div className="orders-section">
-          <div className="orders-header">
-            <h3 className="section-title">Duyệt tiền khách chuyển</h3>
-            <div className="search-container">
+            <div className="orders-header">
+                <h3>Duyệt tiền vào</h3>
                 <div className="search-box">
-                    <input type="text" placeholder="Tìm mã đơn..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                    <Search size={18} className="search-icon" />
-                    {searchTerm && <XCircle size={16} className="clear-icon" onClick={() => setSearchTerm("")} />}
+                    <input placeholder="Tìm mã đơn..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    <Search className="search-icon" size={18}/>
                 </div>
             </div>
-            <div className="header-spacer"></div>
-          </div>
-
-          <div className="table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Mã đơn</th>
-                  <th>Ngày đặt</th>
-                  <th>Tiền Cọc</th>
-                  <th>Tổng Tiền</th>
-                  <th>Loại thanh toán</th>
-                  <th>Số tiền nhận</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPayments.map((p) => (
-                  <tr key={p.id}>
-                    <td style={{fontWeight: 'bold'}}>#{p.displayId}</td>
-                    <td>{p.date}</td>
-                    <td className="text-blue-600 font-medium">{p.depositAmount}</td>
-                    <td className="text-gray-600">{p.totalAmount}</td>
-                    <td><span className="text-muted" style={{fontSize: '13px'}}>{p.paymentPhase}</span></td>
-                    <td className="price-text" style={{fontSize: '15px'}}>{p.amountToCollectStr}</td>
-                    <td><span className={`status-badge ${statusColors[p.rawStatus] || 'default'}`}>{statusLabels[p.rawStatus] || p.status}</span></td>
-                    <td>
-                      {(p.rawStatus === "pending") ? (
-                        <button className="btn-verify" onClick={() => openConfirmModal(p)}><Eye size={16} style={{marginRight:4}}/> Duyệt Cọc</button>
-                      ) : (p.rawStatus === "final_payment_pending") ? (
-                        <button className="btn-verify" style={{backgroundColor: '#059669'}} onClick={() => openConfirmModal(p)}><Eye size={16} style={{marginRight:4}}/> Duyệt TT Cuối</button>
-                      ) : (
-                        <span className="text-muted text-xs italic">{p.rawStatus === 'completed' ? 'Đã hoàn tất' : p.rawStatus === 'processing' ? 'Đang hậu kỳ' : '-'}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {filteredPayments.length === 0 && <tr><td colSpan="8" className="text-center">Không tìm thấy dữ liệu</td></tr>}
-              </tbody>
-            </table>
-          </div>
+            <div className="table-wrapper">
+                <table className="admin-table">
+                    <thead><tr><th>Mã</th><th>Ngày</th><th>Tiền Cọc</th><th>Tổng</th><th>Loại</th><th>Cần thu</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+                    <tbody>
+                        {filtered.map(p => (
+                            <tr key={p.id}>
+                                <td><b>#{p.displayId}</b></td>
+                                <td>{p.date}</td>
+                                <td className="text-blue-600">{p.depositAmount}</td>
+                                <td>{p.totalAmount}</td>
+                                <td>{p.paymentPhase}</td>
+                                <td className="price-text">{p.amountToCollectStr}</td>
+                                <td><span className={`status-badge ${statusColors[p.rawStatus] || 'default'}`}>{statusLabels[p.rawStatus]}</span></td>
+                                <td>
+                                    {(p.rawStatus === 'pending' || p.rawStatus === 'final_payment_pending') ? 
+                                        <button className="btn-verify" onClick={() => openConfirmModal(p)}><Eye size={16}/> Duyệt</button> : 
+                                        <span className="text-muted">-</span>
+                                    }
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
-
-        {/* MODAL ĐA BƯỚC */}
-        {modalOpen && selectedOrder && (
-          <div className="modal-overlay" onClick={() => setModalOpen(false)}>
-            <div className="modal-content" style={{maxWidth: '600px'}} onClick={(e) => e.stopPropagation()}>
-              
-              {/* === BƯỚC 1: XEM CHI TIẾT === */}
-              {actionStep === 'view' && (
-                <>
-                  <div className="modal-header confirm">
-                    <DollarSign size={40} />
-                    <h3>Kiểm tra thanh toán</h3>
-                  </div>
-                  
-                  <div className="modal-body mb-4">
-                      <div style={{textAlign: 'center', marginBottom: 20}}>
-                        <p>Đơn hàng: <strong>#{selectedOrder.displayId}</strong></p>
-                        <p className="text-muted text-sm mb-2">Khách hàng: {selectedOrder.customer}</p>
-                      </div>
-                      
-                      {selectedOrder.proofImage ? (
-                          <div className="proof-image-section">
-                              <p className="section-label">📸 Ảnh chuyển khoản:</p>
-                              <div className="proof-image-wrapper" onClick={() => setPreviewImage(selectedOrder.proofImage)}>
-                                  <img src={selectedOrder.proofImage} alt="Payment Proof" className="proof-img" />
-                                  <div className="proof-overlay"><Eye color="white"/></div>
-                              </div>
-                              <small className="text-muted italic block text-center mt-1">(Nhấn vào ảnh để phóng to)</small>
-                          </div>
-                      ) : (
-                          <div className="no-proof-warning"><AlertOctagon color="#ef4444" size={24}/><p>Không tìm thấy ảnh bằng chứng!</p></div>
-                      )}
-
-                      <div className="bg-gray-50 p-4 rounded-lg my-4 border border-gray-200">
-                          <div className="flex justify-between mb-2">
-                              <span className="text-gray-500">Loại thanh toán:</span>
-                              <span className="font-semibold text-blue-600">{selectedOrder.paymentPhase}</span>
-                          </div>
-                          <div className="flex justify-between border-t pt-2 mt-2">
-                              <span className="text-gray-500">Số tiền nhận:</span>
-                              <span className="font-bold text-xl text-green-600">{selectedOrder.amountToCollectStr}</span>
-                          </div>
-                      </div>
-                  </div>
-
-                  <div className="modal-buttons" style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
-                    <button className="btn-cancel" style={{borderColor: '#ef4444', color: '#ef4444'}} onClick={startRejectProcess}>
-                        <XCircle size={18} style={{marginRight: 5}}/> Từ chối
-                    </button>
-                    <button className="btn-confirm" onClick={startConfirmProcess}>
-                        <CheckCircle2 size={18} style={{marginRight: 5}}/> Xác nhận
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* === BƯỚC 2: FORM TỪ CHỐI === */}
-              {actionStep === 'rejecting' && (
-                <>
-                  <div className="modal-header" style={{color: '#ef4444'}}>
-                    <MessageSquareWarning size={40} />
-                    <h3>Từ chối thanh toán</h3>
-                  </div>
-                  <div className="modal-body mb-4">
-                    <p className="text-muted">Vui lòng nhập lý do từ chối. Thông báo này sẽ được gửi cho khách hàng.</p>
-                    <textarea 
-                      className="reject-reason-input"
-                      placeholder="VD: Ảnh mờ không rõ mã giao dịch, số tiền không khớp..."
-                      rows="4"
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                    ></textarea>
-                  </div>
-                  <div className="modal-buttons">
-                    <button className="btn-cancel" onClick={() => setActionStep('view')}><ArrowLeft size={16}/> Quay lại</button>
-                    <button className="btn-confirm" style={{backgroundColor: '#ef4444'}} onClick={submitReject}>Xác nhận Từ chối</button>
-                  </div>
-                </>
-              )}
-
-              {/* === BƯỚC 3: FORM XÁC NHẬN === */}
-              {actionStep === 'confirming' && (
-                <>
-                  <div className="modal-header confirm">
-                    <CheckCircle2 size={40} color="#10b981"/>
-                    <h3>Xác nhận duyệt tiền?</h3>
-                  </div>
-                  <div className="modal-body mb-4">
-                    <p>Bạn chắc chắn muốn duyệt khoản thanh toán <strong>{selectedOrder.amountToCollectStr}</strong> cho đơn hàng <strong>#{selectedOrder.displayId}</strong>?</p>
-                    <p className="text-sm text-gray-500 italic mt-2">
-                      Trạng thái đơn sẽ chuyển sang: 
-                      <strong> {selectedOrder.rawStatus === 'pending' ? 'Đã cọc' : 'Đang xử lý (Hậu kỳ)'}</strong>
-                    </p>
-                  </div>
-                  <div className="modal-buttons">
-                    <button className="btn-cancel" onClick={() => setActionStep('view')}><ArrowLeft size={16}/> Quay lại</button>
-                    <button className="btn-confirm" onClick={submitConfirm}>Duyệt ngay</button>
-                  </div>
-                </>
-              )}
-
-            </div>
-          </div>
-        )}
-
-        {/* MODAL ZOOM ẢNH */}
-        {previewImage && (
-            <div className="image-zoom-overlay" onClick={() => setPreviewImage(null)}>
-                <div className="image-zoom-content">
-                    <img src={previewImage} alt="Full Proof" />
-                    <button className="close-zoom" onClick={() => setPreviewImage(null)}><XCircle size={32}/></button>
-                </div>
-            </div>
-        )}
-
       </main>
+
+      {/* ✅ CÔNG NGHỆ PORTAL: Render Modal ra body để tránh bị Sidebar che */}
+      {modalOpen && selectedOrder && createPortal(
+        <div className="modal-overlay" onClick={() => setModalOpen(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <button className="close-modal-btn" onClick={() => setModalOpen(false)}><XCircle size={24}/></button>
+                
+                {actionStep === 'view' && (
+                    <>
+                        <div className="modal-header confirm"><DollarSign size={40}/><h3>Kiểm tra thanh toán</h3></div>
+                        <div className="modal-body">
+                            <p>Đơn: <strong>#{selectedOrder.displayId}</strong> - {selectedOrder.customer}</p>
+                            {selectedOrder.proofImage ? 
+                                <div className="proof-image-wrapper" onClick={() => setPreviewImage(selectedOrder.proofImage)}>
+                                    <img src={selectedOrder.proofImage} className="proof-img" alt="Proof"/>
+                                    <div className="proof-overlay"><Eye color="white"/></div>
+                                </div> : <div className="no-proof-warning"><p>Chưa có ảnh</p></div>
+                            }
+                            <div className="amount-info">
+                                <p>Số tiền nhận: <span className="price-text">{selectedOrder.amountToCollectStr}</span></p>
+                            </div>
+                        </div>
+                        <div className="modal-buttons">
+                            <button className="btn-cancel" onClick={startReject}>Từ chối</button>
+                            <button className="btn-confirm" onClick={startConfirm}>Xác nhận</button>
+                        </div>
+                    </>
+                )}
+
+                {actionStep === 'confirming' && (
+                    <>
+                        <div className="modal-header confirm"><CheckCircle2 size={40}/><h3>Xác nhận duyệt?</h3></div>
+                        <p>Bạn chắc chắn đã nhận được <strong>{selectedOrder.amountToCollectStr}</strong>?</p>
+                        <div className="modal-buttons">
+                            <button className="btn-cancel" onClick={() => setActionStep('view')}>Quay lại</button>
+                            <button className="btn-confirm" onClick={submitConfirm}>Duyệt ngay</button>
+                        </div>
+                    </>
+                )}
+
+                {actionStep === 'rejecting' && (
+                    <>
+                        <div className="modal-header" style={{color:'#ef4444'}}><MessageSquareWarning size={40}/><h3>Từ chối</h3></div>
+                        <textarea className="reject-reason-input" rows="3" placeholder="Lý do..." value={rejectionReason} onChange={e => setRejectionReason(e.target.value)}/>
+                        <div className="modal-buttons">
+                            <button className="btn-cancel" onClick={() => setActionStep('view')}>Quay lại</button>
+                            <button className="btn-confirm" style={{background:'#ef4444'}} onClick={submitReject}>Xác nhận</button>
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>, document.body
+      )}
+
+      {/* ✅ Modal Zoom (Cũng dùng Portal) */}
+      {previewImage && createPortal(
+        <div className="image-zoom-overlay" onClick={() => setPreviewImage(null)}>
+            <div className="image-zoom-content">
+                <img src={previewImage} alt="Zoom"/>
+                <button className="close-zoom"><XCircle size={32} color="white"/></button>
+            </div>
+        </div>, document.body
+      )}
     </div>
   );
 }

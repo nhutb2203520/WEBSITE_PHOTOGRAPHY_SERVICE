@@ -54,9 +54,11 @@ const routes = [
     path: '/photographer/orders-manage',
     component: lazy(() => import('../components/PhotographerPage/PhotographerOrderManagement'))
   },
+
+  //
   {
     path: '/photographer/albums-detail',
-    component: lazy(() => import('../components/Album/DetailAlbumManager')) 
+    component: lazy(() => import('../components/PhotographerPage/DetailAlbumManager')) 
   },
   {
     path: '/photographer/albums-management',
@@ -127,9 +129,11 @@ const routes = [
     path: '/orders/:orderId/manage-selection',
     component: lazy(() => import('../components/Album/SelectionPhotoManage')) 
   },
+
+  //
   {
     path: '/photographer/album-detail/:orderId',
-    component: lazy(() => import('../components/Album/DetailAlbumManager')) 
+    component: lazy(() => import('../components/PhotographerPage/DetailAlbumManager')) 
   },
 
   // =================================================================
