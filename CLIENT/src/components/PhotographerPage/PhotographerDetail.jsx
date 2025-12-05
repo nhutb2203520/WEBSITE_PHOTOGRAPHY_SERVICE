@@ -3,19 +3,26 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Star, Heart, MapPin, Mail, Phone,
   Camera, Package, Image as ImageIcon, CheckCircle2,
-  AlertTriangle, ChevronDown
+  AlertTriangle, ChevronDown, MessageCircle // ✅ Import thêm icon MessageCircle
 } from 'lucide-react';
+import { useSelector } from 'react-redux'; // ✅ Import Redux để lấy user hiện tại
+import { toast } from 'react-toastify'; // ✅ Import Toast để thông báo
 
 import './PhotographerDetail.css';
 
-// ✅ Import MainLayout
+// Import MainLayout
 import MainLayout from '../../layouts/MainLayout/MainLayout';
 
-// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
+// ✅ Import API Chat và Component Chat
+import chatApi from '../../apis/chatApi';
+import ChatMessage from '../ChatMessage/ChatMessage'; // Kiểm tra đường dẫn này khớp với dự án của bạn
 
 export default function PhotographerDetail() {
   const { username } = useParams();
   const navigate = useNavigate();
+  
+  // ✅ Lấy thông tin user đang đăng nhập
+  const { user } = useSelector(state => state.user);
 
   // --- STATE ---
   const [photographer, setPhotographer] = useState(null);
@@ -32,10 +39,16 @@ export default function PhotographerDetail() {
   const [visibleWorks, setVisibleWorks] = useState(8);    
   const [visiblePackages, setVisiblePackages] = useState(6); 
 
+  // ✅ STATE QUẢN LÝ CHAT
+  const [showChat, setShowChat] = useState(false);
+  const [chatConversation, setChatConversation] = useState(null);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+
   // --- HELPER FUNCTIONS ---
   const getImageUrl = (img) => {
     if (!img) return '';
-    if (img.startsWith('http')) return img;
+    // 🔥 [FIX] Đã sửa lỗi ở dòng này: return img thay vì return imageUrl
+    if (img.startsWith('http')) return img; 
     return `http://localhost:5000${img}`;
   };
 
@@ -51,6 +64,39 @@ export default function PhotographerDetail() {
 
   const handleLoadMoreWorks = () => setVisibleWorks(prev => prev + 8);
   const handleLoadMorePackages = () => setVisiblePackages(prev => prev + 6);
+
+  // ✅ HÀM XỬ LÝ BẮT ĐẦU CHAT
+  const handleStartChat = async () => {
+    if (!user) {
+        toast.info("Vui lòng đăng nhập để nhắn tin!");
+        navigate('/signin', { state: { from: `/photographer/${username}` } });
+        return;
+    }
+
+    if (!photographer) return;
+
+    // ID của nhiếp ảnh gia (đã lấy từ API fetchAllData)
+    const photographerId = photographer._id;
+    const myId = user._id || user.id;
+
+    if (photographerId === myId) {
+        toast.info("Bạn không thể nhắn tin cho chính mình.");
+        return;
+    }
+
+    setIsCreatingChat(true);
+    try {
+        const res = await chatApi.createConversation(myId, photographerId);
+        const conversationData = res.data || res;
+        setChatConversation(conversationData);
+        setShowChat(true);
+    } catch (err) {
+        console.error("Lỗi tạo hội thoại:", err);
+        toast.error("Không thể kết nối trò chuyện.");
+    } finally {
+        setIsCreatingChat(false);
+    }
+  };
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -133,14 +179,12 @@ export default function PhotographerDetail() {
   );
 
   return (
-    // ✅ Bọc toàn bộ nội dung trong MainLayout
     <MainLayout>
       <div className="photographer-detail-page">
 
-        {/* ✅ NEW: WRAPPER CARD CHO PROFILE */}
+        {/* PROFILE CARD */}
         <div className="container photographer-profile-card">
           
-          {/* 1. COVER IMAGE BANNER */}
           <div className="photographer-cover-banner">
             <img 
               src={getImageUrl(photographer.CoverImage) || '/default-cover.jpg'} 
@@ -150,11 +194,9 @@ export default function PhotographerDetail() {
             />
           </div>
 
-          {/* 2. INFO SECTION */}
           <div className="photographer-info-section">
             <div className="photographer-profile-compact">
               
-              {/* Avatar (Sẽ dùng CSS để đưa lên đè ảnh bìa) */}
               <img 
                 src={getImageUrl(photographer.Avatar) || '/default-avatar.png'} 
                 alt="Avatar" 
@@ -162,15 +204,12 @@ export default function PhotographerDetail() {
                 onError={(e) => e.target.src = '/default-avatar.png'}
               />
 
-              {/* Nút Favorite */}
               <button className={`btn-favorite-compact ${isFavorited ? 'active' : ''}`} onClick={toggleFavorite}>
                 <Heart size={22} fill={isFavorited ? '#ef4444' : 'none'} color={isFavorited ? '#ef4444' : '#6b7280'} />
               </button>
 
-              {/* Tên */}
               <h1>{photographer.HoTen}</h1>
 
-              {/* Meta Info */}
               <div className="profile-meta-compact">
                 <div className="rating-display-compact">
                   <Star fill="#fbbf24" color="#fbbf24" size={18} />
@@ -222,7 +261,7 @@ export default function PhotographerDetail() {
         <div className="tab-content">
           <div className="container">
 
-            {/* ABOUT */}
+            {/* ABOUT TAB */}
             {activeTab === 'about' && (
               <div className="about-grid">
                 <div className="about-main">
@@ -230,19 +269,42 @@ export default function PhotographerDetail() {
                   <h3>Chuyên môn</h3>
                   <div className="specialties-tags">{photographer.specialties?.map((tag, idx) => <span key={idx} className="specialty-tag">{tag}</span>)}</div>
                 </div>
+                
+                {/* SIDEBAR LIÊN HỆ */}
                 <div className="about-sidebar">
                   <div className="contact-card">
                     <h3>Thông tin liên hệ</h3>
                     <div className="contact-item"><Mail size={18} /> <span>{photographer.Email}</span></div>
                     <div className="contact-item"><Phone size={18} /> <span>{photographer.SoDienThoai || 'Chưa cập nhật'}</span></div>
                     <div className="contact-item"><MapPin size={18} /> <span>{photographer.DiaChi || 'Việt Nam'}</span></div>
-                    <button className="btn-contact">Liên hệ ngay</button>
+                    
+                    {/* ✅ KHU VỰC NÚT LIÊN HỆ & CHAT */}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                
+
+                        {/* ✅ Nút Chat Mới */}
+                        <button 
+                            className="btn-contact" 
+                            style={{ 
+                                flex: '10 10 10', 
+                                padding: '20px 50px', 
+                                backgroundColor: '#3b82f6', // Màu xanh khác để phân biệt
+                                opacity: isCreatingChat ? 0.7 : 1
+                            }}
+                            onClick={handleStartChat}
+                            disabled={isCreatingChat}
+                            title="Nhắn tin"
+                        >
+                            <MessageCircle size={20} />
+                        </button>
+                    </div>
+
                   </div>
                 </div>
               </div>
             )}
 
-            {/* PACKAGES */}
+            {/* PACKAGES TAB */}
             {activeTab === 'packages' && (
               <div className="packages-section">
                 <div className="packages-grid">
@@ -279,7 +341,7 @@ export default function PhotographerDetail() {
               </div>
             )}
 
-            {/* PORTFOLIO */}
+            {/* PORTFOLIO TAB */}
             {activeTab === 'portfolio' && (
               <div className="portfolio-section">
                 <div className="portfolio-grid-layout">
@@ -300,7 +362,7 @@ export default function PhotographerDetail() {
               </div>
             )}
 
-            {/* REVIEWS */}
+            {/* REVIEWS TAB */}
             {activeTab === 'reviews' && (
               <div className="reviews-content">
                 <div className="reviews-summary">
@@ -318,8 +380,8 @@ export default function PhotographerDetail() {
                       <img src={getImageUrl(review.CustomerId?.Avatar)} alt="User" className="review-avatar" onError={(e)=>e.target.src='/default-avatar.png'}/>
                       <div className="review-content">
                          <div className="review-header">
-                            <h4>{review.CustomerId?.HoTen || 'Ẩn danh'}</h4>
-                            <div className="review-stars">{[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < review.Rating ? "#fbbf24" : "#e5e7eb"} color="#e5e7eb"/>)}</div>
+                           <h4>{review.CustomerId?.HoTen || 'Ẩn danh'}</h4>
+                           <div className="review-stars">{[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < review.Rating ? "#fbbf24" : "#e5e7eb"} color="#e5e7eb"/>)}</div>
                          </div>
                          <p className="review-comment">{review.Comment}</p>
                       </div>
@@ -332,6 +394,16 @@ export default function PhotographerDetail() {
           </div>
         </div>
       </div>
+
+      {/* ✅ RENDER MODAL CHAT KHI ĐƯỢC KÍCH HOẠT */}
+      {showChat && chatConversation && (
+        <ChatMessage 
+            conversation={chatConversation}
+            currentUser={user}
+            onClose={() => setShowChat(false)}
+        />
+      )}
+
     </MainLayout>
   );
 }

@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
-  Star, Heart, MapPin, Clock, Check, Phone, Mail, Camera, ArrowLeft, Share2, MessageCircle, ChevronLeft, ChevronRight, Truck, Info, CalendarDays, AlertTriangle
+  Star, Heart, MapPin, Clock, Check, Phone, Mail, Camera, ArrowLeft, Share2, 
+  MessageCircle, ChevronLeft, ChevronRight, Truck, Info, CalendarDays, AlertTriangle
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import './ServicePackageDetail.css';
 
-// ✅ Import MainLayout
+// Import Layout
 import MainLayout from '../../layouts/MainLayout/MainLayout';
 
-// ❌ Đã xóa import Header, Footer, Sidebar lẻ tẻ
-
+// Import APIs
 import servicePackageApi from '../../apis/ServicePackageService';
+import chatApi from '../../apis/chatApi'; // ✅ Import API Chat
+
+// Import Component Chat
+import ChatMessage from '../ChatMessage/ChatMessage'; // ✅ Import Component Chat (Kiểm tra lại đường dẫn nếu cần)
 
 export default function ServicePackageDetail() {
   const { id } = useParams();
@@ -25,6 +29,11 @@ export default function ServicePackageDetail() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+
+  // ✅ State quản lý Chat
+  const [showChat, setShowChat] = useState(false);
+  const [chatConversation, setChatConversation] = useState(null);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   useEffect(() => {
     fetchPackageDetail();
@@ -101,13 +110,46 @@ export default function ServicePackageDetail() {
     navigate('/order-service', { state: { packageId: id } });
   };
 
-  const handleContactPhotographer = () => {
+  // ✅ LOGIC XỬ LÝ NHẮN TIN VỚI NHIẾP ẢNH GIA
+  const handleContactPhotographer = async () => {
+    // 1. Kiểm tra đăng nhập
     if (!user) {
       toast.info('Vui lòng đăng nhập để liên hệ');
-      navigate('/signin');
+      navigate('/signin', { state: { from: `/package/${id}` } });
       return;
     }
-    toast.info('Tính năng chat đang được phát triển');
+
+    // 2. Kiểm tra dữ liệu Photographer
+    const photographer = packageData?.PhotographerId;
+    if (!photographer) {
+        toast.error("Không tìm thấy thông tin nhiếp ảnh gia");
+        return;
+    }
+
+    // 3. Lấy ID (xử lý trường hợp populate object hoặc string ID)
+    const photographerId = photographer._id || photographer;
+    const myId = user._id || user.id;
+
+    // 4. Chặn tự chat với chính mình
+    if (photographerId === myId) {
+        toast.info("Bạn không thể nhắn tin cho chính mình!");
+        return;
+    }
+
+    // 5. Gọi API tạo hội thoại
+    setIsCreatingChat(true);
+    try {
+        const res = await chatApi.createConversation(myId, photographerId);
+        const conversationData = res.data || res;
+
+        setChatConversation(conversationData);
+        setShowChat(true); // Mở modal chat
+    } catch (error) {
+        console.error("Lỗi tạo hội thoại:", error);
+        toast.error("Không thể kết nối trò chuyện lúc này.");
+    } finally {
+        setIsCreatingChat(false);
+    }
   };
 
   const nextImage = () => {
@@ -150,7 +192,6 @@ export default function ServicePackageDetail() {
   const images = getAllImages();
 
   return (
-    // ✅ Bọc toàn bộ nội dung trong MainLayout
     <MainLayout>
       <div className="package-detail-page">
         <div className="container">
@@ -345,8 +386,16 @@ export default function ServicePackageDetail() {
                         </div>
                       )}
                     </div>
-                    <button className="btn-contact-photographer" onClick={handleContactPhotographer}>
-                      <MessageCircle size={18} /> Nhắn tin
+                    
+                    {/* ✅ NÚT NHẮN TIN ĐÃ ĐƯỢC TÍCH HỢP */}
+                    <button 
+                        className="btn-contact-photographer" 
+                        onClick={handleContactPhotographer}
+                        disabled={isCreatingChat}
+                        style={{ opacity: isCreatingChat ? 0.7 : 1, cursor: isCreatingChat ? 'wait' : 'pointer' }}
+                    >
+                      <MessageCircle size={18} /> 
+                      {isCreatingChat ? "Đang kết nối..." : "Nhắn tin"}
                     </button>
                   </div>
                 </section>
@@ -369,14 +418,12 @@ export default function ServicePackageDetail() {
                       <span className="reviews">({packageData.SoLuotDanhGia || 0} đánh giá)</span>
                     </div>
                     
-                    {/* ✅ HIỂN THỊ SỐ LƯỢT ĐẶT VÀ KHIẾU NẠI */}
                     <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '10px', alignItems: 'center'}}>
                         <div className="booking-count">
                             <Camera size={18} />
                             <span>{packageData.SoLuongDaDat || 0} lượt đặt</span>
                         </div>
                         
-                        {/* Hiển thị khiếu nại kể cả bằng 0 */}
                         <div style={{display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: packageData.SoLuongKhieuNai > 0 ? '#ef4444' : '#6b7280', fontWeight: packageData.SoLuongKhieuNai > 0 ? '600' : '400'}}>
                             <AlertTriangle size={16} />
                             <span>{packageData.SoLuongKhieuNai || 0} khiếu nại</span>
@@ -471,6 +518,16 @@ export default function ServicePackageDetail() {
           </div>
         </div>
       )}
+
+      {/* ✅ HIỂN THỊ MODAL CHAT KHI CÓ CONVERSATION */}
+      {showChat && chatConversation && (
+        <ChatMessage 
+            conversation={chatConversation}
+            currentUser={user}
+            onClose={() => setShowChat(false)}
+        />
+      )}
+
     </MainLayout>
   );
 }
