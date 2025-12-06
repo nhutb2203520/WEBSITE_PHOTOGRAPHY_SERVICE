@@ -267,8 +267,8 @@ export default function HomePageCustomer() {
                     onClick={() => setShowImageSearch(true)}
                 >
                     <Camera size={18} />
-                    <span className="ai-text">Tìm kiếm bằng hình ảnh (AI)</span>
-                    <Sparkles size={16} className="sparkle-icon" />
+                    <span className="ai-text">Tìm kiếm bằng hình ảnh </span>
+                  
                 </button>
             </div>
 

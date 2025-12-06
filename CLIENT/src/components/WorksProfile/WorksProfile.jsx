@@ -4,6 +4,9 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify"; 
 import "./WorksProfile.css";
+// Giả sử bạn đã tạo WorksProfileService.js như hướng dẫn trước đó
+// Nếu chưa có, hãy tạo nó và import vào đây
+import worksProfileApi from "../../apis/WorksProfileService"; 
 
 export default function WorksProfile() {
   const navigate = useNavigate();
@@ -11,7 +14,6 @@ export default function WorksProfile() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // State quản lý form (Dùng chung cho Tạo mới & Chỉnh sửa)
   const [editingId, setEditingId] = useState(null); 
   const [newWork, setNewWork] = useState({ title: "", images: [] });
 
@@ -19,21 +21,18 @@ export default function WorksProfile() {
   const userRole = sessionStorage.getItem("role");
   const isPhotographer = userRole === "photographer";
 
-  // 🔹 Helper: Xử lý URL ảnh (Localhost, Blob hoặc Link online)
+  // Helper: Xử lý URL ảnh
   const getImageUrl = (img) => {
     if (!img) return "https://placehold.co/600x400/png?text=No+Image";
-    if (img.startsWith("blob:") || img.startsWith("http")) return img;
-    // Đảm bảo đúng port backend (5000)
+    if (img.startsWith("blob:")) return img; 
+    if (img.startsWith("http")) return img; 
     return `http://localhost:5000${img.startsWith('/') ? '' : '/'}${img}`;
   };
 
-  // 🔹 1. Lấy danh sách hồ sơ (API thật)
   const fetchWorks = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/worksprofile/my", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
+      // Sử dụng API Service cho gọn gàng và chuẩn
+      const data = await worksProfileApi.getMyWorks();
       if (data.success) {
         setWorks(data.works || []);
       }
@@ -46,21 +45,18 @@ export default function WorksProfile() {
     fetchWorks();
   }, []);
 
-  // 🔹 2. Xử lý sự kiện Modal (Tạo mới)
   const handleCreateClick = () => {
     setEditingId(null);
     setNewWork({ title: "", images: [] });
     setShowModal(true);
   };
 
-  // 🔹 3. Xử lý sự kiện Modal (Chỉnh sửa)
   const handleEditClick = (work) => {
     setEditingId(work._id);
-    // Map ảnh cũ từ server sang cấu trúc object để hiển thị preview
     const existingImages = work.images.map(imgUrl => ({
-      file: null, // Không có file object vì là ảnh cũ
+      file: null,
       preview: getImageUrl(imgUrl),
-      originalUrl: imgUrl, // Lưu URL gốc để gửi lên server nếu giữ lại
+      originalUrl: imgUrl,
       isNew: false
     }));
     setNewWork({
@@ -70,7 +66,6 @@ export default function WorksProfile() {
     setShowModal(true);
   };
 
-  // 🔹 4. Chọn ảnh từ máy
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     const newImages = files.map((file) => ({
@@ -81,14 +76,12 @@ export default function WorksProfile() {
     setNewWork({ ...newWork, images: [...newWork.images, ...newImages] });
   };
 
-  // 🔹 5. Xóa ảnh trong Modal (Xóa ảnh mới chọn hoặc ảnh cũ)
   const removeImageInModal = (index) => {
     const updatedImages = [...newWork.images];
     updatedImages.splice(index, 1);
     setNewWork({ ...newWork, images: updatedImages });
   };
 
-  // 🔹 6. Kéo thả sắp xếp ảnh
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     const reordered = Array.from(newWork.images);
@@ -97,7 +90,7 @@ export default function WorksProfile() {
     setNewWork({ ...newWork, images: reordered });
   };
 
-  // 🔹 7. Lưu (Tạo mới hoặc Cập nhật)
+  // ✅ LOGIC LƯU CHUẨN: GỬI QUA API SERVICE
   const handleSave = async () => {
     if (!newWork.title || newWork.images.length === 0) {
       alert("Vui lòng nhập tên và chọn ít nhất 1 ảnh!");
@@ -105,67 +98,60 @@ export default function WorksProfile() {
     }
 
     setLoading(true);
+
     const formData = new FormData();
     formData.append("title", newWork.title);
 
-    // Tách ảnh mới và ảnh cũ để xử lý logic update
-    const keptImages = [];
-    
+    // Xử lý ảnh:
+    // Backend đang mong đợi "images" là mảng file
+    const newFiles = [];
+    const keptUrls = [];
+
     newWork.images.forEach((img) => {
       if (img.isNew && img.file) {
-        formData.append("images", img.file); // Gửi file mới lên
+        formData.append("images", img.file); // Append từng file vào "images"
       } else if (!img.isNew && img.originalUrl) {
-        keptImages.push(img.originalUrl); // Giữ lại URL ảnh cũ
+        keptUrls.push(img.originalUrl);
       }
     });
 
-    // Gửi danh sách ảnh cũ cần giữ lại (Backend cần xử lý field này nếu update)
-    formData.append("keptImages", JSON.stringify(keptImages));
-
-    // Xác định URL và Method
-    const url = editingId 
-      ? `http://localhost:5000/api/worksprofile/${editingId}` 
-      : "http://localhost:5000/api/worksprofile/create";
-    
-    const method = editingId ? "PUT" : "POST";
+    // Nếu cần gửi danh sách ảnh cũ để backend biết đường giữ lại (cho Update)
+    if (keptUrls.length > 0) {
+        formData.append("keptImages", JSON.stringify(keptUrls));
+    }
 
     try {
-      const res = await fetch(url, {
-        method: method,
-        headers: { Authorization: `Bearer ${token}` }, // Không set Content-Type khi dùng FormData
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        alert(editingId ? "✅ Cập nhật thành công!" : "✅ Tạo hồ sơ thành công!");
-        setShowModal(false);
-        fetchWorks(); // Reload danh sách
+      let res;
+      if (editingId) {
+        res = await worksProfileApi.updateWork(editingId, formData);
       } else {
-        alert(data.message || "Có lỗi xảy ra!");
+        res = await worksProfileApi.createWork(formData);
+      }
+
+      if (res.success) {
+        toast.success(editingId ? "Cập nhật thành công!" : "Tạo hồ sơ thành công!");
+        setShowModal(false);
+        fetchWorks();
+      } else {
+        alert(res.message || "Có lỗi xảy ra!");
       }
     } catch (err) {
-      console.error("❌", err);
-      alert("Lỗi kết nối server!");
+      console.error("❌ Lỗi save:", err);
+      alert("Lỗi kết nối server hoặc upload ảnh!");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 8. Xóa hồ sơ
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa hồ sơ này?")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/worksprofile/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("🗑️ Đã xóa hồ sơ!");
+      const res = await worksProfileApi.deleteWork(id);
+      if (res.success) {
+        toast.success("Đã xóa hồ sơ!");
         fetchWorks();
       } else {
-        alert(data.message);
+        alert(res.message);
       }
     } catch (err) {
       console.error(err);
@@ -175,7 +161,6 @@ export default function WorksProfile() {
   return (
     <div className={`works-container ${isPhotographer ? "photographer-layout" : "center-layout"}`}>
       
-      {/* Sidebar User Info (Chỉ hiện cho Photographer) */}
       {isPhotographer && (
         <div className="user-info">
           <img 
@@ -189,7 +174,6 @@ export default function WorksProfile() {
         </div>
       )}
 
-      {/* Main Content */}
       <div className="works-card">
         <div className="works-header">
           <div className="works-title">
@@ -201,18 +185,20 @@ export default function WorksProfile() {
           </button>
         </div>
 
-        {/* Danh sách hồ sơ */}
         <div className="works-gallery">
           {works.length === 0 ? (
             <p className="no-work">Chưa có hồ sơ nào. Hãy tạo hồ sơ đầu tiên!</p>
           ) : (
             works.map((item) => (
               <div key={item._id} className="work-item">
-                {/* Click ảnh chuyển trang chi tiết */}
                 <div className="work-img-wrapper" onClick={() => navigate(`/workprofile/${item._id}`)}>
                   <img
                     src={getImageUrl(item.images?.[0])}
                     alt={item.title}
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/600x400/png?text=Error";
+                    }}
                   />
                   <div className="img-overlay">
                     <span>{item.images?.length || 0} ảnh</span>
@@ -223,17 +209,14 @@ export default function WorksProfile() {
                   <h4 onClick={() => navigate(`/workprofile/${item._id}`)}>{item.title}</h4>
                   
                   <div className="work-actions">
-                    {/* Nút Xem chi tiết */}
                     <button className="action-btn view" title="Xem chi tiết" onClick={() => navigate(`/workprofile/${item._id}`)}>
                         <Eye size={16} />
                     </button>
                     
-                    {/* Nút Chỉnh sửa */}
                     <button className="action-btn edit" title="Chỉnh sửa" onClick={() => handleEditClick(item)}>
                         <Edit size={16} />
                     </button>
                     
-                    {/* Nút Xóa */}
                     <button className="action-btn delete" title="Xóa" onClick={() => handleDelete(item._id)}>
                         <Trash2 size={16} />
                     </button>
@@ -244,7 +227,6 @@ export default function WorksProfile() {
           )}
         </div>
 
-        {/* Modal Create/Edit */}
         {showModal && (
           <div className="modal-overlay">
             <div className="modal">
@@ -278,7 +260,6 @@ export default function WorksProfile() {
                     <span className="file-hint">{newWork.images.length} ảnh đã chọn</span>
                 </div>
 
-                {/* Danh sách ảnh trong Modal (Có Drag & Drop) */}
                 <DragDropContext onDragEnd={handleDragEnd}>
                   <Droppable droppableId="images" direction="horizontal">
                     {(provided) => (

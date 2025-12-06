@@ -6,10 +6,8 @@ import { useDispatch } from 'react-redux';
 import { login } from '../../redux/Slices/authSlice';
 import './SignIn.css';
 
-// ✅ Import MainLayout
+// Import MainLayout
 import MainLayout from '../../layouts/MainLayout/MainLayout';
-
-// ❌ Đã xóa import Header, Footer riêng lẻ
 
 export default function Login() {
   const navigate = useNavigate();
@@ -65,7 +63,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // ✅ Gọi API hoặc Redux action đăng nhập
+      // Gọi API hoặc Redux action đăng nhập
       const result = await dispatch(login(formData)).unwrap();
 
       // Nếu login thành công
@@ -91,7 +89,7 @@ export default function Login() {
   };
 
   return (
-    // ✅ Bọc toàn bộ nội dung trong MainLayout
+    // Bọc toàn bộ nội dung trong MainLayout
     <MainLayout>
       <div className="login-container">
         <div className="login-card">
@@ -173,7 +171,8 @@ export default function Login() {
                 />
                 <span className="checkbox-label">Ghi nhớ đăng nhập</span>
               </label>
-              <Link to="/forgot-password" class="forgot-link">
+              {/* ✅ ĐÃ SỬA: class -> className */}
+              <Link to="/forgot-password" className="forgot-link">
                 Quên mật khẩu?
               </Link>
             </div>

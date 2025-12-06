@@ -9,13 +9,16 @@ import {
   deleteWorkProfile,
   getWorkById,
   getWorksByUserId,
-  searchByImage // ✅ Import hàm search mới
+  searchByImage, // ✅ Import hàm search
+  updateWork     // ✅ Import hàm update
 } from "../controllers/worksprofile.controller.js";
 
 const router = express.Router();
 
-// Cấu hình Multer
-const uploadDir = "uploads/";
+// ==========================================
+// 📁 CẤU HÌNH MULTER (Lưu vào uploads/works)
+// ==========================================
+const uploadDir = "uploads/works"; // Tách riêng thư mục cho gọn
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -25,13 +28,14 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
       const ext = path.extname(file.originalname);
       const name = path.basename(file.originalname, ext).replace(/\s+/g, '-');
-      cb(null, `${Date.now()}-${name}${ext}`);
+      const userId = req.user?._id || 'unknown';
+      cb(null, `work-${userId}-${Date.now()}${ext}`);
   },
 });
 
 const upload = multer({ 
     storage,
-    limits: { fileSize: 500 * 1024 * 1024 } // Tăng lên 500MB
+    limits: { fileSize: 50 * 1024 * 1024 } // Max 50MB
 });
 
 // ================= ROUTES =================
@@ -42,16 +46,19 @@ router.post('/search-image', upload.single('image'), searchByImage);
 // 2. Lấy danh sách của tôi
 router.get("/my", verifyTokenUser, getMyWorksProfiles);
 
-// 3. Lấy theo User ID
+// 3. Lấy theo User ID (Public)
 router.get("/user/:userId", getWorksByUserId);
 
-// 4. Tạo mới
-router.post("/create", verifyTokenUser, upload.array("images", 10), createWorksProfile);
+// 4. Tạo mới (Upload tối đa 10 ảnh)
+router.post("/create", verifyTokenUser, upload.array("images", 20), createWorksProfile);
 
-// 5. Xóa
+// 5. Cập nhật
+router.put("/:id", verifyTokenUser, updateWork);
+
+// 6. Xóa
 router.delete("/:id", verifyTokenUser, deleteWorkProfile);
 
-// 6. Chi tiết (Cuối cùng)
+// 7. Lấy chi tiết Work (Đặt cuối cùng để tránh conflict route)
 router.get("/:id", getWorkById); 
 
 export default router;

@@ -504,11 +504,11 @@ const UserChatPage = () => {
                                     <div className="input-actions">
                                         <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{display: 'none'}} />
                                         <button type="button" onClick={() => fileInputRef.current.click()}><ImageIcon size={20}/></button>
-                                        <button type="button"><Paperclip size={20}/></button>
+                                       
                                     </div>
                                     <div className="input-wrapper">
                                         <input type="text" placeholder="Nhập tin nhắn..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} />
-                                        <button type="button" className="emoji-btn"><Smile size={20}/></button>
+                                        
                                     </div>
                                     <button type="submit" className="send-btn-primary"><Send size={18}/></button>
                                 </form>

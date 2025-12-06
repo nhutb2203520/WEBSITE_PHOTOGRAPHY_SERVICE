@@ -225,7 +225,7 @@ export default function PhotoBookingHeader() {
                 <>
                   <div style={styles.userInfo}>
                     <User size={28} color="#9333ea" />
-                    <Link to="/my-account" style={{ color: '#4b5563' }}>
+                    <Link to="/my-account" style={{ color: '#4b5563', textDecoration: 'none' }}>
                       {displayName}
                     </Link>
                   </div>
@@ -286,7 +286,7 @@ export default function PhotoBookingHeader() {
                       ? { color: '#9333ea', fontWeight: 600 }
                       : { color: '#374151' }
                   }
-                  className="block py-2 text-lg"
+                  className="block py-2 text-lg" // Class Tailwind
                 >
                   {item.label}
                 </Link>
