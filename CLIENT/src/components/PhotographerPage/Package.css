@@ -1,12 +1,50 @@
-/* ================= GLOBAL LAYOUT ================= */
+/* =========================================
+   1. GLOBAL VARIABLES & LAYOUT
+   ========================================= */
+:root {
+    --primary-blue: #2563eb;
+    --primary-blue-hover: #1d4ed8;
+    --success-green: #10b981;
+    --success-dark: #166534;
+    --success-bg: #dcfce7;
+    --danger-red: #ef4444;
+    --danger-bg: #fee2e2;
+    --text-dark: #1e293b;
+    --text-gray: #64748b;
+    --bg-light: #f8fafc;
+    --border-color: #e2e8f0;
+}
+
 .package-management {
     max-width: 1440px;
     margin: 0 auto;
     padding: 2rem;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-dark);
 }
 
-/* Header Section */
+/* Custom Scrollbar Global */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+/* =========================================
+   2. HEADER SECTION
+   ========================================= */
 .package-header {
     display: flex;
     justify-content: space-between;
@@ -16,8 +54,8 @@
 
 .package-header h2 {
     font-size: 2rem;
-    color: #111827;
-    font-weight: 700;
+    color: var(--text-dark);
+    font-weight: 800;
     margin: 0;
     letter-spacing: -0.025em;
 }
@@ -27,8 +65,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: #2563eb;
-    /* Blue-600 */
+    background: var(--primary-blue);
     color: white;
     border: none;
     border-radius: 10px;
@@ -40,93 +77,100 @@
 }
 
 .btn-add-package:hover {
-    background: #1d4ed8;
-    /* Blue-700 */
+    background: var(--primary-blue-hover);
     transform: translateY(-1px);
     box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
 }
 
-/* ================= MODAL STYLING (CORE UPDATE) ================= */
+/* =========================================
+   3. MODAL STYLING (FIXED - HIỂN THỊ TRÊN CÙNG)
+   ========================================= */
+/* Áp dụng kỹ thuật z-index cao và !important từ mẫu bạn gửi để khắc phục lỗi ẩn form */
 .modal-overlay {
     position: fixed;
-    inset: 0;
-    background: rgba(17, 24, 39, 0.7);
-    /* Darker overlay */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.75) !important;
+    /* Màu nền tối đậm */
     backdrop-filter: blur(4px);
-    display: flex;
+    z-index: 99999 !important;
+    /* Cao nhất hệ thống */
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease-out;
+
+    /* Đảm bảo hiển thị */
+    opacity: 1 !important;
+    visibility: visible !important;
+    animation: none !important;
 }
 
 .modal-content {
-    background: #ffffff;
-    width: 95%;
-    max-width: 750px;
+    background: white !important;
     border-radius: 20px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 95%;
+    max-width: 800px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
     display: flex;
     flex-direction: column;
     max-height: 90vh;
     /* Giới hạn chiều cao */
-    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
-    /* Quan trọng để bo góc */
+    position: relative;
+    z-index: 100000 !important;
+    /* Cao hơn overlay */
+
+    /* Reset các thuộc tính có thể gây lỗi */
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
 }
 
 /* Modal Header - Sticky Top */
+/* Trong code React của bạn dùng thẻ <h3> làm header */
 .modal-content h3 {
-    padding: 1.5rem 2rem;
+    padding: 1.25rem 1.5rem;
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #111827;
-    border-bottom: 1px solid #f3f4f6;
-    background: #fff;
+    color: var(--text-dark);
+    border-bottom: 1px solid var(--border-color);
+    background: white;
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
 /* Modal Body - Scrollable */
+/* Trong code React của bạn nội dung nằm trong thẻ <form> */
 .modal-content form {
-    padding: 2rem;
+    padding: 1.5rem;
     overflow-y: auto;
-    /* Chỉ cuộn phần nội dung */
+    /* Cho phép cuộn nội dung form */
     flex: 1;
-    /* Custom Scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+    display: flex;
+    flex-direction: column;
 }
 
-.modal-content form::-webkit-scrollbar {
-    width: 6px;
-}
-
-.modal-content form::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.modal-content form::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 20px;
-}
-
-/* ================= FORM ELEMENTS ================= */
+/* =========================================
+   4. FORM ELEMENTS
+   ========================================= */
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
 }
 
 .form-group label {
     display: block;
     font-weight: 600;
-    color: #374151;
+    color: #334155;
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
 }
 
-/* Inputs & Selects */
 .form-group input[type="text"],
 .form-group input[type="number"],
 .form-group select,
@@ -134,28 +178,22 @@
     width: 100%;
     padding: 0.75rem 1rem;
     border-radius: 10px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     background: #fff;
     font-size: 0.95rem;
-    color: #1f2937;
+    color: var(--text-dark);
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     box-sizing: border-box;
-}
-
-.form-group input:hover,
-.form-group select:hover,
-.form-group textarea:hover {
-    border-color: #d1d5db;
+    font-family: inherit;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-    border-color: #3b82f6;
+    border-color: var(--primary-blue);
     outline: none;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-    /* Glow effect */
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
 .form-group textarea {
@@ -164,8 +202,9 @@
     line-height: 1.5;
 }
 
-/* ================= SERVICES SECTION (IMPROVED) ================= */
-/* Biến mỗi dòng dịch vụ thành 1 card nhỏ gọn */
+/* =========================================
+   5. SERVICES SECTION
+   ========================================= */
 .service-input-group {
     display: flex;
     align-items: center;
@@ -173,7 +212,7 @@
     background: #f8fafc;
     padding: 1rem;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     margin-bottom: 0.75rem;
     transition: all 0.2s;
 }
@@ -188,20 +227,18 @@
     border: 1px solid #cbd5e1;
     background: #fff;
     margin: 0 !important;
-    /* Override default margin */
 }
 
 .service-input-group input:first-child {
     flex: 2;
-    /* Tên dịch vụ rộng hơn */
+    /* Tên dịch vụ */
 }
 
 .service-input-group input:last-of-type {
     flex: 1;
-    /* Giá hẹp hơn */
+    /* Giá */
 }
 
-/* Delete Service Button */
 .btn-remove-service {
     width: 36px;
     height: 36px;
@@ -210,8 +247,8 @@
     align-items: center;
     justify-content: center;
     background: #fff;
-    border: 1px solid #fee2e2;
-    color: #ef4444;
+    border: 1px solid var(--danger-bg);
+    color: var(--danger-red);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
@@ -219,18 +256,17 @@
 }
 
 .btn-remove-service:hover {
-    background: #fee2e2;
-    border-color: #ef4444;
+    background: var(--danger-bg);
+    border-color: var(--danger-red);
     transform: scale(1.05);
 }
 
-/* Add Service Button */
 .btn-add-service {
     width: 100%;
     padding: 0.875rem;
     background: #eff6ff;
-    border: 1px dashed #3b82f6;
-    color: #2563eb;
+    border: 1px dashed var(--primary-blue);
+    color: var(--primary-blue);
     border-radius: 10px;
     font-weight: 600;
     cursor: pointer;
@@ -247,28 +283,29 @@
     border-style: solid;
 }
 
-/* Price Preview Box */
+/* Price Preview */
 .form-price-preview {
     margin-top: 1rem;
     padding: 1rem;
     background: linear-gradient(to right, #f0fdf4, #dcfce7);
     border: 1px solid #bbf7d0;
     border-radius: 10px;
-    color: #166534;
+    color: var(--success-dark);
     font-weight: 600;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-/* Divider */
 .form-section-divider {
     height: 1px;
-    background-color: #e5e7eb;
+    background-color: var(--border-color);
     margin: 2rem 0;
 }
 
-/* ================= UPLOAD SECTION (DROPZONE STYLE) ================= */
+/* =========================================
+   6. UPLOAD SECTION
+   ========================================= */
 .upload-button {
     display: flex;
     flex-direction: column;
@@ -280,29 +317,27 @@
     border: 2px dashed #cbd5e1;
     border-radius: 16px;
     background: #f9fafb;
-    color: #6b7280;
+    color: var(--text-gray);
     cursor: pointer;
     transition: all 0.2s;
     box-sizing: border-box;
 }
 
 .upload-button:hover {
-    border-color: #3b82f6;
+    border-color: var(--primary-blue);
     background: #eff6ff;
-    color: #2563eb;
+    color: var(--primary-blue);
 }
 
 .upload-button svg {
     width: 32px;
     height: 32px;
-    color: inherit;
 }
 
 .upload-button span {
     font-weight: 500;
 }
 
-/* Image Preview Grid */
 .images-preview-dragdrop {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -315,9 +350,15 @@
     aspect-ratio: 1;
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     background: #fff;
+    cursor: grab;
+}
+
+.image-preview-item.dragging {
+    opacity: 0.5;
+    border-color: var(--primary-blue);
 }
 
 .image-preview-item img {
@@ -331,7 +372,7 @@
     top: 4px;
     right: 4px;
     background: rgba(255, 255, 255, 0.9);
-    color: #ef4444;
+    color: var(--danger-red);
     border: none;
     border-radius: 50%;
     width: 24px;
@@ -345,18 +386,23 @@
 }
 
 .btn-remove-image:hover {
-    background: #ef4444;
+    background: var(--danger-red);
     color: white;
 }
 
-/* ================= MODAL FOOTER (ACTIONS) ================= */
+/* =========================================
+   7. MODAL FOOTER (ACTIONS)
+   ========================================= */
+/* Style lại phần nút bấm trong form */
 .modal-actions {
-    padding: 1.5rem 2rem;
-    background: #fff;
-    border-top: 1px solid #f3f4f6;
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    background: white;
+    /* Sticky footer */
     position: sticky;
     bottom: 0;
     z-index: 10;
@@ -372,41 +418,43 @@
     border: none;
 }
 
+/* Nút Hủy */
 .modal-actions button:first-child {
-    background: #fff;
-    color: #4b5563;
-    border: 1px solid #d1d5db;
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
 }
 
 .modal-actions button:first-child:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-    color: #1f2937;
+    background: #f1f5f9;
+    color: #334155;
 }
 
+/* Nút Submit (Tạo mới/Cập nhật) */
 .modal-actions button:last-child {
-    background: #2563eb;
+    background: var(--primary-blue);
     color: white;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .modal-actions button:last-child:hover {
-    background: #1d4ed8;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+    background: var(--primary-blue-hover);
+    box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.3);
 }
 
 .modal-actions button:disabled {
-    background: #9ca3af;
+    background: #94a3b8;
     cursor: not-allowed;
-    transform: none;
     box-shadow: none;
 }
 
-/* ================= GRID LAYOUT FOR PACKAGES (MAIN PAGE) ================= */
+/* =========================================
+   8. PACKAGES GRID
+   ========================================= */
 .packages-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
     margin-top: 2rem;
 }
 
@@ -414,22 +462,25 @@
     background: white;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    border: 1px solid #f3f4f6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
 }
 
 .package-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.1);
+    border-color: #e2e8f0;
 }
 
 .package-image {
     position: relative;
     height: 200px;
+    min-height: 200px;
     overflow: hidden;
+    background-color: var(--bg-light);
 }
 
 .package-image img {
@@ -441,6 +492,16 @@
 
 .package-card:hover .package-image img {
     transform: scale(1.05);
+}
+
+.no-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #9ca3af;
+    font-size: 12px;
 }
 
 .upload-overlay {
@@ -472,25 +533,26 @@
     display: inline-block;
     padding: 0.25rem 0.75rem;
     background: #eff6ff;
-    color: #2563eb;
+    color: var(--primary-blue);
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    align-self: flex-start;
 }
 
 .package-body h3 {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text-dark);
     margin: 0 0 0.5rem 0;
 }
 
 .package-description {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--text-gray);
     margin-bottom: 1rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -502,20 +564,50 @@
     display: flex;
     gap: 1rem;
     padding: 0.75rem 0;
-    border-top: 1px solid #f3f4f6;
-    border-bottom: 1px solid #f3f4f6;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
     margin-bottom: 1rem;
     font-size: 0.875rem;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.stat-label {
+    font-weight: 400;
+    color: var(--text-gray);
+    font-size: 0.8rem;
+    margin-left: 2px;
 }
 
 .package-services {
     margin-bottom: auto;
 }
 
+.package-services ul {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+}
+
 .package-services ul li {
     font-size: 0.9rem;
     color: #4b5563;
     margin-bottom: 0.25rem;
+    padding-left: 12px;
+    position: relative;
+}
+
+.package-services ul li::before {
+    content: "•";
+    color: var(--primary-blue);
+    position: absolute;
+    left: 0;
 }
 
 .package-price-range {
@@ -532,11 +624,10 @@
     font-size: 1rem;
 }
 
-/* Package Footer */
 .package-footer {
     margin-top: 1.5rem;
     padding-top: 1rem;
-    border-top: 1px solid #f3f4f6;
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
 }
@@ -552,7 +643,7 @@
     border-radius: 8px;
     border: none;
     background: #f3f4f6;
-    color: #6b7280;
+    color: var(--text-gray);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -562,29 +653,107 @@
 
 .package-actions button:hover {
     background: #e5e7eb;
-    color: #1f2937;
+    color: var(--text-dark);
 }
 
 .package-actions button:last-child:hover {
-    background: #fee2e2;
-    color: #ef4444;
+    background: var(--danger-bg);
+    color: var(--danger-red);
 }
 
-/* ================= STATES ================= */
+/* =========================================
+   9. SUCCESS MODAL
+   ========================================= */
+.success-content {
+    text-align: center;
+    align-items: center;
+    padding: 3rem 2rem !important;
+    max-width: 500px !important;
+    justify-content: center;
+}
+
+.success-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    background-color: var(--success-bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--success-green);
+    margin-bottom: 1.5rem;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.success-content h3 {
+    color: var(--success-dark) !important;
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem !important;
+    border-bottom: none !important;
+    background: transparent !important;
+    position: static !important;
+    padding: 0 !important;
+}
+
+.success-content p {
+    color: #4b5563;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.btn-reload-page {
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    width: 100%;
+}
+
+.btn-reload-page:hover {
+    background-color: var(--primary-blue-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+}
+
+.btn-close-success {
+    margin-top: 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-gray);
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: underline;
+}
+
+.btn-close-success:hover {
+    color: var(--text-dark);
+}
+
 .loading,
 .no-packages {
     text-align: center;
     padding: 4rem;
-    color: #6b7280;
+    color: var(--text-gray);
 }
 
 .no-packages {
     background: #f9fafb;
-    border: 2px dashed #e5e7eb;
+    border: 2px dashed var(--border-color);
     border-radius: 16px;
 }
 
-/* ================= ANIMATIONS ================= */
+/* Animations */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -607,35 +776,23 @@
     }
 }
 
-/* ================= RESPONSIVE ================= */
-@media (max-width: 768px) {
-    .package-management {
-        padding: 1rem;
+@keyframes popIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
     }
 
-    .modal-content {
-        width: 100%;
-        height: 100%;
-        max-height: 100vh;
-        border-radius: 0;
-    }
-
-    .service-input-group {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .package-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+    100% {
+        transform: scale(1);
+        opacity: 1;
     }
 }
-/* Financial Preview Box */
+
+/* Financial Preview */
 .financial-preview-box {
     margin-top: 15px;
     background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 15px;
     font-size: 14px;
@@ -652,7 +809,7 @@
 .financial-row.total {
     font-size: 16px;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-dark);
     margin-top: 10px;
 }
 
@@ -675,120 +832,38 @@
 }
 
 .text-blue-600 {
-    color: #2563eb;
+    color: var(--primary-blue);
 }
 
 .text-red-500 {
-    color: #ef4444;
+    color: var(--danger-red);
 }
 
 .text-green-600 {
-    color: #16a34a;
-}
-.no-image-placeholder {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    background-color: #f3f4f6;
-    color: #9ca3af;
-    font-size: 12px;
+    color: var(--success-green);
 }
 
-.package-image {
-    position: relative;
-    /* Đảm bảo container luôn có kích thước kể cả khi không có ảnh */
-    min-height: 200px;
-    background-color: #f3f4f6;
-}
-/* SUCCESS MODAL */
-.success-content {
-    text-align: center;
-    align-items: center;
-    padding: 3rem 2rem !important;
-    max-width: 500px !important;
-    justify-content: center;
-    /* Căn giữa nội dung dọc */
-}
-
-.success-icon-wrapper {
-    width: 80px;
-    height: 80px;
-    background-color: #dcfce7;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #16a34a;
-    margin-bottom: 1.5rem;
-    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.success-content h3 {
-    color: #166534 !important;
-    font-size: 1.5rem !important;
-    margin-bottom: 0.5rem !important;
-    border-bottom: none !important;
-    /* Ghi đè style h3 mặc định của modal */
-    background: transparent !important;
-    position: static !important;
-    padding: 0 !important;
-}
-
-.success-content p {
-    color: #4b5563;
-    margin-bottom: 2rem;
-    font-size: 1rem;
-    line-height: 1.5;
-}
-
-.btn-reload-page {
-    background-color: #2563eb;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-    width: 100%;
-}
-
-.btn-reload-page:hover {
-    background-color: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
-}
-
-.btn-close-success {
-    margin-top: 1rem;
-    background: transparent;
-    border: none;
-    color: #6b7280;
-    cursor: pointer;
-    font-size: 0.9rem;
-    text-decoration: underline;
-}
-
-.btn-close-success:hover {
-    color: #1f2937;
-}
-
-@keyframes popIn {
-    0% {
-        transform: scale(0);
-        opacity: 0;
+/* Responsive */
+@media (max-width: 768px) {
+    .package-management {
+        padding: 1rem;
     }
 
-    100% {
-        transform: scale(1);
-        opacity: 1;
+    .modal-content {
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .service-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .package-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
     }
 }

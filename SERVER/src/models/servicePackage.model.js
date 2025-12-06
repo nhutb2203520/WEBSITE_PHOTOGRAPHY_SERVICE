@@ -34,6 +34,15 @@ const ServicePackageSchema = new mongoose.Schema(
     Images: [{
       type: String
     }],
+
+    // ✅ PHẦN AI ĐẦY ĐỦ (Vector + Màu sắc)
+    ai_features: {
+       vector: { type: [Number], default: [] },       // CLIP Vector
+       color_vector: { type: [Number], default: [] }, // Color Histogram Vector
+       dominant_color: { type: String, default: "" }, // Màu chính (Hex)
+       palette: { type: [String], default: [] },      // Bảng màu (Top 5 Hex)
+       is_analyzed: { type: Boolean, default: false }
+    },
     
     // --- ĐÁNH GIÁ & UY TÍN ---
     DanhGia: {
@@ -49,7 +58,6 @@ const ServicePackageSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // ✅ MỚI: Tổng số khiếu nại đã được Admin xác nhận (Confirmed Faults)
     SoLuongKhieuNai: { 
       type: Number, 
       default: 0, 
@@ -58,7 +66,7 @@ const ServicePackageSchema = new mongoose.Schema(
     
     PhotographerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'KhachHang', // Đảm bảo tên model tham chiếu đúng với dự án của bạn
+      ref: 'KhachHang', 
       required: [true, 'Photographer ID là bắt buộc'],
     },
     
@@ -169,7 +177,7 @@ ServicePackageSchema.virtual('TongGia').get(function() {
   return this.DichVu.reduce((total, service) => total + (service.Gia || 0), 0);
 });
 
-// ==================== METHOD TÍNH PHÍ DI CHUYỂN ====================
+// METHOD TÍNH PHÍ DI CHUYỂN
 ServicePackageSchema.statics.calculateDistance = function(lat1, lng1, lat2, lng2) {
   const R = 6371; 
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -246,20 +254,14 @@ ServicePackageSchema.methods.calculateTravelFee = function(distanceKm) {
   };
 };
 
-// ✅ METHOD CẬP NHẬT RATING (Đổi tên từ addReview để khớp với logic controller)
+// Method updates logic...
 ServicePackageSchema.methods.updateRating = async function(rating) {
-  if (rating < 1 || rating > 5) {
-    throw new Error('Đánh giá phải từ 1 đến 5 sao');
-  }
-  
-  // Tính điểm trung bình mới (Weighted Average)
+  if (rating < 1 || rating > 5) throw new Error('Đánh giá phải từ 1 đến 5 sao');
   const currentTotal = this.DanhGia * this.SoLuotDanhGia;
   const newTotal = currentTotal + rating;
   const newCount = this.SoLuotDanhGia + 1;
-  
   this.DanhGia = newTotal / newCount;
   this.SoLuotDanhGia = newCount;
-  
   return this.save();
 };
 

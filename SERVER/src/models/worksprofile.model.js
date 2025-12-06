@@ -4,7 +4,7 @@ const worksProfileSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "bangKhachHang",
+      ref: "bangKhachHang", // Đảm bảo ref đúng với Model User
       required: true,
     },
     title: {
@@ -18,8 +18,14 @@ const worksProfileSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    // ✅ MỚI: Phần chứa dữ liệu từ AI
+    ai_features: {
+       vector: { type: [Number], default: [] }, 
+       dominant_color: { type: String, default: "" },
+       is_analyzed: { type: Boolean, default: false }
+    }
   },
-  { timestamps: true } // tự động thêm createdAt và updatedAt
+  { timestamps: true } 
 );
 
 const WorksProfile = mongoose.model("WorksProfile", worksProfileSchema);

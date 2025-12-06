@@ -2,17 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Search, Star, Heart, Users, Camera, Award, TrendingUp, 
-  ArrowRight, Trophy, Flame, ChevronRight, Zap 
+  ArrowRight, Trophy, Flame, ChevronRight, Zap, Sparkles, X 
 } from 'lucide-react';
 import './HomePageCustomer.css';
 
-// Import Layout & Services (Giữ nguyên theo project của bạn)
+// Import Layout & Services
 import MainLayout from '../../layouts/MainLayout/MainLayout';
 import ServicePackageApi from '../../apis/ServicePackageService'; 
 import homeApi from '../../apis/homeApi';
 import FavoriteService from '../../apis/FavoriteService';
 
-// DANH SÁCH ẢNH SLIDESHOW (Ảnh chất lượng cao)
+// ✅ Import Component ImageSearch (Hãy đảm bảo đường dẫn đúng)
+import ImageSearch from '../SearchML/ImageSearch'; 
+
+// DANH SÁCH ẢNH SLIDESHOW
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1511285560982-1356c11d4606?q=80&w=1920&auto=format&fit=crop", 
   "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1920&auto=format&fit=crop", 
@@ -27,6 +30,9 @@ export default function HomePageCustomer() {
   const [favorites, setFavorites] = useState([]); 
   const [loading, setLoading] = useState(true);
   
+  // ✅ State điều khiển Modal AI Search
+  const [showImageSearch, setShowImageSearch] = useState(false);
+
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // --- STATE DỮ LIỆU ---
@@ -111,7 +117,6 @@ export default function HomePageCustomer() {
   };
 
   // --- EFFECTS ---
-  // Tự động chuyển slide mỗi 5s
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
@@ -160,6 +165,7 @@ export default function HomePageCustomer() {
             _id: pkg._id,
             TenGoi: pkg.TenGoi,
             AnhBia: pkg.AnhBia,
+            Images: pkg.Images, // Thêm Images để ImageSearch hiển thị nếu cần
             LoaiGoi: pkg.LoaiGoi,
             photographerId: pkg.PhotographerId?._id, 
             photographerUsername: pkg.PhotographerId?.TenDangNhap || pkg.PhotographerId?._id,
@@ -168,6 +174,7 @@ export default function HomePageCustomer() {
             rating: pkg.DanhGia ? pkg.DanhGia.toFixed(1) : '5.0',
             reviews: pkg.SoLuotDanhGia || 0,
             sold: pkg.SoLuongDaDat || 0, 
+            DichVu: pkg.DichVu, // Thêm DichVu để hiển thị giá trong search
             priceDisplay: getPriceDisplay(pkg.DichVu),
             location: pkg.baseLocation?.city || 'Toàn quốc',
             isNew: (new Date() - new Date(pkg.createdAt)) < (7 * 24 * 60 * 60 * 1000)
@@ -243,7 +250,6 @@ export default function HomePageCustomer() {
             </h1>
             
             <form className="hero-search" onSubmit={(e) => { e.preventDefault(); navigate(`/service-package?search=${searchQuery}`) }}>
-              
               <input 
                 type="text" 
                 placeholder="Tìm kiếm gói chụp (Cưới, Kỷ yếu...)" 
@@ -252,8 +258,40 @@ export default function HomePageCustomer() {
               />
               <button type="submit" className="search-btn">Tìm ngay</button>
             </form>
+
+            {/* ✅ NÚT TÌM KIẾM THÔNG MINH AI */}
+            <div className="hero-ai-search">
+                <span className="divider-text">hoặc thử tính năng mới</span>
+                <button 
+                    className="btn-ai-search-hero"
+                    onClick={() => setShowImageSearch(true)}
+                >
+                    <Camera size={18} />
+                    <span className="ai-text">Tìm kiếm bằng hình ảnh (AI)</span>
+                    <Sparkles size={16} className="sparkle-icon" />
+                </button>
+            </div>
+
           </div>
         </section>
+
+        {/* ✅ MODAL HIỂN THỊ IMAGE SEARCH */}
+        {showImageSearch && (
+            <div className="ai-modal-overlay" onClick={() => setShowImageSearch(false)}>
+                <div className="ai-modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="ai-modal-header">
+                        <h3>Tìm kiếm thông minh</h3>
+                        <button className="ai-close-btn" onClick={() => setShowImageSearch(false)}>
+                            <X size={24} />
+                        </button>
+                    </div>
+                    <div className="ai-modal-body">
+                        {/* Nhúng Component ImageSearch vào đây */}
+                        <ImageSearch />
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* STATS SECTION */}
         <section className="stats-section">
@@ -270,6 +308,9 @@ export default function HomePageCustomer() {
             </div>
         </section>
 
+        {/* ... (GIỮ NGUYÊN CÁC SECTION CATEGORIES VÀ TOP PACKAGES CỦA BẠN) ... */}
+        {/* Để tiết kiệm không gian, tôi chỉ render phần trên, phần dưới giữ nguyên code của bạn */}
+        
         {/* CATEGORIES */}
         <section className="section categories-section">
           <div className="container">

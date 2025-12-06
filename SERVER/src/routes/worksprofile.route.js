@@ -8,12 +8,13 @@ import {
   getMyWorksProfiles,
   deleteWorkProfile,
   getWorkById,
-  getWorksByUserId, // ✅ Import hàm mới
+  getWorksByUserId,
+  searchByImage // ✅ Import hàm search mới
 } from "../controllers/worksprofile.controller.js";
 
 const router = express.Router();
 
-// ✅ Cấu hình multer
+// Cấu hình Multer
 const uploadDir = "uploads/";
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -30,25 +31,27 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 }
+    limits: { fileSize: 500 * 1024 * 1024 } // Tăng lên 500MB
 });
 
-// ================= ROUTES (QUAN TRỌNG: THỨ TỰ) =================
+// ================= ROUTES =================
 
-// 1. Lấy danh sách của tôi
+// 1. ✅ AI SEARCH (Public)
+router.post('/search-image', upload.single('image'), searchByImage);
+
+// 2. Lấy danh sách của tôi
 router.get("/my", verifyTokenUser, getMyWorksProfiles);
 
-// 2. ✅ [MỚI] Lấy danh sách theo User ID (Public)
-// Phải đặt TRƯỚC route /:id để không bị lỗi 404
+// 3. Lấy theo User ID
 router.get("/user/:userId", getWorksByUserId);
 
-// 3. Tạo mới
+// 4. Tạo mới
 router.post("/create", verifyTokenUser, upload.array("images", 10), createWorksProfile);
 
-// 4. Xóa
+// 5. Xóa
 router.delete("/:id", verifyTokenUser, deleteWorkProfile);
 
-// 5. Lấy chi tiết Work (Đặt cuối cùng)
+// 6. Chi tiết (Cuối cùng)
 router.get("/:id", getWorkById); 
 
 export default router;

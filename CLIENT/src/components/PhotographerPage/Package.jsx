@@ -19,7 +19,7 @@ export default function Package() {
   const { packages, loading } = useSelector((state) => state.package);
 
   const [showModal, setShowModal] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false); // ✅ State cho modal thành công
+  const [showSuccess, setShowSuccess] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
   const [platformFeePercent, setPlatformFeePercent] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,6 +138,7 @@ export default function Package() {
     setModalImages(items);
   };
 
+  // ✅ HÀM SUBMIT ĐÃ ĐƯỢC SỬA LỖI
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -163,45 +164,53 @@ export default function Package() {
 
     try {
       setIsSubmitting(true);
+      let pkgId;
 
-      let resultAction;
+      // 1. TẠO HOẶC CẬP NHẬT GÓI
       if (editingPackage) {
-        resultAction = await dispatch(updatePackage({ id: editingPackage._id, data: packageData }));
+        // Dùng .unwrap() để bắt lỗi chính xác từ Redux Toolkit
+        await dispatch(updatePackage({ id: editingPackage._id, data: packageData })).unwrap();
+        pkgId = editingPackage._id;
       } else {
-        resultAction = await dispatch(createPackage(packageData));
+        const resultAction = await dispatch(createPackage(packageData)).unwrap();
+        // Lấy ID từ response (thường là resultAction.package._id hoặc resultAction._id tùy backend trả về)
+        pkgId = resultAction.package?._id || resultAction._id || resultAction.id;
       }
 
-      if (createPackage.rejected.match(resultAction) || updatePackage.rejected.match(resultAction)) {
-         throw new Error(resultAction.payload || "Lỗi khi lưu gói");
-      }
+      console.log("📦 Gói đã được lưu, ID:", pkgId);
 
-      const createdPkg = resultAction.payload.package || resultAction.payload;
-      const pkgId = createdPkg?._id || createdPkg?.id || (editingPackage && editingPackage._id);
-
-      // Upload ảnh
+      // 2. UPLOAD ẢNH (Nếu có ID và có ảnh trong modal)
       if (pkgId && modalImages.length > 0) {
-        const coverImageFd = new FormData();
-        coverImageFd.append("packageImage", modalImages[0].file);
-        await dispatch(uploadPackageImage({ id: pkgId, formData: coverImageFd }));
+        // Upload ảnh bìa (Ảnh đầu tiên)
+        if (modalImages[0].file) {
+           const coverImageFd = new FormData();
+           coverImageFd.append("packageImage", modalImages[0].file);
+           await dispatch(uploadPackageImage({ id: pkgId, formData: coverImageFd })).unwrap();
+        }
 
-        if (modalImages.length > 1) {
-          const galleryFd = new FormData();
-          for (let i = 1; i < modalImages.length; i++) {
-            galleryFd.append("packageImages", modalImages[i].file);
-          }
-          await dispatch(uploadPackageImages({ id: pkgId, formData: galleryFd }));
+        // Upload Gallery (Các ảnh còn lại)
+        const galleryFiles = modalImages.slice(1).filter(img => img.file).map(img => img.file);
+        if (galleryFiles.length > 0) {
+           const galleryFd = new FormData();
+           galleryFiles.forEach((file) => {
+              galleryFd.append("packageImages", file);
+           });
+           await dispatch(uploadPackageImages({ id: pkgId, formData: galleryFd })).unwrap();
         }
       }
 
-      // ✅ Thành công: Reset form, đóng modal nhập liệu và mở modal thành công
+      // 3. THÀNH CÔNG -> RESET VÀ RELOAD
       resetForm();
       setShowModal(false);
       setEditingPackage(null);
-      setShowSuccess(true); // Hiện thông báo đẹp
+      setShowSuccess(true);
+      
+      // Reload danh sách để cập nhật ảnh mới nhất
+      dispatch(getMyPackages());
 
     } catch (err) {
       console.error("❌ Lỗi lưu gói:", err);
-      alert("Lưu gói thất bại. Vui lòng thử lại.");
+      alert(err.message || "Lưu gói thất bại. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -234,17 +243,19 @@ export default function Package() {
     const fd = new FormData();
     fd.append("packageImage", file);
     try {
-      await dispatch(uploadPackageImage({ id, formData: fd }));
-      // Mở modal thông báo reload cho trường hợp này luôn nếu muốn
+      await dispatch(uploadPackageImage({ id, formData: fd })).unwrap();
       setShowSuccess(true); 
+      dispatch(getMyPackages()); // Reload ảnh mới ngay
     } catch (err) {
       alert("Upload ảnh thất bại.");
     }
   };
 
+  // ✅ HÀM XỬ LÝ URL ẢNH (FIX LỖI HIỂN THỊ)
   const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return null; 
+    if (!imageUrl) return "https://placehold.co/600x400/png?text=Chua+co+anh"; 
     if (imageUrl.startsWith("http")) return imageUrl;
+    // Đảm bảo trỏ đúng port server backend của bạn (thường là 5000)
     return `http://localhost:5000/${imageUrl.replace(/^\/+/, "")}`;
   };
 
@@ -286,30 +297,21 @@ export default function Package() {
 
       <div className="packages-grid">
         {packages?.map((pkg) => {
-           const imgUrl = getImageUrl(pkg.AnhBia || pkg.images?.[0]);
+           // Lấy ảnh bìa hoặc ảnh đầu tiên trong mảng Images
+           const imgUrl = getImageUrl(pkg.AnhBia || (pkg.Images && pkg.Images[0]) || pkg.images?.[0]);
            return (
             <div key={pkg._id || pkg.id} className="package-card">
               <div className="package-image" style={{ backgroundColor: "#e5e7eb" }}>
-                {imgUrl ? (
                   <img
                     src={imgUrl}
                     alt={pkg.TenGoi}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     onError={(e) => { 
-                      e.target.style.display = 'none'; 
+                      e.target.onerror = null; // Tránh loop vô hạn
+                      e.target.src = "https://placehold.co/600x400/png?text=Loi+anh";
                       e.target.parentElement.classList.add('img-error');
                     }} 
                   />
-                ) : (
-                  <div style={{
-                    width: '100%', height: '100%', display: 'flex', 
-                    flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    color: '#9ca3af'
-                  }}>
-                    <ImageIcon size={32} />
-                    <span style={{fontSize: '12px', marginTop: '4px'}}>Chưa có ảnh</span>
-                  </div>
-                )}
                 
                 <label className="upload-overlay">
                   <Upload size={20} />

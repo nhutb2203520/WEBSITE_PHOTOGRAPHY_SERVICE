@@ -21,10 +21,10 @@ export default function WorksProfile() {
 
   // 🔹 Helper: Xử lý URL ảnh (Localhost, Blob hoặc Link online)
   const getImageUrl = (img) => {
-    if (!img) return "/placeholder.jpg";
-    if (img.startsWith("blob:")) return img; // Ảnh preview khi vừa chọn từ máy
-    if (img.startsWith("http")) return img;  // Ảnh online
-    return `http://localhost:5000${img}`;   // Ảnh từ server local
+    if (!img) return "https://placehold.co/600x400/png?text=No+Image";
+    if (img.startsWith("blob:") || img.startsWith("http")) return img;
+    // Đảm bảo đúng port backend (5000)
+    return `http://localhost:5000${img.startsWith('/') ? '' : '/'}${img}`;
   };
 
   // 🔹 1. Lấy danh sách hồ sơ (API thật)
