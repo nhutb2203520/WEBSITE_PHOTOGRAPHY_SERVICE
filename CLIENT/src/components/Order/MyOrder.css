@@ -46,7 +46,7 @@
 
 .search-box {
     position: relative;
-    width: 100%;
+    width: 70%;
     max-width: 500px;
 }
 
@@ -59,7 +59,7 @@
 }
 
 .search-box input {
-    width: 100%;
+    width: 70%;
     padding: 12px 12px 12px 44px;
     border-radius: 50px;
     border: 1px solid #e2e8f0;

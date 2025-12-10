@@ -114,7 +114,7 @@ const ImageSearch = () => {
             {loading ? (
                 <span className="loader"></span>
             ) : (
-                <><Search size={18} /> Phân tích & Tìm kiếm</>
+                <> Phân tích & Tìm kiếm</>
             )}
         </button>
       </div>

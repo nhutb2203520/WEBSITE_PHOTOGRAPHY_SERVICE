@@ -491,7 +491,7 @@ export default function OrderServices() {
 
                   <div className="form-row">
                     <div className="form-group">
-                        <label>Quận/Huyện <span className="required">*</span></label>
+                        <label>Xã/PHƯỜNG<span className="required">*</span></label>
                         <input name="district" value={formData.district} onChange={handleInputChange} className={formErrors.district ? 'error' : ''} placeholder="Ví dụ: Ninh Kiều" />
                         {formErrors.district && <span className="error-msg">{formErrors.district}</span>}
                     </div>

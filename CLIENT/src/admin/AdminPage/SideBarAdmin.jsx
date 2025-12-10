@@ -144,11 +144,6 @@ export default function SidebarAdmin() {
           {!collapsed && <span className="sidebar-text">Khiếu nại</span>}
         </Link>
 
-        <Link to="/admin/packages" className={`sidebar-item ${isActive("/admin/packages")}`}>
-          <span className="material-icons">inventory</span>
-          {!collapsed && <span className="sidebar-text">Gói dung lượng</span>}
-        </Link>
-
         <Link to="/admin/service-fee" className={`sidebar-item ${isActive("/admin/service-fee")}`}>
           <span className="material-icons">payments</span>
           {!collapsed && <span className="sidebar-text">Chi phí dịch vụ</span>}

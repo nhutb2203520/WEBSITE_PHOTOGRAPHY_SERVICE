@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import SidebarAdmin from "../AdminPage/SidebarAdmin.jsx"; 
 import HeaderAdmin from "../AdminPage/HeaderAdmin.jsx"; 
-import { Search, Trash2, Camera } from "lucide-react";
+import { Search, Lock, Unlock, Camera } from "lucide-react"; // Import icon Lock/Unlock
 import "./UserManage.css"; 
 import adminUserService from "../../apis/adminUserService";
 
@@ -30,23 +30,34 @@ export default function PhotographerManage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Cảnh báo: Xóa thợ ảnh sẽ ảnh hưởng đến các đơn hàng liên quan. Bạn chắc chắn chứ?")) {
+  // ✅ Hàm thay đổi trạng thái (Thay vì xóa)
+  const handleToggleStatus = async (id, currentStatus) => {
+    const newStatus = !currentStatus; // Đảo ngược trạng thái
+    const actionText = newStatus ? "Mở khóa" : "Khóa";
+    
+    if (window.confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản này không?`)) {
       try {
-        await adminUserService.deleteUser(id);
-        setPhotographers(prev => prev.filter(u => u._id !== id));
-        toast.success("Đã xóa thành công!");
+        // Giả sử API updateStatusUser nhận vào { isActive: boolean }
+        // Cần đảm bảo backend có API này, nếu chưa có hãy báo tôi để bổ sung service
+        await adminUserService.updateUserStatus(id, { isActive: newStatus });
+        
+        // Cập nhật state local
+        setPhotographers(prev => prev.map(u => 
+            u._id === id ? { ...u, isActive: newStatus } : u
+        ));
+        
+        toast.success(`Đã ${actionText} thành công!`);
       } catch (error) {
-        toast.error("Lỗi khi xóa");
+        console.error(error);
+        toast.error(`Lỗi khi ${actionText} tài khoản`);
       }
     }
   };
 
-  // ✅ Helper lấy ảnh chuẩn
   const getAvatarUrl = (path) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    const cleanPath = path.replace(/\\/g, "/"); // Sửa lỗi path Windows
+    const cleanPath = path.replace(/\\/g, "/");
     const finalPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
     return `${API_URL}/${finalPath}`;
   };
@@ -72,7 +83,6 @@ export default function PhotographerManage() {
           <div className="table-header">
             <div className="section-title">Danh sách đối tác</div>
             <div className="search-box">
-              <Search size={18} className="search-icon" />
               <input 
                 type="text" 
                 placeholder="Tìm thợ ảnh..." 
@@ -89,7 +99,7 @@ export default function PhotographerManage() {
                   <th>Nhiếp ảnh gia</th>
                   <th>Liên hệ</th>
                   <th>Thông tin ngân hàng</th>
-                  <th>Ngày tham gia</th>
+                  <th>Trạng thái</th> {/* Cột mới hiển thị trạng thái */}
                   <th>Hành động</th>
                 </tr>
               </thead>
@@ -100,10 +110,9 @@ export default function PhotographerManage() {
                    <tr><td colSpan="5" style={{textAlign:"center", padding: "30px"}}>Không tìm thấy dữ liệu</td></tr>
                 ) : (
                   filteredData.map((user) => (
-                    <tr key={user._id}>
+                    <tr key={user._id} className={!user.isActive ? "row-disabled" : ""}>
                       <td>
                         <div className="user-cell">
-                          {/* Logic hiển thị Avatar + Fallback */}
                           {user.Avatar ? (
                              <>
                                 <img 
@@ -145,10 +154,39 @@ export default function PhotographerManage() {
                             <span style={{fontSize:'12px', color:'#9ca3af', fontStyle:'italic'}}>Chưa cập nhật</span>
                         )}
                       </td>
-                      <td>{new Date(user.createdAt).toLocaleDateString('vi-VN')}</td>
+                      {/* Cột hiển thị trạng thái */}
                       <td>
-                        <button className="btn-delete" onClick={() => handleDelete(user._id)}>
-                          <Trash2 size={16} />
+                        <span 
+                          className={`status-badge ${user.isActive ? 'success' : 'danger'}`}
+                          style={{
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: user.isActive ? '#dcfce7' : '#fee2e2',
+                              color: user.isActive ? '#10e910ff' : '#043f02ff'
+                          }}
+                        >
+                          {user.isActive ? "Đã khóa" : "Hoạt động" }
+                        </span>
+                      </td>
+                      <td>
+                        {/* Nút Khóa/Mở khóa */}
+                        <button 
+                            className={`btn-action ${user.isActive ? 'btn-lock' : 'btn-unlock'}`} 
+                            onClick={() => handleToggleStatus(user._id, user.isActive)}
+                            title={user.isActive ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                            style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                color: user.isActive ? '#ef4444' : '#10b981',
+                                transition: 'transform 0.2s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                          {user.isActive ? <Lock size={18} /> : <Unlock size={18} />}
                         </button>
                       </td>
                     </tr>

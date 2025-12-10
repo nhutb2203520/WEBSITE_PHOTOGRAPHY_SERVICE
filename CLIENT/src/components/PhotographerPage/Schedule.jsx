@@ -270,10 +270,6 @@ export default function Schedule() {
                       </label>
                       <span className="checkbox-label">Gửi thông báo nhắc nhở</span>
                   </div>
-                  <div className="form-group">
-                    <label>Ghi chú</label>
-                    <textarea value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} rows="3" placeholder="Chi tiết..."></textarea>
-                  </div>
               </div>
               <div className="modal-footer-custom">
                 <button type="button" className="btn-cancel-custom" onClick={() => setShowAddModal(false)}>Hủy</button>

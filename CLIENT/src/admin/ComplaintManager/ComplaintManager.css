@@ -11,24 +11,16 @@
     /* Slate-500 */
 
     --success-bg: #dcfce7;
-    /* Green-100 */
     --success-text: #166534;
-    /* Green-800 */
 
     --danger-bg: #fee2e2;
-    /* Red-100 */
     --danger-text: #991b1b;
-    /* Red-800 */
 
     --warning-bg: #fef3c7;
-    /* Amber-100 */
     --warning-text: #92400e;
-    /* Amber-800 */
 
     --info-bg: #e0f2fe;
-    /* Sky-100 */
     --info-text: #075985;
-    /* Sky-800 */
 
     --bg-main: #f8fafc;
     /* Slate-50 */
@@ -96,6 +88,7 @@
     max-width: 1600px;
     margin: 0 auto;
     width: 100%;
+    box-sizing: border-box;
 }
 
 /* =========================================
@@ -129,8 +122,9 @@
 /* Search Box */
 .search-box {
     position: relative;
-    width: 620px;
-    margin-right: 100px;
+    width: 400px;
+    /* Điều chỉnh lại độ rộng cho hợp lý */
+    max-width: 100%;
 }
 
 .search-box input {
@@ -141,6 +135,7 @@
     font-size: 14px;
     background: var(--bg-main);
     transition: var(--transition);
+    box-sizing: border-box;
 }
 
 .search-box input:focus {
@@ -336,32 +331,45 @@
 }
 
 /* =========================================
-   4. MODAL COMMON STYLES
+   4. MODAL COMMON STYLES (FIXED Z-INDEX)
    ========================================= */
 .modal-overlay {
     position: fixed;
-    inset: 0;
-    background-color: rgba(15, 23, 42, 0.6);
-    /* Darker overlay */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.75) !important;
+    /* Màu nền tối đậm */
     backdrop-filter: blur(4px);
-    z-index: 9999;
-    display: flex;
+    z-index: 99999 !important;
+    /* Cao nhất hệ thống */
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    animation: fadeIn 0.2s forwards;
+    opacity: 1 !important;
+    visibility: visible !important;
+    animation: fadeIn 0.2s ease-out;
 }
 
 .modal-content {
-    background: var(--bg-white);
+    background: var(--bg-white) !important;
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-lg) !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    max-height: 90vh;
-    transform: scale(0.95);
-    opacity: 0;
+    max-height: 95vh;
+    /* Tăng chiều cao tối đa */
+    position: relative;
+    z-index: 100000 !important;
+    /* Cao hơn overlay */
+
+    /* Reset transform để tránh lỗi mờ font hoặc lỗi render */
+    transform: none !important;
+    opacity: 1 !important;
     animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -373,6 +381,8 @@
     align-items: center;
     background: #fff;
     z-index: 10;
+    position: sticky;
+    top: 0;
 }
 
 .modal-header h3 {
@@ -383,9 +393,9 @@
 }
 
 .close-btn {
-    width: 52px;
-    height: 52px;
-    font-size: 50px;
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
     border-radius: 50%;
     border: none;
     background: transparent;
@@ -418,6 +428,7 @@
     /* Fixed height for scrollable areas */
     max-height: calc(90vh - 60px);
     background-color: var(--bg-main);
+    overflow: hidden;
 }
 
 /* Left Column (Complaint & Admin Action) */
@@ -498,7 +509,7 @@
 
 /* Admin Action Form */
 .admin-action-form textarea {
-    width: 90%;
+    width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -508,6 +519,7 @@
     font-family: inherit;
     font-size: 14px;
     transition: var(--transition);
+    box-sizing: border-box;
 }
 
 .admin-action-form textarea:focus {
@@ -527,17 +539,17 @@
 
 .right-actions {
     display: flex;
-    gap: 1px;
+    gap: 12px;
 }
 
 /* Action Buttons */
 .btn-reject,
 .btn-resolve,
 .btn-negotiate {
-    padding: 9px 16px;
+    padding: 10px 18px;
     border-radius: var(--radius-md);
     font-weight: 600;
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -554,6 +566,7 @@
 
 .btn-reject:hover {
     background: #fee2e2;
+    transform: translateY(-1px);
 }
 
 .btn-resolve {
@@ -564,6 +577,7 @@
 
 .btn-resolve:hover {
     background: #d1fae5;
+    transform: translateY(-1px);
 }
 
 .btn-negotiate {
@@ -574,6 +588,7 @@
 
 .btn-negotiate:hover {
     background: #e0e7ff;
+    transform: translateY(-1px);
 }
 
 /* Read-only Response */
@@ -629,7 +644,7 @@
 .btn-view-album-link {
     width: 100%;
     margin-top: 12px;
-    padding: 10px;
+    padding: 12px;
     border: 1px dashed var(--primary-color);
     background: #f5f3ff;
     color: var(--primary-color);
@@ -664,6 +679,7 @@
     border-bottom: 1px solid var(--border-color);
     padding: 0 24px;
     gap: 4px;
+    flex-shrink: 0;
 }
 
 .tab-btn {
@@ -712,6 +728,7 @@
     border: 1px solid var(--border-color);
     position: relative;
     box-shadow: var(--shadow-sm);
+    cursor: zoom-in;
 }
 
 .photo-item-admin img {
@@ -719,7 +736,6 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s;
-    cursor: pointer;
 }
 
 .photo-item-admin:hover img {
@@ -772,41 +788,7 @@
 }
 
 /* =========================================
-   8. RESPONSIVE
-   ========================================= */
-@media (max-width: 1024px) {
-    .modal-body-split {
-        flex-direction: column;
-        height: auto;
-        max-height: 80vh;
-    }
-
-    .split-left {
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        max-height: 50%;
-    }
-
-    .split-right {
-        max-height: 50%;
-    }
-
-    .complaint-modal-lg {
-        width: 95vw;
-    }
-
-    .action-buttons-container {
-        flex-direction: column;
-        gap: 12px;
-        align-items: stretch;
-    }
-
-    .right-actions {
-        justify-content: flex-end;
-    }
-}
-/* =========================================
-   LIGHTBOX / ZOOM ẢNH (COMMON STYLE)
+   8. LIGHTBOX / ZOOM ẢNH (Z-INDEX CAO NHẤT)
    ========================================= */
 .image-zoom-overlay {
     position: fixed;
@@ -816,7 +798,7 @@
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.95) !important;
     z-index: 200000 !important;
-    /* Cao hơn cả Modal (99999) */
+    /* Cao nhất vũ trụ */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -897,7 +879,6 @@
     right: 40px;
 }
 
-/* Animations */
 @keyframes fadeInZoom {
     from {
         opacity: 0;
@@ -917,6 +898,41 @@
     to {
         transform: scale(1);
         opacity: 1;
+    }
+}
+
+/* =========================================
+   9. RESPONSIVE
+   ========================================= */
+@media (max-width: 1024px) {
+    .modal-body-split {
+        flex-direction: column;
+        height: auto;
+        max-height: 80vh;
+    }
+
+    .split-left {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 50%;
+    }
+
+    .split-right {
+        max-height: 50%;
+    }
+
+    .complaint-modal-lg {
+        width: 95vw;
+    }
+
+    .action-buttons-container {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .right-actions {
+        justify-content: flex-end;
     }
 }
 
@@ -943,8 +959,4 @@
     .lb-nav-btn.next {
         right: 10px;
     }
-}
-
-.cursor-zoom-in {
-    cursor: zoom-in;
 }

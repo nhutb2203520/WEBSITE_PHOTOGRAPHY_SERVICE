@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
-  Star, Heart, MapPin, Clock, Check, Phone, Mail, Camera, ArrowLeft, Share2, 
-  MessageCircle, ChevronLeft, ChevronRight, Truck, Info, CalendarDays, AlertTriangle, ChevronDown, X
+  Star, Heart, MapPin, Check, Phone, Camera, ArrowLeft, Share2, 
+  MessageCircle, ChevronLeft, ChevronRight, Truck, CalendarDays, ChevronDown, X
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -35,16 +35,16 @@ export default function ServicePackageDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
 
-  // ✅ STATE ĐÁNH GIÁ (REVIEW)
+  // STATE ĐÁNH GIÁ (REVIEW)
   const [reviews, setReviews] = useState([]);
   const [visibleReviews, setVisibleReviews] = useState(3);
 
-  // ✅ NEW: STATE CHO ZOOM ẢNH REVIEW
+  // STATE CHO ZOOM ẢNH REVIEW
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewImagesList, setReviewImagesList] = useState([]); // Danh sách ảnh của review đang xem
+  const [reviewImagesList, setReviewImagesList] = useState([]); 
   const [currentReviewImgIndex, setCurrentReviewImgIndex] = useState(0);
 
-  // ✅ STATE CHAT
+  // STATE CHAT
   const [showChat, setShowChat] = useState(false);
   const [chatConversation, setChatConversation] = useState(null);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
@@ -56,7 +56,6 @@ export default function ServicePackageDetail() {
   const fetchPackageDetail = async () => {
     try {
       setLoading(true);
-      
       // 1. Lấy thông tin gói dịch vụ
       const data = await servicePackageApi.getPackageById(id);
       setPackageData(data);
@@ -69,7 +68,6 @@ export default function ServicePackageDetail() {
           
           fetchReviews(photographerId);
       }
-
     } catch (error) {
       console.error('❌ Error fetching package detail:', error);
       toast.error('Không thể tải thông tin gói dịch vụ');
@@ -79,7 +77,6 @@ export default function ServicePackageDetail() {
     }
   };
 
-  // HÀM LẤY ĐÁNH GIÁ
   const fetchReviews = async (photographerId) => {
       try {
           const res = await axios.get(`http://localhost:5000/api/reviews?photographerId=${photographerId}`);
@@ -197,7 +194,7 @@ export default function ServicePackageDetail() {
     if (images.length > 0) setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  // ✅ NEW: LOGIC ZOOM ẢNH REVIEW
+  // LOGIC ZOOM ẢNH REVIEW
   const openReviewImageModal = (images, index) => {
     setReviewImagesList(images);
     setCurrentReviewImgIndex(index);
@@ -228,42 +225,46 @@ export default function ServicePackageDetail() {
   return (
     <MainLayout>
       <div className="package-detail-page">
+        {/* Container cho nút Back */}
         <div className="container">
           <button onClick={() => navigate(-1)} className="btn-back-nav">
             <ArrowLeft size={20} /> Quay lại
           </button>
         </div>
 
+        {/* Container chính */}
         <div className="container">
           <div className="package-detail-content">
             
-            {/* --- CỘT TRÁI --- */}
+            {/* --- CỘT TRÁI (Nội dung chính) --- */}
             <div className="package-images-section">
               
               {/* Ảnh chính & Thumbnail */}
-              <div className="package-main-image">
-                {images.length > 0 ? (
-                  <img src={getImageUrl(images[currentImageIndex])} alt={packageData.TenGoi} onClick={() => setShowImageModal(true)} />
-                ) : (
-                  <img src="https://via.placeholder.com/1200x600?text=Chưa+có+ảnh" alt="No images" />
-                )}
+              <div className="package-gallery-wrapper">
+                <div className="package-main-image">
+                  {images.length > 0 ? (
+                    <img src={getImageUrl(images[currentImageIndex])} alt={packageData.TenGoi} onClick={() => setShowImageModal(true)} />
+                  ) : (
+                    <img src="https://via.placeholder.com/1200x600?text=Chưa+có+ảnh" alt="No images" />
+                  )}
+                  {images.length > 1 && (
+                    <>
+                      <button onClick={prevImage} className="image-nav-btn prev"><ChevronLeft size={24} /></button>
+                      <button onClick={nextImage} className="image-nav-btn next"><ChevronRight size={24} /></button>
+                      <div className="image-counter">{currentImageIndex + 1} / {images.length}</div>
+                    </>
+                  )}
+                </div>
                 {images.length > 1 && (
-                  <>
-                    <button onClick={prevImage} className="image-nav-btn prev"><ChevronLeft size={24} /></button>
-                    <button onClick={nextImage} className="image-nav-btn next"><ChevronRight size={24} /></button>
-                    <div className="image-counter">{currentImageIndex + 1} / {images.length}</div>
-                  </>
+                  <div className="thumbnail-gallery">
+                    {images.map((img, index) => (
+                      <div key={index} onClick={() => setCurrentImageIndex(index)} className={`thumbnail-item ${currentImageIndex === index ? 'active' : ''}`}>
+                        <img src={getImageUrl(img)} alt={`Thumb ${index}`} onError={(e) => { e.target.src = "https://via.placeholder.com/120x80?text=Err"; }} />
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {images.length > 1 && (
-                <div className="thumbnail-gallery">
-                  {images.map((img, index) => (
-                    <div key={index} onClick={() => setCurrentImageIndex(index)} className={`thumbnail-item ${currentImageIndex === index ? 'active' : ''}`}>
-                      <img src={getImageUrl(img)} alt={`Thumb ${index}`} onError={(e) => { e.target.src = "https://via.placeholder.com/120x80?text=Err"; }} />
-                    </div>
-                  ))}
-                </div>
-              )}
 
               {/* Mô tả */}
               <section className="package-section">
@@ -283,7 +284,7 @@ export default function ServicePackageDetail() {
                 <div className="services-grid">
                   {packageData.DichVu?.map((service, index) => (
                     <div key={index} className={`service-card ${selectedService === index ? 'selected' : ''}`} onClick={() => setSelectedService(index)}>
-                      <div className="service-icon"><Check size={20} /></div>
+                      <div className="service-icon"><Check size={18} /></div>
                       <div className="service-info">
                         <h3>{service.name}</h3>
                         <p className="service-price">{formatPrice(service.Gia)} VNĐ</p>
@@ -293,80 +294,13 @@ export default function ServicePackageDetail() {
                 </div>
               </section>
 
-              {/* ✅ VỊ TRÍ MỚI: ĐÁNH GIÁ (Nằm ngay sau dịch vụ để dễ thấy nhất) */}
-              <section className="package-section" id="reviews-section">
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: '15px'}}>
-                   <h2>Đánh giá từ khách hàng ({reviews.length})</h2>
-                   <div style={{display:'flex', alignItems:'center', gap:'5px', color:'#fbbf24', fontWeight:'bold'}}>
-                      <span style={{fontSize:'24px'}}>{(packageData.DanhGia || 0).toFixed(1)}</span> <Star fill="#fbbf24" size={24} />
-                   </div>
-                </div>
-                
-                {reviews.length > 0 ? (
-                  <div className="reviews-list-container">
-                    {reviews.slice(0, visibleReviews).map((review, index) => (
-                      <div key={index} className="review-item-card">
-                        <div className="review-avatar-col">
-                          <img 
-                            src={getImageUrl(review.CustomerId?.Avatar)} 
-                            alt="User" 
-                            className="review-user-avatar" 
-                            onError={(e) => e.target.src = "https://via.placeholder.com/50?text=U"}
-                          />
-                        </div>
-                        <div className="review-content-col">
-                          <div className="review-header">
-                            <span className="review-user-name">{review.CustomerId?.HoTen || 'Người dùng ẩn danh'}</span>
-                            <div className="review-stars-row">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} size={14} fill={i < review.Rating ? "#fbbf24" : "#e5e7eb"} color={i < review.Rating ? "#fbbf24" : "#e5e7eb"}/>
-                              ))}
-                            </div>
-                          </div>
-                          <p className="review-text">{review.Comment}</p>
-                          
-                          {/* ✅ Ảnh đánh giá có tính năng CLICK ZOOM */}
-                          {review.Images && review.Images.length > 0 && (
-                            <div className="review-images-row">
-                              {review.Images.map((img, idx) => (
-                                <img 
-                                  key={idx} 
-                                  src={getImageUrl(img)} 
-                                  alt="Review" 
-                                  className="review-img-thumb" 
-                                  style={{cursor: 'zoom-in', objectFit: 'cover', width: '80px', height: '80px', borderRadius: '8px', border: '1px solid #eee'}}
-                                  onClick={() => openReviewImageModal(review.Images, idx)}
-                                />
-                              ))}
-                            </div>
-                          )}
-                          <span className="review-date">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
-                        </div>
-                      </div>
-                    ))}
-
-                    {visibleReviews < reviews.length && (
-                      <div className="load-more-reviews-wrapper">
-                        <button className="btn-load-more-reviews" onClick={handleLoadMoreReviews}>
-                          Xem thêm đánh giá <ChevronDown size={16} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="no-reviews-state">
-                    <p>Chưa có đánh giá nào cho nhiếp ảnh gia này.</p>
-                  </div>
-                )}
-              </section>
-
               {/* Địa điểm */}
               {packageData.baseLocation && (packageData.baseLocation.address || packageData.baseLocation.city) && (
                 <section className="package-section">
                   <h2>Khu vực hoạt động</h2>
                   <div className="info-box-styled">
                     <div className="info-row">
-                      <MapPin size={20} className="text-red-500" />
+                      <MapPin size={20} className="text-red-500 flex-shrink-0" />
                       <div>
                         <strong>Địa điểm cơ sở: </strong>
                         <span>{[packageData.baseLocation.address, packageData.baseLocation.district, packageData.baseLocation.city].filter(Boolean).join(', ')}</span>
@@ -393,6 +327,72 @@ export default function ServicePackageDetail() {
                 </section>
               )}
 
+              {/* ĐÁNH GIÁ (REVIEW) */}
+              <section className="package-section" id="reviews-section">
+                <div className="reviews-header-row">
+                   <h2>Đánh giá từ khách hàng ({reviews.length})</h2>
+                   <div className="reviews-rating-badge">
+                      <span>{(packageData.DanhGia || 0).toFixed(1)}</span> <Star fill="#fbbf24" stroke="#fbbf24" size={20} />
+                   </div>
+                </div>
+                
+                {reviews.length > 0 ? (
+                  <div className="reviews-list-container">
+                    {reviews.slice(0, visibleReviews).map((review, index) => (
+                      <div key={index} className="review-item-card">
+                        <div className="review-avatar-col">
+                          <img 
+                            src={getImageUrl(review.CustomerId?.Avatar)} 
+                            alt="User" 
+                            className="review-user-avatar" 
+                            onError={(e) => e.target.src = "https://via.placeholder.com/50?text=U"}
+                          />
+                        </div>
+                        <div className="review-content-col">
+                          <div className="review-header">
+                            <span className="review-user-name">{review.CustomerId?.HoTen || 'Người dùng ẩn danh'}</span>
+                            <div className="review-stars-row">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={14} fill={i < review.Rating ? "#fbbf24" : "#e5e7eb"} color={i < review.Rating ? "#fbbf24" : "#e5e7eb"}/>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="review-text">{review.Comment}</p>
+                          
+                          {/* Ảnh review */}
+                          {review.Images && review.Images.length > 0 && (
+                            <div className="review-images-row">
+                              {review.Images.map((img, idx) => (
+                                <img 
+                                  key={idx} 
+                                  src={getImageUrl(img)} 
+                                  alt="Review" 
+                                  className="review-img-thumb" 
+                                  onClick={() => openReviewImageModal(review.Images, idx)}
+                                />
+                              ))}
+                            </div>
+                          )}
+                          <span className="review-date">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {visibleReviews < reviews.length && (
+                      <div className="load-more-reviews-wrapper">
+                        <button className="btn-load-more-reviews" onClick={handleLoadMoreReviews}>
+                          Xem thêm đánh giá <ChevronDown size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="no-reviews-state">
+                    <p>Chưa có đánh giá nào cho gói/nhiếp ảnh gia này.</p>
+                  </div>
+                )}
+              </section>
+
               {/* Photographer Info */}
               {packageData.PhotographerId && (
                 <section className="package-section photographer-section">
@@ -412,52 +412,55 @@ export default function ServicePackageDetail() {
 
             </div>
 
-            {/* --- CỘT PHẢI --- */}
-            <div className="package-sidebar">
+            {/* --- CỘT PHẢI (Sidebar Sticky) --- */}
+            <aside className="package-sidebar">
               <div className="sidebar-sticky">
+                
                 <div className="package-header-card">
                   <div className="package-badge">{packageData.LoaiGoi}</div>
                   <h1>{packageData.TenGoi}</h1>
                   <div className="package-meta">
                     <div className="rating">
-                      <Star fill="#fbbf24" color="#fbbf24" size={20} />
-                      <span>{(packageData.DanhGia || 0).toFixed(1)}</span>
-                      <a href="#reviews-section" className="reviews" style={{textDecoration:'underline'}}>({packageData.SoLuotDanhGia || 0} đánh giá)</a>
+                      <Star fill="#fbbf24" color="#fbbf24" size={18} />
+                      <span className="rating-num">{(packageData.DanhGia || 0).toFixed(1)}</span>
+                      <a href="#reviews-section" className="reviews-link">({packageData.SoLuotDanhGia || 0} đánh giá)</a>
                     </div>
-                    <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '10px', alignItems: 'center'}}>
-                        <div className="booking-count"><Camera size={18} /><span>{packageData.SoLuongDaDat || 0} lượt đặt</span></div>
-                    </div>
+                    <div className="booking-count"><Camera size={16} /><span>{packageData.SoLuongDaDat || 0} lượt đặt</span></div>
                   </div>
                 </div>
 
                 <div className="price-card">
                   <div className="price-header">
                     <h3>Giá gói dịch vụ</h3>
-                    <div className="price-actions">
-                      <button className={`btn-icon ${isFavorite ? 'active' : ''}`} onClick={handleToggleFavorite}><Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : 'currentColor'} /></button>
-                      <button className="btn-icon" onClick={handleShare}><Share2 size={20} /></button>
-                    </div>
+            
                   </div>
                   <div className="price-content">
                     <div className="price-range">
-                      {minPrice === maxPrice ? <span className="price">{formatPrice(minPrice)} VNĐ</span> : <><span className="price">{formatPrice(minPrice)} VNĐ</span><span className="price-separator">-</span><span className="price">{formatPrice(maxPrice)} VNĐ</span></>}
+                      {minPrice === maxPrice 
+                        ? <span className="price">{formatPrice(minPrice)} VNĐ</span> 
+                        : <><span className="price">{formatPrice(minPrice)}</span> <span className="price-separator">-</span> <span className="price">{formatPrice(maxPrice)} VNĐ</span></>
+                      }
                     </div>
                   </div>
-                  <button className="btn-book-now" onClick={handleBookNow}>Đặt hàng ngay</button>
+                  <button className="btn-book-now" onClick={handleBookNow}>Đặt lịch ngay</button>
                 </div>
                 
                 <div className="contact-card">
-                  <h4>Cần tư vấn?</h4>
-                  <a href="tel:0776560735" className="btn-contact"><Phone size={18} /> Gọi ngay</a>
+                  <h4>Cần tư vấn thêm?</h4>
+                  <button className="btn-contact-photographer" onClick={handleContactPhotographer} disabled={isCreatingChat}>
+                      <MessageCircle size={18} /> {isCreatingChat ? "Đang kết nối..." : "Nhắn tin"}
+                    </button>
                 </div>
               </div>
-            </div>
+            </aside>
 
           </div>
         </div>
       </div>
 
-      {/* Modal Ảnh Gói Dịch Vụ (Cũ) */}
+      {/* --- CÁC MODAL --- */}
+
+      {/* Modal Ảnh Gói Dịch Vụ */}
       {showImageModal && (
         <div className="image-modal-overlay" onClick={() => setShowImageModal(false)}>
           <button onClick={() => setShowImageModal(false)} className="modal-close-btn"><X size={32}/></button>
@@ -474,11 +477,10 @@ export default function ServicePackageDetail() {
         </div>
       )}
 
-      {/* ✅ NEW: Modal Zoom Ảnh Review (Mới) */}
+      {/* Modal Zoom Ảnh Review */}
       {showReviewModal && (
         <div className="image-modal-overlay" style={{zIndex: 9999}} onClick={() => setShowReviewModal(false)}>
           <button onClick={() => setShowReviewModal(false)} className="modal-close-btn"><X size={32}/></button>
-          
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
             {reviewImagesList.length > 0 && (
                 <img 
@@ -487,8 +489,6 @@ export default function ServicePackageDetail() {
                     style={{maxHeight: '90vh', maxWidth: '90vw', objectFit: 'contain'}}
                 />
             )}
-            
-            {/* Chỉ hiện nút Next/Prev nếu review có nhiều hơn 1 ảnh */}
             {reviewImagesList.length > 1 && (
               <>
                 <button onClick={prevReviewImage} className="modal-nav-btn prev"><ChevronLeft size={28} /></button>

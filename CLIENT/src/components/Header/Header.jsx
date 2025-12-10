@@ -201,7 +201,7 @@ export default function PhotoBookingHeader() {
               {[
                 { path: '/', label: 'Trang chủ' },
                 { path: '/photographers', label: 'Nhiếp ảnh gia' },
-                { path: '/service-package', label: 'Gói chụp' },
+                { path: '/service-package', label: 'Gói dịch vụ' },
                 { path: '/activity', label: 'Cách hoạt động' },
                 { path: '/about-web', label: 'Về chúng tôi' },
               ].map((item) => (
@@ -273,7 +273,7 @@ export default function PhotoBookingHeader() {
               {[
                 { path: '/', label: 'Trang chủ' },
                 { path: '/photographers', label: 'Nhiếp ảnh gia' },
-                { path: '/service-package', label: 'Gói chụp' },
+                { path: '/service-package', label: 'Gói dịch vụ' },
                 { path: '/activity', label: 'Cách hoạt động' },
                 { path: '/about-web', label: 'Về chúng tôi' },
               ].map((item) => (

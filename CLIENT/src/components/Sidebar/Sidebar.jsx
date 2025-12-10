@@ -136,7 +136,7 @@ export default function Sidebar({ isOpen: propsIsOpen, toggleSidebar: propsToggl
 
   // Menu riêng cho Photographer (Đã thêm Album vào đây)
   const photographerMenuItems = [
-    { path: '/photographer/orders-manage', icon: <CalendarCheck size={24} />, label: 'Quản lý đơn', badge: null },
+    { path: '/photographer/orders-manage', icon: <CalendarCheck size={24} />, label: 'Đơn đặt hàng', badge: null },
     { path: '/photographer/schedule', icon: <CalendarDays size={24} />, label: 'Lịch trình', badge: null },
     { path: '/photographer/albums-management', icon: <Images size={24} />, label: 'Album', badge: null }, // ✅ Chỉ hiện nếu là Photographer
   ];

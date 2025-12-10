@@ -48,25 +48,51 @@
     transform: scale(0.98);
 }
 
-.add-method {
+/* Nút Thêm tài khoản (Update class name khớp với React) */
+.btn-add-method {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
     background-color: #2563eb;
     color: white;
     margin-bottom: 25px;
+    /* Khoảng cách với danh sách */
     box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
-.add-method:hover {
+.btn-add-method:hover {
     background-color: #1d4ed8;
     box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-add-method:active {
+    transform: scale(0.98);
 }
 
 .btn-verify {
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background-color: #10b981;
     color: white;
     box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    transition: all 0.2s;
 }
 
 .btn-verify:hover {
@@ -85,7 +111,8 @@
     font-size: 18px;
     font-weight: 700;
     color: #374151;
-    margin-bottom: 20px;
+    margin-bottom: 0;
+    /* Reset margin bottom vì đã có flex align ở cha */
     border-left: 5px solid #2563eb;
     padding-left: 12px;
     line-height: 1.2;
@@ -95,6 +122,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 24px;
+    margin-top: 20px;
 }
 
 .payment-card {
@@ -173,6 +201,13 @@
     color: #9ca3af;
 }
 
+.icon-edit,
+.icon-save,
+.icon-trash {
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s;
+}
+
 .icon-edit:hover {
     color: #2563eb;
     transform: scale(1.1);
@@ -189,13 +224,27 @@
 }
 
 /* Form inputs inside card */
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-group-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-group-row .form-group {
+    flex: 1;
+}
+
 .form-group label {
+    display: block;
     font-size: 11px;
     font-weight: 700;
     color: #6b7280;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .form-group input {
@@ -209,6 +258,8 @@
     background: #f9fafb;
     transition: all 0.2s;
     outline: none;
+    box-sizing: border-box;
+    /* Quan trọng để không vỡ layout */
 }
 
 .form-group input:focus {
@@ -224,63 +275,7 @@
     font-weight: 600;
     color: #111827;
     cursor: default;
-}
-
-/* Switch */
-.form-toggle {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #374151;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #e5e7eb;
-    transition: .3s;
-    border-radius: 34px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .3s;
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-input:checked+.slider {
-    background-color: #2563eb;
-}
-
-input:checked+.slider:before {
-    transform: translateX(20px);
+    box-shadow: none;
 }
 
 /* =========================================
@@ -292,6 +287,7 @@ input:checked+.slider:before {
     padding: 30px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     border: 1px solid #f3f4f6;
+    margin-top: 40px;
 }
 
 .orders-header {
@@ -301,6 +297,13 @@ input:checked+.slider:before {
     margin-bottom: 25px;
     padding-bottom: 20px;
     border-bottom: 1px solid #f3f4f6;
+}
+
+.orders-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #374151;
+    margin: 0;
 }
 
 .search-box {
@@ -317,6 +320,7 @@ input:checked+.slider:before {
     background-color: #f9fafb;
     outline: none;
     transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .search-box input:focus {
@@ -331,15 +335,7 @@ input:checked+.slider:before {
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
-}
-
-.clear-icon {
-    position: absolute;
-    right: 35px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #d1d5db;
-    cursor: pointer;
+    pointer-events: none;
 }
 
 .table-wrapper {
@@ -364,6 +360,7 @@ input:checked+.slider:before {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
 }
 
 .admin-table td {
@@ -389,7 +386,16 @@ input:checked+.slider:before {
     /* Font số cho tiền */
 }
 
-/* Status Badges - Beautiful */
+.text-blue-600 {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+.text-muted {
+    color: #9ca3af;
+}
+
+/* Status Badges */
 .status-badge {
     padding: 6px 12px;
     border-radius: 99px;
@@ -398,6 +404,7 @@ input:checked+.slider:before {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
 }
 
 .status-badge.warning {
@@ -443,7 +450,7 @@ input:checked+.slider:before {
 }
 
 /* =========================================
-   5. MODAL (CỐT LÕI - Z-INDEX CAO & ĐẸP)
+   5. MODAL (CORE - Z-INDEX CAO & ĐẸP)
    ========================================= */
 .modal-overlay {
     position: fixed;
@@ -452,35 +459,52 @@ input:checked+.slider:before {
     right: 0;
     bottom: 0;
     background-color: rgba(17, 24, 39, 0.75) !important;
-    /* Màu tối sang trọng */
     display: flex !important;
     justify-content: center;
     align-items: center;
     z-index: 99999 !important;
     /* Đè lên tất cả */
     backdrop-filter: blur(4px);
-    /* Hiệu ứng mờ nền */
     opacity: 1 !important;
     visibility: visible !important;
-    transition: opacity 0.2s;
+    animation: fadeIn 0.2s ease-out;
 }
 
 .modal-content {
     background: white !important;
     padding: 0;
-    /* Reset padding để header đẹp hơn */
     border-radius: 20px;
     width: 550px;
     max-width: 95%;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     position: relative;
     z-index: 100000 !important;
-    transform: none !important;
-    opacity: 1 !important;
     overflow: hidden;
-    /* Bo góc cho content con */
     display: flex;
     flex-direction: column;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* Modal Header Styles */
@@ -496,8 +520,15 @@ input:checked+.slider:before {
 
 .modal-header.confirm {
     background: #ecfdf5;
-    /* Xanh nhẹ */
     border-bottom-color: #d1fae5;
+}
+
+.modal-header.confirm h3 {
+    color: #065f46;
+}
+
+.modal-header.confirm svg {
+    color: #10b981;
 }
 
 .modal-header h3 {
@@ -516,32 +547,15 @@ input:checked+.slider:before {
     text-align: center;
 }
 
+.modal-body p {
+    margin: 0 0 16px 0;
+}
+
 .modal-body strong {
     color: #111827;
 }
 
-/* Info Box trong Modal */
-.bg-gray-50 {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 16px;
-    margin-top: 16px;
-    text-align: left;
-}
-
-.flex.justify-between {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
 /* Proof Image Area */
-.proof-image-section {
-    margin: 20px 0;
-    text-align: center;
-}
-
 .proof-image-wrapper {
     width: 100%;
     max-width: 300px;
@@ -550,7 +564,6 @@ input:checked+.slider:before {
     border-radius: 12px;
     overflow: hidden;
     border: 2px dashed #d1d5db;
-    /* Viền nét đứt hiện đại */
     position: relative;
     cursor: zoom-in;
     background: #f9fafb;
@@ -590,10 +603,13 @@ input:checked+.slider:before {
     padding: 20px;
     border-radius: 12px;
     border: 1px dashed #ef4444;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.amount-info {
+    margin-top: 10px;
+    font-size: 16px;
 }
 
 /* Modal Buttons */
@@ -613,6 +629,8 @@ input:checked+.slider:before {
     color: #4b5563;
     border-radius: 8px;
     font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .btn-cancel:hover {
@@ -628,7 +646,9 @@ input:checked+.slider:before {
     color: white;
     border-radius: 8px;
     font-weight: 600;
+    cursor: pointer;
     box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s;
 }
 
 .btn-confirm:hover {
@@ -649,7 +669,7 @@ input:checked+.slider:before {
     background-color: white;
     font-family: inherit;
     color: #1f2937;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
 }
 
 .reject-reason-input:focus {
@@ -692,7 +712,6 @@ input:checked+.slider:before {
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.95) !important;
     z-index: 200000 !important;
-    /* Cao nhất vũ trụ */
     display: flex;
     justify-content: center;
     align-items: center;

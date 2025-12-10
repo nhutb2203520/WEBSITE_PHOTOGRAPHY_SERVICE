@@ -372,7 +372,7 @@ export default function Package() {
 
       {/* Modal Form */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => { resetForm(); setShowModal(false); }}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>{editingPackage ? "Chỉnh sửa" : "Tạo"} Gói Dịch Vụ</h3>
             <form onSubmit={handleSubmit}>

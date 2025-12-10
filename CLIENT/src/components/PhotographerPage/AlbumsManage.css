@@ -48,6 +48,7 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     outline: none;
     transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .am-search-bar input:focus {
@@ -220,7 +221,7 @@
     border-radius: 99px;
 }
 
-/* Action Buttons (Hover to show or always show) */
+/* Action Buttons */
 .am-actions {
     display: flex;
     gap: 8px;
@@ -265,36 +266,44 @@
 }
 
 /* =========================================
-   4. MODAL (FIXED Z-INDEX CAO)
+   4. MODAL (FIXED - HIỂN THỊ TRÊN CÙNG)
    ========================================= */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100vw;
+    height: 100vh;
     background-color: rgba(17, 24, 39, 0.75) !important;
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    z-index: 99999 !important;
-    /* QUAN TRỌNG: Đè lên mọi thứ */
+    /* Màu nền tối đậm & Ép buộc */
     backdrop-filter: blur(4px);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999 !important;
+    /* Cao nhất hệ thống */
+    opacity: 1 !important;
+    visibility: visible !important;
     animation: fadeIn 0.2s ease-out;
 }
 
 .modal-content.create-album-modal {
-    background: white;
+    background: white !important;
     border-radius: 16px;
-    width: 100%;
+    width: 95%;
     max-width: 500px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
-    z-index: 100000;
+    z-index: 100000 !important;
+    /* Cao hơn overlay */
+
+    /* Reset các thuộc tính có thể gây ẩn */
+    transform: none !important;
+    opacity: 1 !important;
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-header {
@@ -335,6 +344,7 @@
 
 .modal-body {
     padding: 24px;
+    background: white;
 }
 
 /* Form Styles */
@@ -348,6 +358,8 @@
     font-weight: 600;
     color: #374151;
     margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .form-group input,
@@ -359,6 +371,8 @@
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s;
+    background: #fff;
+    box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -402,15 +416,18 @@
     font-weight: 700;
     cursor: pointer;
     transition: background 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
 }
 
 .btn-submit-create:hover {
     background-color: #059669;
+    box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
 }
 
 .btn-submit-create:disabled {
     background-color: #9ca3af;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Animations */

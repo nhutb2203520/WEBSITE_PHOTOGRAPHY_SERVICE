@@ -340,9 +340,9 @@ export default function MyOrder() {
     <MainLayout>
       <div className="my-orders-page">
         <div className="container">
-          <div className="page-header"><h1>Đơn hàng của tôi</h1></div>
+          <div className="page-header"><h1>Đơn đặt chụp của tôi</h1></div>
           <div className="filters-section">
-            <div className="search-box"><Search size={18} /><input value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="Tìm mã đơn, tên gói..."/></div>
+            <div className="search-box"><input value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="Tìm mã đơn, tên gói..."/></div>
             <div className="status-filters">
               {[{k:'all',l:'Tất cả'},{k:'pending_payment',l:'Chờ cọc'},{k:'pending',l:'Chờ duyệt'},{k:'processing_group',l:'Đang xử lý'},{k:'completed',l:'Hoàn thành'},{k:'cancelled',l:'Đã hủy'}].map(tab=>(
                   <button key={tab.k} className={statusFilter===tab.k?'active':''} onClick={()=>setStatusFilter(tab.k)}>{tab.l}</button>
@@ -462,7 +462,7 @@ export default function MyOrder() {
                   <div className="modal-header warning-header"><h2>Khiếu nại dịch vụ</h2><button onClick={()=>setShowComplaintModal(false)}>×</button></div>
                   <div className="modal-body">
                       <p>Vui lòng cho biết vấn đề bạn gặp phải:</p>
-                      <textarea className="review-textarea" rows="4" value={complaintReason} onChange={e=>setComplaintReason(e.target.value)}></textarea>
+                      <textarea className="-textarea" rows="4" value={complaintReason} onChange={e=>setComplaintReason(e.target.value)}></textarea>
                       <div className="review-image-upload">
                           <label htmlFor="complaint-images" className="upload-btn"><Upload size={20}/> Thêm ảnh minh chứng (Max 10)</label>
                           <input type="file" id="complaint-images" multiple accept="image/*" onChange={handleComplaintImageChange} style={{display: 'none'}}/>

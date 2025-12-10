@@ -163,13 +163,7 @@ export default function Login() {
             {/* Remember Me */}
             <div className="form-options">
               <label className="checkbox-container">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="checkbox"
-                />
-                <span className="checkbox-label">Ghi nhớ đăng nhập</span>
+               
               </label>
               {/* ✅ ĐÃ SỬA: class -> className */}
               <Link to="/forgot-password" className="forgot-link">
