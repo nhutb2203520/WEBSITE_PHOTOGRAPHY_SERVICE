@@ -1,34 +1,38 @@
-import mongoose from "mongoose"; // 🔥 [QUAN TRỌNG] Phải có dòng này
+import mongoose from "mongoose";
 import Review from "../models/review.model.js";
 import Order from "../models/order.model.js";
 
-// 🔥 Import model User để tránh lỗi populate không tìm thấy Schema
+// ✅ IMPORT ĐẦY ĐỦ MODEL LIÊN QUAN ĐỂ TRÁNH LỖI POPULATE
 import "../models/khachhang.model.js"; 
 
 // [GET] Lấy danh sách đánh giá
 export const getReviews = async (req, res) => {
   try {
-    const { photographerId } = req.query;
+    // ✅ Lấy thêm packageId từ query params
+    const { photographerId, packageId } = req.query;
     
     // Mặc định lọc status approved
     const query = { Status: 'approved' }; 
 
-    if (photographerId) {
+    // ✅ Ưu tiên lọc theo PackageId nếu có
+    if (packageId) {
+        if (!mongoose.Types.ObjectId.isValid(packageId)) {
+            return res.status(400).json({ message: "Package ID không hợp lệ" });
+        }
+        query.PackageId = new mongoose.Types.ObjectId(packageId);
+    } 
+    // Nếu không có PackageId thì mới lọc theo PhotographerId
+    else if (photographerId) {
       if (!mongoose.Types.ObjectId.isValid(photographerId)) {
-        return res.status(400).json({ 
-            message: "Photographer ID không hợp lệ", 
-            success: false 
-        });
+        return res.status(400).json({ message: "Photographer ID không hợp lệ" });
       }
-      // 🔥 [SỬA TẠI ĐÂY] Ép kiểu thủ công sang ObjectId
       query.PhotographerId = new mongoose.Types.ObjectId(photographerId);
     }
 
-    // 🔍 Log ra xem Backend thực sự tìm kiếm gì
     console.log("🔍 Đang tìm review với query:", JSON.stringify(query));
 
     const reviews = await Review.find(query)
-      .populate("CustomerId", "HoTen Avatar") 
+      .populate("CustomerId", "HoTen Avatar") // Populate thông tin người đánh giá
       .sort({ createdAt: -1 });
     
     console.log(`✅ Tìm thấy ${reviews.length} đánh giá.`);
@@ -41,26 +45,40 @@ export const getReviews = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Lỗi getReviews:", error);
-    res.status(500).json({ 
-        message: "Lỗi server khi lấy đánh giá", 
-        error: error.message 
-    });
+    res.status(500).json({ message: "Lỗi server khi lấy đánh giá: " + error.message });
   }
 };
+
 // [POST] Tạo đánh giá mới
 export const createReview = async (req, res) => {
   try {
     const { order_id, rating, comment } = req.body;
-    
-    const order = await Order.findById(order_id);
+    const userId = req.user._id || req.user.id;
+
+    console.log("📝 Tạo review cho đơn:", order_id);
+
+    // Kiểm tra đơn hàng
+    const order = await Order.findOne({ 
+        $or: [{ _id: order_id }, { order_id: order_id }] 
+    });
+
     if (!order) return res.status(404).json({ message: "Đơn hàng không tồn tại" });
 
+    // Kiểm tra quyền (chỉ khách hàng trong đơn mới được đánh giá)
+    if (order.customer_id.toString() !== userId.toString()) {
+        return res.status(403).json({ message: "Bạn không có quyền đánh giá đơn hàng này" });
+    }
+
+    // Kiểm tra trùng lặp
+    const existing = await Review.findOne({ OrderId: order._id });
+    if (existing) return res.status(400).json({ message: "Bạn đã đánh giá đơn hàng này rồi!" });
+
     const reviewData = {
-        OrderId: order_id,
+        OrderId: order._id,
         PackageId: order.service_package_id,
         PhotographerId: order.photographer_id,
-        CustomerId: req.user._id || req.user.id, 
-        Rating: rating,
+        CustomerId: userId,
+        Rating: Number(rating),
         Comment: comment,
         Status: 'approved',
         Images: []
@@ -71,12 +89,14 @@ export const createReview = async (req, res) => {
     }
 
     const newReview = new Review(reviewData);
-    const savedReview = await newReview.save();
+    await newReview.save();
 
-    res.status(201).json(savedReview);
+    console.log("✅ Đánh giá thành công ID:", newReview._id);
+    res.status(201).json(newReview);
+
   } catch (error) {
     console.error("❌ Error creating review:", error);
-    res.status(400).json({ message: "Lỗi khi tạo đánh giá", error: error.message });
+    res.status(500).json({ message: "Lỗi khi tạo đánh giá", error: error.message });
   }
 };
 
@@ -85,6 +105,7 @@ export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, comment } = req.body;
+    const userId = req.user._id || req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Review ID không hợp lệ" });
@@ -93,7 +114,6 @@ export const updateReview = async (req, res) => {
     const review = await Review.findById(id);
     if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá" });
 
-    const userId = req.user._id || req.user.id;
     if (review.CustomerId.toString() !== userId.toString()) {
         return res.status(403).json({ message: "Bạn không có quyền sửa đánh giá này" });
     }
@@ -102,7 +122,7 @@ export const updateReview = async (req, res) => {
         return res.status(400).json({ message: "Bạn chỉ được chỉnh sửa đánh giá 1 lần duy nhất." });
     }
 
-    review.Rating = rating;
+    review.Rating = Number(rating);
     review.Comment = comment;
     review.is_edited = true; 
 

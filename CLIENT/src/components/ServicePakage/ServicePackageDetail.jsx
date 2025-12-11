@@ -20,7 +20,7 @@ import chatApi from '../../apis/chatApi';
 import ChatMessage from '../ChatMessage/ChatMessage'; 
 
 export default function ServicePackageDetail() {
-  const { id } = useParams();
+  const { id } = useParams(); // Đây chính là packageId
   const navigate = useNavigate();
   const { user } = useSelector(state => state.user);
   
@@ -56,18 +56,15 @@ export default function ServicePackageDetail() {
   const fetchPackageDetail = async () => {
     try {
       setLoading(true);
+      
       // 1. Lấy thông tin gói dịch vụ
       const data = await servicePackageApi.getPackageById(id);
       setPackageData(data);
 
-      // 2. Lấy danh sách đánh giá của Nhiếp ảnh gia
-      if (data && data.PhotographerId) {
-          const photographerId = typeof data.PhotographerId === 'object' 
-            ? data.PhotographerId._id 
-            : data.PhotographerId;
-          
-          fetchReviews(photographerId);
-      }
+      // 2. ✅ Lấy đánh giá CỦA GÓI DỊCH VỤ NÀY (Sử dụng id từ useParams)
+      // Không cần chờ lấy PhotographerId nữa, lấy trực tiếp theo PackageId
+      fetchReviews(id);
+
     } catch (error) {
       console.error('❌ Error fetching package detail:', error);
       toast.error('Không thể tải thông tin gói dịch vụ');
@@ -77,9 +74,11 @@ export default function ServicePackageDetail() {
     }
   };
 
-  const fetchReviews = async (photographerId) => {
+  const fetchReviews = async (packageId) => {
       try {
-          const res = await axios.get(`http://localhost:5000/api/reviews?photographerId=${photographerId}`);
+          // ✅ SỬA LẠI: Gọi API lọc theo packageId
+          const res = await axios.get(`http://localhost:5000/api/reviews?packageId=${packageId}`);
+          
           const fetchedData = res.data?.data || []; 
           const approvedReviews = Array.isArray(fetchedData) ? fetchedData : [];
           setReviews(approvedReviews);
@@ -327,7 +326,7 @@ export default function ServicePackageDetail() {
                 </section>
               )}
 
-              {/* ĐÁNH GIÁ (REVIEW) */}
+              {/* ĐÁNH GIÁ (REVIEW) - ĐÃ CẬP NHẬT LOGIC LẤY THEO GÓI */}
               <section className="package-section" id="reviews-section">
                 <div className="reviews-header-row">
                    <h2>Đánh giá từ khách hàng ({reviews.length})</h2>
@@ -388,7 +387,7 @@ export default function ServicePackageDetail() {
                   </div>
                 ) : (
                   <div className="no-reviews-state">
-                    <p>Chưa có đánh giá nào cho gói/nhiếp ảnh gia này.</p>
+                    <p>Chưa có đánh giá nào cho gói dịch vụ này.</p>
                   </div>
                 )}
               </section>
@@ -483,11 +482,11 @@ export default function ServicePackageDetail() {
           <button onClick={() => setShowReviewModal(false)} className="modal-close-btn"><X size={32}/></button>
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
             {reviewImagesList.length > 0 && (
-                <img 
-                    src={getImageUrl(reviewImagesList[currentReviewImgIndex])} 
-                    alt="Review Full view" 
-                    style={{maxHeight: '90vh', maxWidth: '90vw', objectFit: 'contain'}}
-                />
+              <img 
+                src={getImageUrl(reviewImagesList[currentReviewImgIndex])} 
+                alt="Review Full view" 
+                style={{maxHeight: '90vh', maxWidth: '90vw', objectFit: 'contain'}}
+              />
             )}
             {reviewImagesList.length > 1 && (
               <>

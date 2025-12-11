@@ -4,7 +4,8 @@ import { toast } from "react-toastify";
 import { 
     CheckCircle2, Loader2, Send, ArrowLeft, Maximize2, X, 
     ChevronLeft, ChevronRight, Calendar, User, MapPin, Package, RefreshCw,
-    Download, Image as ImageIcon, Star
+    Download, Image as ImageIcon, Star,
+    Share2, Copy, Check // ✅ [THÊM] Icon cho tính năng chia sẻ
 } from "lucide-react";
 import "./SelectionPhoto.css";
 import axiosUser from "../../apis/axiosUser";
@@ -30,12 +31,16 @@ const SelectionPhoto = () => {
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
 
+    // ✅ [THÊM] State cho chức năng Chia sẻ
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareLink, setShareLink] = useState('');
+    const [copied, setCopied] = useState(false);
+
     // --- FETCH DATA ---
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // console.log("🚀 Bắt đầu tải dữ liệu cho Order:", orderId);
                 
                 const [albumRes, orderRes] = await Promise.all([
                     axiosUser.get(`/albums/${orderId}`).catch(() => null),
@@ -53,12 +58,10 @@ const SelectionPhoto = () => {
                 if (finalAlbum) {
                     setAlbum(finalAlbum);
                     
-                    // Nếu có ảnh đã chỉnh sửa -> Mặc định tab Edited để khách xem thành quả
                     if (finalAlbum.edited_photos && finalAlbum.edited_photos.length > 0) {
                         setActiveTab('edited');
                     }
 
-                    // Load ảnh gốc đã chọn từ trước
                     if (finalAlbum.photos) {
                         const preSelected = finalAlbum.photos
                             .filter(p => p.is_selected).map(p => p._id);
@@ -66,7 +69,6 @@ const SelectionPhoto = () => {
                     }
                 }
 
-                // Xử lý Order
                 if (orderRes) {
                     const orderData = orderRes.data?.data || orderRes.data || orderRes;
                     setOrder(orderData);
@@ -83,18 +85,12 @@ const SelectionPhoto = () => {
     }, [orderId]);
 
     // --- LOGIC TRẠNG THÁI ---
-    // hasSubmitted: Khách đã từng gửi lựa chọn -> Hiện nút "Cập nhật"
     const hasSubmitted = album?.status === 'selection_completed' || album?.status === 'finalized';
-    
-    // Helper lấy danh sách ảnh hiện tại theo Tab
     const currentPhotos = activeTab === 'edited' ? (album?.edited_photos || []) : (album?.photos || []);
 
     // --- HANDLERS ---
     const togglePhoto = (id) => {
-        // Chỉ cho phép chọn ở tab Ảnh Gốc
         if (activeTab !== 'raw') return;
-        
-        // Luôn cho phép chọn (Không khóa)
         setSelectedIds(prev => 
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
@@ -103,15 +99,10 @@ const SelectionPhoto = () => {
     const handleSubmit = async () => {
         if (selectedIds.length === 0) return toast.warning("Vui lòng chọn ít nhất 1 ảnh gốc.");
         
-        // ❌ ĐÃ BỎ PHẦN CONFIRM (window.confirm)
-        // Gửi thẳng luôn
-
         try {
             setSubmitting(true);
             await axiosUser.put(`/albums/${orderId}/selection`, { selectedIds });
             toast.success("Đã gửi lựa chọn thành công!");
-            
-            // Cập nhật trạng thái local
             setAlbum(prev => ({ ...prev, status: 'selection_completed' }));
         } catch (error) {
             toast.error("Lỗi khi gửi.");
@@ -120,7 +111,6 @@ const SelectionPhoto = () => {
         }
     };
 
-    // --- DOWNLOAD HANDLER ---
     const handleDownload = async (url, filename) => {
         try {
             const fullUrl = url.startsWith('http') ? url : `http://localhost:5000${url}`;
@@ -138,10 +128,37 @@ const SelectionPhoto = () => {
         }
     };
 
+    // ✅ [THÊM] Các hàm xử lý Chia sẻ
+    const handleShare = async () => {
+        if (!album) return toast.warning("Chưa có album để chia sẻ.");
+        try {
+            // Gọi API tạo link chia sẻ
+            const res = await axiosUser.post(`/albums/${album._id}/share`);
+            const data = res.data || res; 
+            
+            if (data && data.shareLink) {
+                setShareLink(data.shareLink);
+                setShowShareModal(true);
+                setCopied(false);
+                toast.success("Đã tạo link chia sẻ!");
+            } else {
+                toast.error("Server không trả về link chia sẻ.");
+            }
+        } catch (error) { 
+            console.error(error);
+            toast.error(error.response?.data?.message || "Lỗi tạo link chia sẻ."); 
+        }
+    };
+    
+    const copyToClipboard = () => { 
+        navigator.clipboard.writeText(shareLink); 
+        setCopied(true); 
+        setTimeout(() => setCopied(false), 2000); 
+    };
+
     // Lightbox Helpers
     const openLightbox = (index) => { setCurrentIndex(index); setLightboxOpen(true); document.body.style.overflow = 'hidden'; };
     const closeLightbox = () => { setLightboxOpen(false); document.body.style.overflow = 'auto'; };
-    
     const nextImg = (e) => { e.stopPropagation(); setCurrentIndex((prev) => (prev + 1) % currentPhotos.length); };
     const prevImg = (e) => { e.stopPropagation(); setCurrentIndex((prev) => (prev - 1 + currentPhotos.length) % currentPhotos.length); };
     
@@ -153,7 +170,6 @@ const SelectionPhoto = () => {
     // --- RENDER ---
     if (loading) return <div className="sp-loading"><Loader2 className="spinner"/> Đang tải album...</div>;
     
-    // Trường hợp lỗi hoặc không tìm thấy album
     if (!album) {
         return (
             <MainLayout>
@@ -166,7 +182,6 @@ const SelectionPhoto = () => {
         );
     }
 
-    // Trường hợp bình thường
     return (
         <MainLayout>
             <div className="sp-wrapper">
@@ -175,6 +190,10 @@ const SelectionPhoto = () => {
                     <div className="sp-header-mobile">
                         <button onClick={() => navigate(-1)} className="btn-back"><ArrowLeft size={20}/></button>
                         <h3>Chi tiết Album</h3>
+                        {/* ✅ [THÊM] Nút Share Mobile */}
+                        <button onClick={handleShare} className="btn-icon-only" style={{marginLeft: 'auto', background:'none', border:'none'}}>
+                            <Share2 size={20} color="#374151"/>
+                        </button>
                     </div>
 
                     <div className="sp-layout">
@@ -187,13 +206,13 @@ const SelectionPhoto = () => {
                                 
                                 <div className="sp-info-header">
                                     <h2>Thông tin đơn hàng</h2>
-                                    <span className="order-id">#{order?.order_id}</span>
+                                    <span className="order-id">#{order?.order_id || "FREELANCE"}</span>
                                 </div>
 
                                 <div className="sp-info-list">
-                                    <div className="info-item"><Package size={16} className="icon"/><div><label>Gói dịch vụ</label><p>{order?.service_package_id?.TenGoi || "..."}</p></div></div>
-                                    <div className="info-item"><User size={16} className="icon"/><div><label>Nhiếp ảnh gia</label><p>{order?.photographer_id?.HoTen || "..."}</p></div></div>
-                                    <div className="info-item"><Calendar size={16} className="icon"/><div><label>Ngày chụp</label><p>{order ? new Date(order.booking_date).toLocaleDateString('vi-VN') : "..."}</p></div></div>
+                                    <div className="info-item"><Package size={16} className="icon"/><div><label>Gói dịch vụ</label><p>{order?.service_package_id?.TenGoi || "Job Ngoài"}</p></div></div>
+                                    <div className="info-item"><User size={16} className="icon"/><div><label>Nhiếp ảnh gia</label><p>{album.photographer_id?.HoTen || "..."}</p></div></div>
+                                    <div className="info-item"><Calendar size={16} className="icon"/><div><label>Ngày tạo</label><p>{new Date(album.createdAt).toLocaleDateString('vi-VN')}</p></div></div>
                                 </div>
 
                                 {/* Thống kê */}
@@ -205,7 +224,20 @@ const SelectionPhoto = () => {
                                     )}
                                 </div>
 
-                                {/* Nút Gửi (Chỉ hiện ở tab Raw để khách chọn ảnh) */}
+                                {/* ✅ [THÊM] Nút Chia Sẻ Desktop */}
+                                <button 
+                                    onClick={handleShare}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                        width: '100%', padding: '10px', borderRadius: '8px',
+                                        backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb',
+                                        cursor: 'pointer', fontWeight: 500, marginTop: '15px'
+                                    }}
+                                >
+                                    <Share2 size={16}/> Chia sẻ Album
+                                </button>
+
+                                {/* Nút Gửi */}
                                 {activeTab === 'raw' && (
                                     <button className="btn-submit-side" onClick={handleSubmit} disabled={submitting}>
                                         {submitting ? <Loader2 className="spinner-sm"/> : (hasSubmitted ? <RefreshCw size={16}/> : <Send size={16}/>)}
@@ -223,33 +255,21 @@ const SelectionPhoto = () => {
 
                         {/* --- MAIN CONTENT --- */}
                         <div className="sp-main">
-                            {/* TABS SWITCHER */}
                             <div className="sp-tabs">
-                                <button 
-                                    className={`sp-tab-btn ${activeTab === 'raw' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('raw')}
-                                >
+                                <button className={`sp-tab-btn ${activeTab === 'raw' ? 'active' : ''}`} onClick={() => setActiveTab('raw')}>
                                     <ImageIcon size={18}/> Ảnh Gốc ({album.photos?.length || 0})
                                 </button>
                                 
                                 {album.edited_photos && album.edited_photos.length > 0 && (
-                                    <button 
-                                        className={`sp-tab-btn ${activeTab === 'edited' ? 'active' : ''}`}
-                                        onClick={() => setActiveTab('edited')}
-                                    >
+                                    <button className={`sp-tab-btn ${activeTab === 'edited' ? 'active' : ''}`} onClick={() => setActiveTab('edited')}>
                                         <Star size={18}/> Ảnh Đã Chỉnh ({album.edited_photos.length})
                                     </button>
                                 )}
                             </div>
 
-                            {/* GRID HEADER */}
                             <div className="sp-grid-header">
                                 <h3>{activeTab === 'raw' ? "Kho ảnh gốc" : "Ảnh đã chỉnh sửa (Hoàn thiện)"}</h3>
-                                <p>
-                                    {activeTab === 'raw' 
-                                        ? "Hãy chọn những tấm ảnh bạn ưng ý nhất để thợ chỉnh sửa." 
-                                        : "Đây là những bức ảnh đã được chỉnh sửa hoàn thiện. Bạn có thể tải về."}
-                                </p>
+                                <p>{activeTab === 'raw' ? "Hãy chọn những tấm ảnh bạn ưng ý nhất để thợ chỉnh sửa." : "Đây là những bức ảnh đã được chỉnh sửa hoàn thiện. Bạn có thể tải về."}</p>
                             </div>
 
                             {/* GRID PHOTOS */}
@@ -265,17 +285,9 @@ const SelectionPhoto = () => {
                                                         <Maximize2 size={24} color="white"/>
                                                     </div>
                                                 </div>
-                                                
-                                                {/* Nút Download (Luôn hiện) */}
-                                                <button 
-                                                    className="btn-download-mini" 
-                                                    onClick={(e) => {e.stopPropagation(); handleDownload(photo.url, photo.filename)}}
-                                                    title="Tải ảnh này"
-                                                >
+                                                <button className="btn-download-mini" onClick={(e) => {e.stopPropagation(); handleDownload(photo.url, photo.filename)}} title="Tải ảnh này">
                                                     <Download size={14}/>
                                                 </button>
-
-                                                {/* Checkbox (Chỉ hiện ở tab Raw, không khóa) */}
                                                 {activeTab === 'raw' && (
                                                     <div className="select-indicator" onClick={(e) => { e.stopPropagation(); togglePhoto(photo._id); }}>
                                                         <div className={`checkbox-circle ${isSelected ? 'checked' : ''}`}>
@@ -304,27 +316,15 @@ const SelectionPhoto = () => {
                             <button className="lb-nav prev" onClick={prevImg}><ChevronLeft size={40}/></button>
                             <div className="lb-img-container">
                                 <img src={getImgUrl(currentPhotos[currentIndex].url)} alt="Full" />
-                                
                                 <div className="lb-info-bar">
                                     <span>{currentIndex + 1} / {currentPhotos.length}</span>
-                                    
                                     <div className="lb-actions-group">
-                                        {/* Nút Chọn (Chỉ hiện ở tab Raw) */}
                                         {activeTab === 'raw' && (
-                                            <button 
-                                                className={`btn-lb-select ${selectedIds.includes(currentPhotos[currentIndex]._id) ? 'active' : ''}`}
-                                                onClick={() => togglePhoto(currentPhotos[currentIndex]._id)}
-                                            >
-                                                {selectedIds.includes(currentPhotos[currentIndex]._id) ? 
-                                                    <><CheckCircle2 size={16}/> Đã chọn</> : "Chọn ảnh này"}
+                                            <button className={`btn-lb-select ${selectedIds.includes(currentPhotos[currentIndex]._id) ? 'active' : ''}`} onClick={() => togglePhoto(currentPhotos[currentIndex]._id)}>
+                                                {selectedIds.includes(currentPhotos[currentIndex]._id) ? <><CheckCircle2 size={16}/> Đã chọn</> : "Chọn ảnh này"}
                                             </button>
                                         )}
-
-                                        {/* Nút Tải về */}
-                                        <button 
-                                            className="btn-lb-download"
-                                            onClick={() => handleDownload(currentPhotos[currentIndex].url, currentPhotos[currentIndex].filename)}
-                                        >
+                                        <button className="btn-lb-download" onClick={() => handleDownload(currentPhotos[currentIndex].url, currentPhotos[currentIndex].filename)}>
                                             <Download size={16}/> Tải về
                                         </button>
                                     </div>
@@ -334,6 +334,47 @@ const SelectionPhoto = () => {
                         </div>
                     </div>
                 )}
+
+                {/* ✅ [THÊM] MODAL CHIA SẺ */}
+                {showShareModal && (
+                    <div className="modal-overlay" style={{position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center'}} onClick={() => setShowShareModal(false)}>
+                        <div className="modal-content share-modal" style={{background:'white', padding:'24px', borderRadius:'12px', width:'90%', maxWidth:'400px'}} onClick={e => e.stopPropagation()}>
+                            <div className="modal-header" style={{display:'flex', justifyContent:'space-between', marginBottom:'16px'}}>
+                                <h2 style={{fontSize:'1.25rem', fontWeight:600}}>Chia sẻ Album</h2>
+                                <button onClick={() => setShowShareModal(false)} style={{background:'none', border:'none', cursor:'pointer'}}><X size={24}/></button>
+                            </div>
+                            <div className="modal-body">
+                                <p className="share-desc" style={{marginBottom:'12px', color:'#4b5563'}}>Gửi liên kết này cho bạn bè hoặc người thân:</p>
+                                <div className="share-input-group" style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+                                    <input 
+                                        type="text" 
+                                        readOnly 
+                                        value={shareLink} 
+                                        onClick={(e) => e.target.select()} 
+                                        style={{flex:1, padding:'8px 12px', border:'1px solid #d1d5db', borderRadius:'6px', outline:'none'}}
+                                    />
+                                    <button 
+                                        onClick={copyToClipboard} 
+                                        className={copied ? "copied" : ""}
+                                        style={{padding:'8px 12px', border:'1px solid #d1d5db', borderRadius:'6px', background: copied ? '#10b981' : '#f3f4f6', color: copied ? 'white' : 'inherit', cursor:'pointer', display:'flex', alignItems:'center'}}
+                                    >
+                                        {copied ? <Check size={20}/> : <Copy size={20}/>}
+                                    </button>
+                                </div>
+                                <div className="share-actions">
+                                    <button 
+                                        className="btn-open-link" 
+                                        onClick={() => window.open(shareLink, '_blank')}
+                                        style={{width:'100%', padding:'10px', background:'#2563eb', color:'white', border:'none', borderRadius:'6px', cursor:'pointer', fontWeight:500}}
+                                    >
+                                        Mở liên kết ngay
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             </div>
         </MainLayout>
     );

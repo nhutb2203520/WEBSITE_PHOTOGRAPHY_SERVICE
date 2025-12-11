@@ -14,10 +14,18 @@ const isMongoId = (id) => mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{2
 // 1. Tạo Album Freelance
 export const createFreelanceAlbum = async (req, res) => {
     try {
-        const { title, client_name, description } = req.body;
-        const photographerId = req.user.id || req.user._id;
+        console.log("👉 Đang tạo Album Freelance...");
+        console.log("👉 User Info từ Token:", req.user); // Check xem có req.user không
 
-        if (!photographerId) return res.status(401).json({ message: "Không tìm thấy User ID" });
+        const { title, client_name, description } = req.body;
+        
+        // Kiểm tra req.user có tồn tại không
+        if (!req.user || (!req.user.id && !req.user._id)) {
+            console.error("❌ Lỗi: Không tìm thấy thông tin User trong request (req.user bị thiếu).");
+            return res.status(401).json({ message: "Lỗi xác thực: Không tìm thấy thông tin người dùng." });
+        }
+
+        const photographerId = req.user.id || req.user._id;
 
         const newAlbum = new Album({
             photographer_id: photographerId,
@@ -31,9 +39,13 @@ export const createFreelanceAlbum = async (req, res) => {
         });
 
         await newAlbum.save();
+        
+        console.log("✅ Tạo Album Freelance thành công:", newAlbum._id);
         res.status(201).json({ success: true, message: "Tạo album thành công", data: newAlbum });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        // 👇 IN LỖI RA TERMINAL ĐỂ BẠN THẤY RÕ
+        console.error("❌ Lỗi 500 tại createFreelanceAlbum:", error);
+        res.status(500).json({ message: "Lỗi Server: " + error.message });
     }
 };
 

@@ -3,9 +3,9 @@ import {
   loginAdmin, 
   refreshAccessToken, 
   logoutAdmin,
-  getCustomers,       // ✅ Thêm mới
-  getPhotographers,   // ✅ Thêm mới
-
+  getCustomers,       
+  getPhotographers,  
+  updateUserStatus,
 } from "../controllers/admin.controller.js";
 import { verifyTokenUser } from "../middlewares/verifyToken.js";
 import { verifyAdmin } from "../middlewares/verifyAdmin.js"; 
@@ -45,7 +45,8 @@ router.get("/customers", verifyTokenUser, verifyAdmin, getCustomers);
 
 // 2. Lấy danh sách Nhiếp ảnh gia
 router.get("/photographers", verifyTokenUser, verifyAdmin, getPhotographers);
-
+ // 3.Cập nhật trạng thái tk người dùng
+router.patch("/users/:id/status", verifyAdmin, updateUserStatus);
 
 
 export default router;

@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-// ✅ ĐÃ BỔ SUNG "Search" VÀO DÒNG IMPORT DƯỚI ĐÂY
-import { Star, Heart, Camera, AlertTriangle, MapPin, Filter, Search } from 'lucide-react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Star, Heart, Camera, AlertTriangle, MapPin, Filter, Search, PlusCircle, Settings } from 'lucide-react';
 import './ServicePackage.css';
 
 // ✅ Import Layout & Redux
 import MainLayout from '../../layouts/MainLayout/MainLayout';
 import { useSelector, useDispatch } from 'react-redux';
 import { getAllPackages } from '../../redux/Slices/servicepackageSlice';
-import Package from '../PhotographerPage/Package';
+// ❌ ĐÃ XÓA IMPORT Package (Component quản lý không nên đặt ở trang Public)
 import FavoriteService from '../../apis/FavoriteService'; 
 
 // ✅ Component hiển thị ảnh an toàn
@@ -55,6 +54,7 @@ const SafeImage = ({ src, alt, className, style, fallbackIcon = Camera, fallback
 
 export default function ServicePackage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   // State
@@ -66,7 +66,7 @@ export default function ServicePackage() {
 
   const { user } = useSelector(state => state.user);
   const { packages, loading } = useSelector(state => state.package);
-  const isPhotographer = user?.isPhotographer;
+  const isPhotographer = user?.isPhotographer || user?.role === 'photographer';
 
   // 1. Fetch Packages & Favorites
   useEffect(() => {
@@ -125,7 +125,8 @@ export default function ServicePackage() {
     const matchSearch = pkg.TenGoi?.toLowerCase().includes(search.toLowerCase()) ||
                         pkg.MoTa?.toLowerCase().includes(search.toLowerCase());
     const matchLoaiGoi = !loaiGoi || pkg.LoaiGoi === loaiGoi;
-    const pkgLocation = [pkg.baseLocation?.city, pkg.baseLocation?.district].join(' ').toLowerCase();
+    // Kiểm tra an toàn cho baseLocation
+    const pkgLocation = [pkg.baseLocation?.city, pkg.baseLocation?.district].filter(Boolean).join(' ').toLowerCase();
     const matchLocation = !location || pkgLocation.includes(location.toLowerCase());
     return matchSearch && matchLoaiGoi && matchLocation;
   });
@@ -143,26 +144,40 @@ export default function ServicePackage() {
           
           {/* Header & Filter */}
           <div className="sp-header">
-            <div className="sp-title">
-                <h1>Kho Gói Chụp Ảnh</h1>
-                <p>Khám phá hơn {packages.length} gói dịch vụ chất lượng</p>
+            <div className="sp-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div className="sp-title">
+                    <h1>Kho Gói Chụp Ảnh</h1>
+                    <p>Khám phá hơn {packages.length} gói dịch vụ chất lượng</p>
+                </div>
+                
+                {/* ✅ SỬA LỖI: Chỉ hiển thị nút điều hướng, KHÔNG hiển thị component quản lý tại đây */}
+                {isPhotographer && (
+                    <button 
+                        className="btn-manage-packages"
+                        onClick={() => navigate('/photographer/service-packages')} // Chuyển hướng sang trang quản lý riêng
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '10px 20px', borderRadius: '8px',
+                            backgroundColor: '#4f46e5', color: 'white',
+                            border: 'none', cursor: 'pointer', fontWeight: '600'
+                        }}
+                    >
+                        <Settings size={18} /> Quản lý gói của tôi
+                    </button>
+                )}
             </div>
 
             <div className="sp-filters">
               <div className="filter-group search-group">
-                {/* ✅ Search Icon đã được import ở trên */}
-              
-              
+                <Search size={18} className="search-icon" />
                 <input type="text" placeholder="Tìm tên gói..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <div className="filter-group location-group">
-            
-            
+                <MapPin size={18} className="search-icon" />
                 <input type="text" placeholder="Tỉnh/Thành phố..." value={location} onChange={e => setLocation(e.target.value)} />
               </div>
               <div className="filter-group select-group">
-               
-               
+                <Filter size={18} className="search-icon" />
                 <select value={loaiGoi} onChange={e => setLoaiGoi(e.target.value)}>
                   <option value="">Tất cả thể loại</option>
                   <option value="Wedding">Tiệc Cưới</option>
@@ -174,7 +189,7 @@ export default function ServicePackage() {
                 </select>
               </div>
               <div className="filter-group select-group">
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{paddingLeft: '15px'}}>
                   <option value="">Sắp xếp</option>
                   <option value="newest">Mới nhất</option>
                   <option value="rating">Đánh giá cao</option>
@@ -252,12 +267,6 @@ export default function ServicePackage() {
              </div>
           )}
 
-          {isPhotographer && (
-            <div className="photographer-section-wrapper">
-              <div className="section-divider"><h3>Quản lý gói dịch vụ</h3></div>
-              <Package />
-            </div>
-          )}
         </div>
       </div>
     </MainLayout>

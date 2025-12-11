@@ -1,25 +1,30 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux'; // ✅ [NEW] Import Redux
 import { toast } from 'react-toastify';
 import { 
     ArrowLeft, Calendar, User, Package, 
     UploadCloud, Trash2, Edit2, Save, X, Image as ImageIcon,
     ChevronLeft, ChevronRight, Share2, Copy, Check, Send, Star, PlusCircle,
-    MapPin, Clock, FileText, ExternalLink // ✅ Thêm icons mới
+    MapPin, Clock, FileText, ExternalLink, MessageCircle // ✅ [NEW] Thêm icon MessageCircle
 } from 'lucide-react';
 
 import MainLayout from '../../layouts/MainLayout/MainLayout';
 import albumApi from '../../apis/albumApi'; 
 import orderApi from '../../apis/orderService';
+import chatApi from '../../apis/chatApi'; // ✅ [NEW] Import Chat API
+import ChatMessage from '../ChatMessage/ChatMessage'; // ✅ [NEW] Import Chat Component
+
 import './DetailAlbumManager.css';
 
 export default function DetailAlbumManager() {
-    const { orderId } = useParams(); // Note: Với job ngoài, orderId này chính là albumId
+    const { orderId } = useParams(); 
     const navigate = useNavigate();
+    const { user } = useSelector(state => state.user); // ✅ [NEW] Lấy user hiện tại
     const fileInputRef = useRef(null);
     const deliverInputRef = useRef(null); 
 
-    // State
+    // State Data
     const [order, setOrder] = useState(null);
     const [album, setAlbum] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -37,6 +42,11 @@ export default function DetailAlbumManager() {
     // Deliver Modal State
     const [showDeliverModal, setShowDeliverModal] = useState(false);
     const [deliverFiles, setDeliverFiles] = useState([]);
+
+    // ✅ [NEW] CHAT STATE
+    const [showChat, setShowChat] = useState(false);
+    const [chatConversation, setChatConversation] = useState(null);
+    const [isCreatingChat, setIsCreatingChat] = useState(false);
 
     useEffect(() => { fetchData(); }, [orderId]);
 
@@ -58,22 +68,18 @@ export default function DetailAlbumManager() {
             
             let albumData = null;
             try {
-                // Thử lấy album theo ID (ID này có thể là order_id hoặc album_id)
                 const albumRes = await albumApi.getAlbumDetail(orderId);
                 if (albumRes.data) albumData = albumRes.data.data || albumRes.data;
             } catch (e) { }
 
             let orderData = null;
-            // Nếu album có order_id thì lấy detail order, nếu không thì thử lấy order bằng id từ URL (trường hợp URL là order_id)
             const idToCheckOrder = albumData?.order_id || orderId;
             try {
                 if (idToCheckOrder) {
                     const orderRes = await orderApi.getOrderDetail(idToCheckOrder);
                     if (orderRes.data) orderData = orderRes.data.data || orderRes.data;
                 }
-            } catch (e) { 
-                // Job ngoài không có order nên API này lỗi là bình thường
-            }
+            } catch (e) { }
 
             setAlbum(albumData);
             setOrder(orderData);
@@ -93,6 +99,44 @@ export default function DetailAlbumManager() {
         }
     };
 
+    // ✅ [NEW] LOGIC CHAT VỚI KHÁCH HÀNG
+    const handleContactClient = async () => {
+        if (!user) {
+            toast.error("Vui lòng đăng nhập lại.");
+            return;
+        }
+
+        // Xác định đối tượng khách hàng (từ order hoặc album)
+        // Lưu ý: customer_id có thể là object (nếu populate) hoặc string
+        const targetCustomer = order?.customer_id || album?.customer_id;
+
+        if (!targetCustomer) {
+            toast.error("Không tìm thấy thông tin khách hàng.");
+            return;
+        }
+
+        const targetId = targetCustomer._id || targetCustomer; // Lấy ID chuẩn
+        const myId = user._id || user.id;
+
+        if (targetId === myId) {
+            toast.info("Không thể nhắn tin cho chính mình.");
+            return;
+        }
+
+        setIsCreatingChat(true);
+        try {
+            const res = await chatApi.createConversation(myId, targetId);
+            const conversationData = res.data || res;
+            setChatConversation(conversationData);
+            setShowChat(true);
+        } catch (error) {
+            console.error("Chat Error:", error);
+            toast.error("Không thể kết nối trò chuyện.");
+        } finally {
+            setIsCreatingChat(false);
+        }
+    };
+
     // --- UTILS ---
     const getImgUrl = (path) => {
         if (!path) return null;
@@ -100,7 +144,6 @@ export default function DetailAlbumManager() {
         return path.startsWith('http') ? path : `http://localhost:5000${path}`;
     };
 
-    // Helper Lightbox
     const getCurrentPhotos = () => lightboxSource === 'edited' ? (album?.edited_photos || []) : (album?.photos || []);
     
     const navigateImage = (direction) => {
@@ -355,6 +398,35 @@ export default function DetailAlbumManager() {
                                     </div>
                                 </>
                             )}
+
+                            {/* ✅ [NEW] BUTTON CHAT VỚI KHÁCH HÀNG */}
+                            <button 
+                                className="btn-contact-client" 
+                                onClick={handleContactClient} 
+                                disabled={isCreatingChat}
+                                style={{
+                                    marginTop: '15px',
+                                    width: '100%',
+                                    padding: '10px',
+                                    backgroundColor: '#eef2ff',
+                                    color: '#4f46e5',
+                                    border: '1px solid #c7d2fe',
+                                    borderRadius: '8px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e0e7ff'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#eef2ff'}
+                            >
+                                <MessageCircle size={18} /> 
+                                {isCreatingChat ? "Đang kết nối..." : "Nhắn với khách hàng"}
+                            </button>
+
                         </div>
                     </div>
 
@@ -524,6 +596,15 @@ export default function DetailAlbumManager() {
                         <ChevronRight size={40} />
                     </button>
                 </div>
+            )}
+
+            {/* ✅ [NEW] MODAL CHAT */}
+            {showChat && chatConversation && (
+                <ChatMessage 
+                    conversation={chatConversation} 
+                    currentUser={user} 
+                    onClose={() => setShowChat(false)} 
+                />
             )}
         </MainLayout>
     );

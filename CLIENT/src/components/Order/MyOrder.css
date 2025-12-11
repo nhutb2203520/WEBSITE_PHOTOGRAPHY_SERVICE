@@ -59,7 +59,8 @@
 }
 
 .search-box input {
-    width: 70%;
+    width: 100%;
+    /* Sửa lại width để full container cha */
     padding: 12px 12px 12px 44px;
     border-radius: 50px;
     border: 1px solid #e2e8f0;
@@ -67,6 +68,8 @@
     background-color: #f8fafc;
     transition: all 0.2s;
     outline: none;
+    box-sizing: border-box;
+    /* Quan trọng để padding không làm vỡ layout */
 }
 
 .search-box input:focus {
@@ -459,8 +462,9 @@
     border-color: #e5e7eb;
     color: #6b7280;
 }
+
 /* =========================================
-   MODALS - FIXED Z-INDEX & VISIBILITY
+   4. MODALS (PORTAL) STYLES
    ========================================= */
 .modal-overlay {
     position: fixed;
@@ -469,15 +473,11 @@
     right: 0;
     bottom: 0;
     background-color: rgba(15, 23, 42, 0.75) !important;
-    /* Đậm hơn để che nội dung bên dưới */
     backdrop-filter: blur(4px);
     z-index: 99999 !important;
-    /* Cao nhất hệ thống */
     display: flex !important;
     justify-content: center;
     align-items: center;
-
-    /* TẮT ANIMATION ĐỂ TRÁNH LỖI BIẾN MẤT */
     opacity: 1 !important;
     visibility: visible !important;
     animation: none !important;
@@ -494,9 +494,6 @@
     flex-direction: column;
     position: relative;
     z-index: 100000 !important;
-    /* Cao hơn overlay */
-
-    /* Reset transform */
     transform: none !important;
     opacity: 1 !important;
     animation: none !important;
@@ -526,7 +523,7 @@
     cursor: pointer;
 }
 
-/* Modal Body & Actions */
+/* Modal Body */
 .modal-body {
     padding: 24px;
     font-size: 0.95rem;
@@ -560,7 +557,9 @@
     max-width: 600px;
 }
 
-/* Review Styles */
+/* =========================================
+   5. REVIEW & COMPLAINT STYLES
+   ========================================= */
 .review-product-info {
     display: flex;
     align-items: center;
@@ -577,6 +576,7 @@
     object-fit: cover;
 }
 
+/* --- Rating Input --- */
 .star-rating-input {
     display: flex;
     justify-content: center;
@@ -585,8 +585,10 @@
     gap: 8px;
 }
 
+/* --- Textarea --- */
 .review-textarea {
-    width: 97%;
+    width: 100%;
+    /* Sửa width thành 100% */
     padding: 12px;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
@@ -594,8 +596,11 @@
     font-size: 0.95rem;
     resize: vertical;
     background: #f8fafc;
+    box-sizing: border-box;
+    /* Quan trọng */
 }
 
+/* --- Image Upload Area --- */
 .review-image-upload {
     margin-top: 16px;
 }
@@ -604,15 +609,24 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
+    padding: 10px 16px;
     border: 1px dashed #94a3b8;
     border-radius: 8px;
     color: #64748b;
     cursor: pointer;
-    width: 97%;
+    width: 100%;
     justify-content: center;
+    box-sizing: border-box;
+    transition: all 0.2s;
 }
 
+.upload-btn:hover {
+    border-color: #8b5cf6;
+    color: #8b5cf6;
+    background: #f5f3ff;
+}
+
+/* --- Preview Images --- */
 .image-previews {
     display: flex;
     gap: 10px;
@@ -622,14 +636,14 @@
 }
 
 .preview-item img {
-    width: 70px;
-    height: 70px;
+    width: 80px;
+    height: 80px;
     border-radius: 8px;
     object-fit: cover;
     border: 1px solid #e2e8f0;
 }
 
-/* Buttons inside Modal */
+/* --- Buttons --- */
 .btn-secondary {
     padding: 10px 20px;
     border: 1px solid #e2e8f0;
@@ -669,27 +683,95 @@
     font-weight: 700;
     cursor: pointer;
 }
-/* Animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
 
-    to {
-        opacity: 1;
-    }
+/* --- VIEW REVIEW STYLE (FIX LỖI ẢNH TO) --- */
+.review-view-only {
+    text-align: left;
 }
 
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
+.view-rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 12px;
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.rating-text {
+    font-weight: 700;
+    color: #b45309;
+    margin-left: 8px;
+}
+
+.view-comment {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    color: #334155;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    border: 1px solid #f1f5f9;
+}
+
+/* ✅ ĐÂY LÀ PHẦN SỬA LỖI ẢNH QUÁ LỚN */
+.view-images {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    /* Cho phép xuống dòng nếu nhiều ảnh */
+}
+
+.view-images img {
+    width: 100px;
+    /* Cố định kích thước ảnh */
+    height: 100px;
+    object-fit: cover;
+    /* Cắt ảnh đẹp, không bị méo */
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.view-images img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-enable-edit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.btn-enable-edit:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+/* Map Link */
+.map-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #2563eb;
+    text-decoration: none;
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+.map-link-btn:hover {
+    text-decoration: underline;
 }
 
 /* Responsive */

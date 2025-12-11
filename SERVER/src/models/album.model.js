@@ -3,17 +3,19 @@ import mongoose from "mongoose";
 const photoSchema = new mongoose.Schema({
   url: { type: String, required: true },
   filename: { type: String, default: "" },
-  is_selected: { type: Boolean, default: false }, // Khách chọn
-  customer_note: { type: String, default: "" }    // Ghi chú của khách
+  is_selected: { type: Boolean, default: false },
+  customer_note: { type: String, default: "" }
 });
 
 const albumSchema = new mongoose.Schema(
   {
     order_id: { type: mongoose.Schema.Types.ObjectId, ref: "Orders", default: null },
-    photographer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangThoChupAnh", required: true },
+    
+    // 👇 SỬA DÒNG NÀY: Thay "bangThoChupAnh" thành "bangKhachHang"
+    photographer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang", required: true },
+    
     customer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang", default: null },
     
-    // Thông tin cho Job ngoài
     client_name: { type: String, default: "" }, 
     client_contact: { type: String, default: "" }, 
     
@@ -22,10 +24,7 @@ const albumSchema = new mongoose.Schema(
     title: { type: String, default: "Album ảnh" },
     description: { type: String, default: "" },
     
-    // Ảnh gốc (Raw)
     photos: [photoSchema],
-
-    // [NEW] Ảnh đã chỉnh sửa (Final) - Nhiếp ảnh gia upload khi giao
     edited_photos: [photoSchema], 
     
     status: { 
@@ -39,6 +38,7 @@ const albumSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Index giúp tìm kiếm nhanh hơn
 albumSchema.index({ photographer_id: 1 });
 albumSchema.index({ share_token: 1 });
 

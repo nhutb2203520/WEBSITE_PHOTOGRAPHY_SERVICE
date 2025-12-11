@@ -27,7 +27,23 @@ const adminUserService = {
       console.error("Error fetching photographers:", error);
       throw error.response?.data || error;
     }
+  },
+
+  /**
+   * Cập nhật trạng thái tài khoản (Khóa/Mở khóa)
+   * PATCH /api/admin/users/:id/status
+   */
+  updateUserStatus: async (id, status) => {
+    try {
+      // ✅ Sử dụng axiosInstance để gửi kèm Token Admin
+      // status gửi đi là string: 'active' hoặc 'locked'
+      const response = await axiosInstance.patch(`/admin/users/${id}/status`, { status });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      throw error.response?.data || error;
+    }
   }
-};
+}; // 🛑 Đóng ngoặc object ở đây là ĐÚNG
 
 export default adminUserService;
