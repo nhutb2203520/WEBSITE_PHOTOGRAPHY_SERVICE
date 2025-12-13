@@ -74,7 +74,7 @@
 
 .btn-deliver-main {
     background-color: #10b981;
-    /* Xanh lá nút verify */
+    /* Xanh lá */
     color: white;
     box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
@@ -109,12 +109,12 @@
 .pam-content {
     display: grid;
     grid-template-columns: 340px 1fr;
-    /* Cột trái cố định giống card payment */
+    /* Cột trái cố định */
     gap: 24px;
     align-items: start;
 }
 
-/* Card Style (Giống Payment Card) */
+/* Card Style */
 .info-card,
 .album-header-card,
 .photos-container {
@@ -131,6 +131,7 @@
 .info-card {
     position: sticky;
     top: 30px;
+    z-index: 10;
 }
 
 .info-card:hover,
@@ -203,6 +204,7 @@
 .info-item svg {
     color: #9ca3af;
     margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .sub-label {
@@ -219,6 +221,7 @@
     color: #1f2937;
     margin: 0;
     line-height: 1.4;
+    word-break: break-word;
 }
 
 .sub-text {
@@ -487,7 +490,9 @@
     cursor: not-allowed;
 }
 
-/* Photo Grid */
+/* =========================================
+   4. PHOTO GRID (FIXED BROKEN IMAGES)
+   ========================================= */
 .photo-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -502,6 +507,25 @@
     cursor: pointer;
     border: 1px solid #e5e7eb;
     transition: transform 0.2s;
+
+    /* ✅ FIX: Placeholder khi ảnh chưa tải hoặc lỗi */
+    background-color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Icon placeholder mặc định (SVG dạng Data URI) */
+.photo-item::before {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.5;
+    z-index: 0;
 }
 
 .photo-item:hover {
@@ -513,6 +537,18 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+    /* Loại bỏ khoảng trắng dưới */
+    position: relative;
+    z-index: 1;
+    /* Đè lên placeholder */
+    background-color: transparent;
+}
+
+/* Ẩn icon broken image mặc định của trình duyệt nếu có thể */
+.photo-item img:not([src]),
+.photo-item img[src=""] {
+    opacity: 0;
 }
 
 .photo-overlay {
@@ -524,6 +560,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 2;
+    /* Cao hơn ảnh */
 }
 
 .photo-item:hover .photo-overlay {
@@ -556,10 +594,21 @@
     justify-content: center;
     font-size: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 3;
+}
+
+.empty-photos {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+    font-size: 14px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px dashed #e5e7eb;
 }
 
 /* =========================================
-   4. MODAL (CỐT LÕI - KHẮC PHỤC LỖI ẨN)
+   5. MODAL
    ========================================= */
 .modal-overlay {
     position: fixed;
@@ -568,12 +617,10 @@
     right: 0;
     bottom: 0;
     background-color: rgba(17, 24, 39, 0.75) !important;
-    /* Màu tối sang trọng */
     display: flex !important;
     justify-content: center;
     align-items: center;
     z-index: 99999 !important;
-    /* Đè lên tất cả */
     backdrop-filter: blur(4px);
     opacity: 1 !important;
     visibility: visible !important;
@@ -814,7 +861,7 @@
 }
 
 /* =========================================
-   5. LIGHTBOX (Z-INDEX CAO NHẤT)
+   6. LIGHTBOX (Z-INDEX CAO NHẤT)
    ========================================= */
 .image-zoom-overlay {
     position: fixed;
@@ -850,6 +897,8 @@
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
     border-radius: 4px;
     animation: zoomInScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background-color: #1f2937;
+    /* Nền tối nếu ảnh lightbox lỗi */
 }
 
 /* Close Button */
@@ -997,4 +1046,92 @@
     .lb-nav-btn.next {
         right: 10px;
     }
+}
+/* Deliver Upload Area */
+.deliver-upload-area {
+    border: 2px dashed #10b981;
+    background: #f0fdf4;
+    border-radius: 12px;
+    padding: 30px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: all 0.2s;
+}
+
+.deliver-upload-area:hover {
+    background: #d1fae5;
+}
+
+.sub-text-upload {
+    font-size: 12px;
+    color: #6b7280;
+    display: block;
+    margin-top: 5px;
+}
+
+/* ✅ [NEW] Style cho lưới ảnh preview trong modal giao hàng */
+.selected-files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+    max-height: 250px;
+    /* Giới hạn chiều cao nếu nhiều ảnh */
+    overflow-y: auto;
+    padding: 4px;
+    /* Để shadow không bị cắt */
+    border: 1px solid #e5e7eb;
+    /* Thêm viền cho khu vực chứa ảnh */
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+/* ✅ [NEW] Style cho từng item ảnh preview */
+.deliver-file-item {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    /* Hình vuông */
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+}
+
+.deliver-file-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* ✅ [NEW] Style cho nút xóa ảnh (dấu X) */
+.btn-remove-deliver-file {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    /* Kích thước nhỏ gọn */
+    height: 22px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    /* Nền trắng mờ */
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-remove-deliver-file:hover {
+    background-color: #ef4444;
+    /* Đỏ khi hover */
+    color: white;
+    border-color: #ef4444;
+    transform: scale(1.1);
 }

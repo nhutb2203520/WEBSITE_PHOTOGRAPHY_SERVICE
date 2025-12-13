@@ -9,7 +9,7 @@ const photoSchema = new mongoose.Schema({
 
 const albumSchema = new mongoose.Schema(
   {
-    order_id: { type: mongoose.Schema.Types.ObjectId, ref: "Orders", default: null },
+    order_id: { type: mongoose.Schema.Types.ObjectId, ref: "Orders", },
     
     // 👇 SỬA DÒNG NÀY: Thay "bangThoChupAnh" thành "bangKhachHang"
     photographer_id: { type: mongoose.Schema.Types.ObjectId, ref: "bangKhachHang", required: true },

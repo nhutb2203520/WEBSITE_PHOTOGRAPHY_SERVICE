@@ -43,7 +43,7 @@ export const loginAdmin = async (req, res) => {
     const accessToken = jwt.sign(
       { id: admin._id, role: admin.role },
       SECRET_KEY,
-      { expiresIn: "15m" }
+      { expiresIn: "40m" }
     );
 
     // Tạo Refresh Token (7 ngày)
@@ -145,7 +145,7 @@ export const getCustomers = async (req, res) => {
   try {
     const customers = await KhachHang.find({ isPhotographer: false })
       .select("-Password -RefreshToken")
-      .populate("MaTT") // ✅ ĐÃ THÊM: Để lấy tên trạng thái
+      .populate("MaTT")
       .sort({ createdAt: -1 });
       
     res.json({ success: true, data: customers });
@@ -159,7 +159,7 @@ export const getPhotographers = async (req, res) => {
   try {
     const photographers = await KhachHang.find({ isPhotographer: true })
       .select("-Password -RefreshToken")
-      .populate("MaTT") // ✅ ĐÃ THÊM: Sửa lỗi hiển thị "Đã khóa" toàn bộ
+      .populate("MaTT") 
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: photographers });

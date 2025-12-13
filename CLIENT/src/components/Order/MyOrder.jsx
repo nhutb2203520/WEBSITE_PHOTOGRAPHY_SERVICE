@@ -462,7 +462,7 @@ export default function MyOrder() {
                   <div className="modal-header warning-header"><h2>Khiếu nại dịch vụ</h2><button onClick={()=>setShowComplaintModal(false)}>×</button></div>
                   <div className="modal-body">
                       <p>Vui lòng cho biết vấn đề bạn gặp phải:</p>
-                      <textarea className="-textarea" rows="4" value={complaintReason} onChange={e=>setComplaintReason(e.target.value)}></textarea>
+                      <textarea className="complaint-textarea" rows="5" placeholder="Mô tả chi tiết vấn đề (sai mẫu, ảnh mờ, thái độ phục vụ...)" value={complaintReason} onChange={e=>setComplaintReason(e.target.value)}></textarea>
                       <div className="review-image-upload">
                           <label htmlFor="complaint-images" className="upload-btn"><Upload size={20}/> Thêm ảnh minh chứng (Max 10)</label>
                           <input type="file" id="complaint-images" multiple accept="image/*" onChange={handleComplaintImageChange} style={{display: 'none'}}/>

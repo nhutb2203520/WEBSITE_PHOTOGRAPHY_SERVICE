@@ -32,9 +32,9 @@ export const createFreelanceAlbum = async (req, res) => {
             title: title || "Album Job Ngoài",
             client_name: client_name || "Khách lẻ",
             description: description || "",
+            order_id: null,
             type: 'freelance',
             status: 'draft',
-            order_id: null,
             photos: []
         });
 

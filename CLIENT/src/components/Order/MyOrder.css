@@ -5,7 +5,6 @@
     background-color: #f8fafc;
     /* Nền xám rất nhạt */
     min-height: calc(100vh - 80px);
-    /* Trừ header */
     padding: 40px 0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: #334155;
@@ -60,7 +59,6 @@
 
 .search-box input {
     width: 100%;
-    /* Sửa lại width để full container cha */
     padding: 12px 12px 12px 44px;
     border-radius: 50px;
     border: 1px solid #e2e8f0;
@@ -69,13 +67,11 @@
     transition: all 0.2s;
     outline: none;
     box-sizing: border-box;
-    /* Quan trọng để padding không làm vỡ layout */
 }
 
 .search-box input:focus {
     background-color: white;
     border-color: #8b5cf6;
-    /* Màu tím chủ đạo */
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
@@ -190,7 +186,6 @@
     white-space: nowrap;
 }
 
-/* Màu sắc trạng thái */
 .status-pending-payment {
     background: #fff7ed;
     color: #ea580c;
@@ -243,12 +238,6 @@
     background: #fef2f2;
     color: #dc2626;
     border: 1px solid #fee2e2;
-}
-
-.status-refund {
-    background: #faf5ff;
-    color: #9333ea;
-    border: 1px solid #f3e8ff;
 }
 
 .status-default {
@@ -405,17 +394,14 @@
     border: none;
 }
 
-/* Nút Hủy */
 .btn-cancel-order {
     margin-right: auto !important;
-    /* Đẩy sang trái */
 }
 
 .btn-cancel-order:hover {
     background-color: #fef2f2 !important;
 }
 
-/* Nút Thanh toán */
 .btn-pay-now {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
@@ -427,7 +413,6 @@
     box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.3);
 }
 
-/* Nút Xem Album */
 .btn-success {
     background: #10b981;
     color: white;
@@ -437,7 +422,6 @@
     background: #059669;
 }
 
-/* Nút Đã nhận ảnh */
 .btn-complete {
     background: #8b5cf6;
     color: white;
@@ -447,7 +431,6 @@
     background: #7c3aed;
 }
 
-/* Nút Đánh giá */
 .btn-review {
     background: white;
     border: 1px solid #fbbf24;
@@ -464,7 +447,7 @@
 }
 
 /* =========================================
-   4. MODALS (PORTAL) STYLES
+   4. MODALS (PORTAL) BASE STYLES
    ========================================= */
 .modal-overlay {
     position: fixed;
@@ -478,14 +461,11 @@
     display: flex !important;
     justify-content: center;
     align-items: center;
-    opacity: 1 !important;
-    visibility: visible !important;
-    animation: none !important;
 }
 
 .modal-content {
     background: white !important;
-    border-radius: 20px;
+    border-radius: 16px;
     width: 90%;
     max-width: 600px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
@@ -494,14 +474,23 @@
     flex-direction: column;
     position: relative;
     z-index: 100000 !important;
-    transform: none !important;
-    opacity: 1 !important;
-    animation: none !important;
+    animation: modalSlideIn 0.3s ease-out;
 }
 
-/* Modal Header */
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 .modal-header {
-    padding: 20px 24px;
+    padding: 16px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -521,15 +510,27 @@
     font-size: 1.5rem;
     color: #94a3b8;
     cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
 }
 
-/* Modal Body */
+.modal-header button:hover {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
 .modal-body {
     padding: 24px;
     font-size: 0.95rem;
     line-height: 1.6;
     color: #475569;
-    max-height: 80vh;
+    max-height: 70vh;
     overflow-y: auto;
 }
 
@@ -537,7 +538,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 20px;
+    margin-top: 24px;
 }
 
 .modal-actions.center {
@@ -557,9 +558,7 @@
     max-width: 600px;
 }
 
-/* =========================================
-   5. REVIEW & COMPLAINT STYLES
-   ========================================= */
+/* Review styles */
 .review-product-info {
     display: flex;
     align-items: center;
@@ -576,19 +575,15 @@
     object-fit: cover;
 }
 
-/* --- Rating Input --- */
 .star-rating-input {
     display: flex;
     justify-content: center;
-    align-items: center;
     margin-bottom: 20px;
     gap: 8px;
 }
 
-/* --- Textarea --- */
 .review-textarea {
     width: 100%;
-    /* Sửa width thành 100% */
     padding: 12px;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
@@ -597,10 +592,9 @@
     resize: vertical;
     background: #f8fafc;
     box-sizing: border-box;
-    /* Quan trọng */
 }
 
-/* --- Image Upload Area --- */
+/* Common Image Upload */
 .review-image-upload {
     margin-top: 16px;
 }
@@ -609,7 +603,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 16px;
+    padding: 12px 16px;
     border: 1px dashed #94a3b8;
     border-radius: 8px;
     color: #64748b;
@@ -618,6 +612,7 @@
     justify-content: center;
     box-sizing: border-box;
     transition: all 0.2s;
+    background-color: #fafafa;
 }
 
 .upload-btn:hover {
@@ -626,24 +621,23 @@
     background: #f5f3ff;
 }
 
-/* --- Preview Images --- */
 .image-previews {
     display: flex;
     gap: 10px;
     margin-top: 12px;
     overflow-x: auto;
-    padding-bottom: 8px;
+    padding-bottom: 4px;
 }
 
 .preview-item img {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
+    width: 70px;
+    height: 70px;
+    border-radius: 6px;
     object-fit: cover;
     border: 1px solid #e2e8f0;
 }
 
-/* --- Buttons --- */
+/* Buttons Common */
 .btn-secondary {
     padding: 10px 20px;
     border: 1px solid #e2e8f0;
@@ -652,6 +646,11 @@
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background-color: #f8fafc;
+    color: #334155;
 }
 
 .btn-primary {
@@ -674,6 +673,10 @@
     cursor: pointer;
 }
 
+.btn-danger:hover {
+    background: #dc2626;
+}
+
 .btn-submit-review {
     padding: 10px 24px;
     background: #fbbf24;
@@ -684,7 +687,7 @@
     cursor: pointer;
 }
 
-/* --- VIEW REVIEW STYLE (FIX LỖI ẢNH TO) --- */
+/* View Review Fix */
 .review-view-only {
     text-align: left;
 }
@@ -712,21 +715,17 @@
     border: 1px solid #f1f5f9;
 }
 
-/* ✅ ĐÂY LÀ PHẦN SỬA LỖI ẢNH QUÁ LỚN */
 .view-images {
     display: flex;
     gap: 10px;
     margin-bottom: 16px;
     flex-wrap: wrap;
-    /* Cho phép xuống dòng nếu nhiều ảnh */
 }
 
 .view-images img {
     width: 100px;
-    /* Cố định kích thước ảnh */
     height: 100px;
     object-fit: cover;
-    /* Cắt ảnh đẹp, không bị méo */
     border-radius: 8px;
     border: 1px solid #e2e8f0;
     cursor: pointer;
@@ -735,7 +734,6 @@
 
 .view-images img:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .btn-enable-edit {
@@ -753,28 +751,116 @@
     font-weight: 500;
 }
 
-.btn-enable-edit:hover {
-    background: #f1f5f9;
-    color: #0f172a;
+/* =========================================
+   5. COMPLAINT MODAL STYLES (NEW & IMPROVED)
+   ========================================= */
+
+/* Header Cảnh báo */
+.warning-header {
+    background-color: #fef2f2 !important;
+    /* Màu đỏ nhạt nền */
+    border-bottom: 1px solid #fee2e2 !important;
 }
 
-/* Map Link */
-.map-link-btn {
-    display: inline-flex;
+.warning-header h2 {
+    color: #b91c1c !important;
+    /* Màu đỏ đậm cho chữ */
+    display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    color: #2563eb;
-    text-decoration: none;
-    margin-top: 2px;
+    gap: 8px;
+}
+
+/* Body Modal Khiếu nại */
+.modal-body p {
+    margin-bottom: 8px;
     font-weight: 500;
+    color: #1e293b;
 }
 
-.map-link-btn:hover {
-    text-decoration: underline;
+/* Textarea Khiếu nại - Đã sửa lỗi hiển thị */
+.complaint-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    background: #f8fafc;
+    box-sizing: border-box;
+    /* Quan trọng để không bị tràn lề */
+    margin-bottom: 20px;
+    transition: all 0.2s;
+    color: #334155;
 }
 
-/* Responsive */
+.complaint-textarea:focus {
+    outline: none;
+    border-color: #ef4444;
+    /* Viền đỏ khi focus */
+    background: white;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.complaint-textarea::placeholder {
+    color: #94a3b8;
+}
+
+/* Vùng upload ảnh khiếu nại */
+.modal-body .review-image-upload {
+    margin-top: 0;
+    background: #fff;
+    border-radius: 8px;
+}
+
+.modal-body .upload-btn {
+    border-style: dashed;
+    border-width: 2px;
+    padding: 20px;
+    flex-direction: column;
+    /* Icon ở trên chữ */
+    background-color: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.modal-body .upload-btn:hover {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    color: #991b1b;
+}
+
+/* Các ảnh đã chọn */
+.modal-body .image-previews {
+    margin-top: 16px;
+    padding: 4px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.modal-body .preview-item img {
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Nút Gửi khiếu nại */
+.modal-actions .btn-danger {
+    background-color: #dc2626;
+    padding: 10px 24px;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.modal-actions .btn-danger:hover {
+    background-color: #b91c1c;
+    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);
+}
+
+/* Responsive chung */
 @media (max-width: 640px) {
     .orders-grid {
         grid-template-columns: 1fr;

@@ -169,15 +169,15 @@ export default function ServicePackage() {
 
             <div className="sp-filters">
               <div className="filter-group search-group">
-                <Search size={18} className="search-icon" />
+              
                 <input type="text" placeholder="Tìm tên gói..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <div className="filter-group location-group">
-                <MapPin size={18} className="search-icon" />
+        
                 <input type="text" placeholder="Tỉnh/Thành phố..." value={location} onChange={e => setLocation(e.target.value)} />
               </div>
               <div className="filter-group select-group">
-                <Filter size={18} className="search-icon" />
+             
                 <select value={loaiGoi} onChange={e => setLoaiGoi(e.target.value)}>
                   <option value="">Tất cả thể loại</option>
                   <option value="Wedding">Tiệc Cưới</option>
