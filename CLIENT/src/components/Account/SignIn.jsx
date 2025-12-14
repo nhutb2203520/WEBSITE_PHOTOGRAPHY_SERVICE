@@ -21,8 +21,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
+  // Xử lý thay đổi input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -30,14 +30,17 @@ export default function Login() {
       [name]: value,
     }));
 
-    if (errors[name]) {
+    // Xóa lỗi khi người dùng bắt đầu gõ lại
+    if (errors[name] || errors.general) {
       setErrors((prev) => ({
         ...prev,
         [name]: '',
+        general: '' // Xóa luôn lỗi chung nếu có
       }));
     }
   };
 
+  // Validate form trước khi submit
   const validateForm = () => {
     const newErrors = {};
 
@@ -55,6 +58,7 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Xử lý Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -63,33 +67,31 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // Gọi API hoặc Redux action đăng nhập
+      // Gọi Redux action đăng nhập
+      // unwrap() giúp bắt lỗi trực tiếp từ rejectWithValue của Slice
       const result = await dispatch(login(formData)).unwrap();
 
-      // Nếu login thành công
+      // Nếu thành công
       toast.success('Đăng nhập thành công!');
       console.log('Login success:', result);
 
-      // Điều hướng về trang chủ hoặc trang trước đó
+      // Điều hướng về trang chủ
       navigate('/');
     } catch (error) {
       console.error('Login failed:', error);
 
-      // Hiển thị thông báo lỗi
-      if (error?.message) {
-        toast.error(error.message);
-        setErrors({ general: error.message });
-      } else {
-        toast.error('Tên đăng nhập hoặc mật khẩu không đúng!');
-        setErrors({ general: 'Tên đăng nhập hoặc mật khẩu không đúng!' });
-      }
+      // 🔥 QUAN TRỌNG: Hiển thị đúng thông báo lỗi từ Backend trả về
+      // Nếu Backend trả về: "Tài khoản của bạn đã bị KHÓA..." -> Toast sẽ hiện đúng dòng đó
+      const errorMessage = error?.message || error || "Tên đăng nhập hoặc mật khẩu không đúng!";
+      
+      toast.error(errorMessage);
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    // Bọc toàn bộ nội dung trong MainLayout
     <MainLayout>
       <div className="login-container">
         <div className="login-card">
@@ -106,6 +108,7 @@ export default function Login() {
 
           {/* Form */}
           <form className="login-form" onSubmit={handleSubmit}>
+            {/* Hiển thị lỗi chung (Ví dụ: Tài khoản bị khóa) */}
             {errors.general && (
               <div className="alert-error">
                 <AlertCircle size={20} />
@@ -113,7 +116,7 @@ export default function Login() {
               </div>
             )}
 
-            {/* Username */}
+            {/* Username Field */}
             <div className="form-group">
               <label className="form-label">
                 Username / Email / Số điện thoại <span className="required">*</span>
@@ -133,7 +136,7 @@ export default function Login() {
               {errors.identifier && <span className="error-text">{errors.identifier}</span>}
             </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div className="form-group">
               <label className="form-label">
                 Mật khẩu <span className="required">*</span>
@@ -153,6 +156,7 @@ export default function Login() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="password-toggle"
+                  tabIndex="-1" // Tránh focus khi nhấn Tab
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -160,27 +164,27 @@ export default function Login() {
               {errors.password && <span className="error-text">{errors.password}</span>}
             </div>
 
-            {/* Remember Me */}
+            {/* Options: Remember Me & Forgot Password */}
             <div className="form-options">
               <label className="checkbox-container">
-               
+                {/* Bạn có thể thêm checkbox Remember Me tại đây nếu cần */}
               </label>
-              {/* ✅ ĐÃ SỬA: class -> className */}
+              
               <Link to="/forgot-password" className="forgot-link">
                 Quên mật khẩu?
               </Link>
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
               className={`submit-btn ${isLoading ? 'disabled' : ''}`}
             >
-              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
             </button>
 
-            {/* Register Link */}
+            {/* Footer Link */}
             <div className="form-footer">
               Chưa có tài khoản?{' '}
               <Link to="/signup" className="footer-link">

@@ -6,31 +6,21 @@ import dotenv from "dotenv";
 import khachHangModel from "../models/khachhang.model.js";
 import trangThaiKhachHangModel from "../models/trangthaikhachhang.model.js";
 import ResetToken from "../models/resettoken.model.js";
-
-// ✅ [QUAN TRỌNG] Thêm dòng này để dùng được hàm gửi mail
 import sendMail from "../utils/sendMail.js"; 
 
 dotenv.config();
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173"; 
-
 const JWT_SECRET = process.env.JWT_SECRET || "Luan Van Tot Nghiep-B2203520";
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "RefreshSecretKey";
 
 class AuthService {
-  // --- Đăng ký khách hàng ---
+  
+  // --- 1. ĐĂNG KÝ (Tự động gán trạng thái active) ---
   async register(data) {
-    const {
-      username,
-      fullname,
-      email,
-      phone,
-      dateOfBirth,
-      gender,
-      password,
-      isPhotographer,
-    } = data;
+    const { username, fullname, email, phone, dateOfBirth, gender, password, isPhotographer } = data;
 
+    // Check trùng lặp
     const existingEmail = await khachHangModel.findOne({ Email: email.trim().toLowerCase() });
     if (existingEmail) throw new Error("Email đã được đăng ký.");
 
@@ -40,12 +30,10 @@ class AuthService {
     const existingUsername = await khachHangModel.findOne({ TenDangNhap: username.trim() });
     if (existingUsername) throw new Error("Tên đăng nhập đã tồn tại.");
 
-    const phoneRegex = /^0\d{9}$/;
-    if (!phoneRegex.test(phone)) {
-      throw new Error("Số điện thoại không hợp lệ (phải gồm 10 số và bắt đầu bằng 0).");
-    }
-
+    // Tìm trạng thái 'active' trong DB của bạn
     let customerStatus = await trangThaiKhachHangModel.findOne({ TenTT: "active" });
+    
+    // Fallback: Nếu lỡ DB chưa có thì tạo mới (để tránh lỗi)
     if (!customerStatus) {
       customerStatus = await trangThaiKhachHangModel.create({ TenTT: "active" });
     }
@@ -61,7 +49,7 @@ class AuthService {
       SoDienThoai: phone.trim(),
       Email: email.trim().toLowerCase(),
       Password: hashedPassword,
-      MaTT: customerStatus._id,
+      MaTT: customerStatus._id, // Gán ID của trạng thái active
       isPhotographer,
     });
 
@@ -73,13 +61,13 @@ class AuthService {
         id: newUser._id,
         username: newUser.TenDangNhap,
         email: newUser.Email,
-        phone: newUser.SoDienThoai,
       },
     };
   }
 
-  // --- Đăng nhập ---
+  // --- 2. ĐĂNG NHẬP (Logic kiểm tra khóa tài khoản ở đây) ---
   async login(identifier, password) {
+    // Tìm user và lấy luôn thông tin bảng trạng thái (MaTT)
     const user = await khachHangModel
       .findOne({
         $or: [
@@ -88,17 +76,31 @@ class AuthService {
           { SoDienThoai: identifier.trim() },
         ],
       })
-      .populate("MaTT", "TenTT");
+      .populate("MaTT", "TenTT"); // Lấy trường TenTT từ bảng trạng thái
 
-    if (!user) throw new Error("Người dùng không tồn tại.");
-    if (user.MaTT?.TenTT !== "active")
-      throw new Error("Tài khoản bị khóa, vui lòng liên hệ quản trị viên.");
+    if (!user) throw new Error("Tài khoản không tồn tại.");
+
+    // === KIỂM TRA TRẠNG THÁI ===
+    // Lấy tên trạng thái, chuyển về chữ thường
+    // Dùng .includes("locked") để bắt cả trường hợp "locked" và "locked"" (lỗi dư dấu nháy)
+    const statusName = user.MaTT?.TenTT?.toLowerCase() || "";
+
+    if (statusName.includes("locked") || statusName.includes("khoa")) {
+        throw new Error("Tài khoản của bạn đã bị KHÓA. Vui lòng liên hệ Admin để mở khóa.");
+    }
+
+    // Nếu muốn chặt chẽ hơn: Chỉ cho phép "active" đăng nhập
+    if (statusName !== "active") {
+         // Nếu trạng thái rỗng hoặc lạ -> cũng chặn luôn cho an toàn
+         // throw new Error("Trạng thái tài khoản không hợp lệ. Vui lòng liên hệ Admin.");
+    }
+    // =============================
 
     const isMatch = await bcrypt.compare(password, user.Password);
     if (!isMatch) throw new Error("Mật khẩu không đúng.");
 
     const token = jwt.sign(
-      { id: user._id, Email: user.Email },
+      { id: user._id, Email: user.Email, role: user.isPhotographer ? "photographer" : "customer" },
       JWT_SECRET,
       { expiresIn: "24h" }
     );
@@ -112,8 +114,6 @@ class AuthService {
     user.RefreshToken = refreshToken;
     await user.save();
 
-    console.log("✅ Token created with secret:", JWT_SECRET.substring(0, 10) + "...");
-    
     return {
       message: "Đăng nhập thành công.",
       token,
@@ -123,90 +123,67 @@ class AuthService {
         username: user.TenDangNhap,
         email: user.Email,
         avatar: user.Avatar,
+        role: user.isPhotographer ? "photographer" : "customer",
       },
     };
   }
 
-  // --- Quên mật khẩu ---
+  // --- Các hàm khác giữ nguyên ---
   async requestResetPassword(identifier) {
-    // Tìm user
     const user = await khachHangModel.findOne({
       $or: [{ Email: identifier.trim() }, { SoDienThoai: identifier.trim() }],
     });
     if (!user) throw new Error("Không tìm thấy người dùng.");
 
-    // Tạo token ngẫu nhiên
     const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút hết hạn
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); 
 
-    // Lưu vào DB
-    await ResetToken.create({
-      userId: user._id,  
-      token: token,      
-      expiresAt,
-    });
+    await ResetToken.create({ userId: user._id, token: token, expiresAt });
 
     const resetLink = `${CLIENT_URL}/reset-password/${token}`;
     
-    // Log để debug
-    console.log("====================================================");
-    console.log("🔗 RESET PASSWORD LINK (Click để test):");
-    console.log(resetLink);
-    console.log("====================================================");
-    
-    // Gửi mail (Đã có import ở trên nên sẽ không lỗi nữa)
+    // Gửi mail thật
     const mailContent = `
       <h3>Yêu cầu đặt lại mật khẩu</h3>
       <p>Xin chào ${user.HoTen},</p>
-      <p>Bạn vừa yêu cầu đặt lại mật khẩu. Vui lòng nhấn vào liên kết bên dưới để tiếp tục:</p>
-      <a href="${resetLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Đặt lại mật khẩu</a>
-      <p>Liên kết này sẽ hết hạn sau 15 phút.</p>
+      <p>Nhấn vào link dưới để đặt lại mật khẩu:</p>
+      <a href="${resetLink}" style="color: blue;">${resetLink}</a>
     `;
-
     await sendMail(user.Email, "Khôi phục mật khẩu", mailContent);
 
-    return { message: "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn." };
+    return { message: "Đã gửi link đặt lại mật khẩu vào email." };
   }
 
-  // --- Đặt lại mật khẩu ---
   async resetPassword(token, newPassword) {
     const resetDoc = await ResetToken.findOne({
       token: token, 
       expiresAt: { $gt: new Date() },
     });
 
-    if (!resetDoc) throw new Error("Token không hợp lệ hoặc đã hết hạn.");
+    if (!resetDoc) throw new Error("Link không hợp lệ hoặc đã hết hạn.");
 
     const user = await khachHangModel.findById(resetDoc.userId);
-    if (!user) throw new Error("Không tìm thấy người dùng tương ứng với token này.");
+    if (!user) throw new Error("User không tồn tại.");
 
-    // Hash mật khẩu mới
     const salt = await bcrypt.genSalt(10);
     user.Password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
-    // Xóa token đã dùng
     await ResetToken.deleteOne({ _id: resetDoc._id });
-    
-    return { message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại." };
+    return { message: "Đặt lại mật khẩu thành công." };
   }
 
-  // --- Làm mới token ---
   async refreshAccessToken(refreshToken) {
-    if (!refreshToken) throw new Error("Thiếu refresh token.");
-
+    if (!refreshToken) throw new Error("Thiếu token.");
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
-
     const user = await khachHangModel.findById(decoded.id);
-    if (!user || user.RefreshToken !== refreshToken)
-      throw new Error("Refresh token không hợp lệ.");
+    if (!user || user.RefreshToken !== refreshToken) throw new Error("Token không hợp lệ.");
 
     const accessToken = jwt.sign(
       { id: user._id, Email: user.Email },
       JWT_SECRET,
       { expiresIn: "24h" }
     );
-
     return { token: accessToken };
   }
 }

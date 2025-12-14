@@ -65,10 +65,11 @@ const routes = [
     path: '/photographer/schedule',
     component: lazy(() => import('../components/PhotographerPage/Schedule'))
   },
+  /*
   {
     path: '/my-packages',
     component: lazy(() => import('../components/PhotographerPage/Package'))
-  },
+  },*/
   // Route chi tiết Album của thợ (Moved UP để tránh xung đột với :username)
   {
     path: '/photographer/album-detail/:orderId',

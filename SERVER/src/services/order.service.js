@@ -1,6 +1,6 @@
 import Orders from "../models/order.model.js";
 import ServicePackage from "../models/servicePackage.model.js"; 
-import Schedule from "../models/schedule.model.js"; 
+import Schedule from "../models/schedule.model.js"; // ✅ Đã import Schedule để xóa
 import crypto from "crypto";
 import axios from "axios"; 
 
@@ -201,9 +201,7 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
        }
   }
 
-  // 6. ✅ [MỚI] TỪ CHỐI THANH TOÁN -> THÔNG BÁO KHÁCH HÀNG
-  // Nếu trạng thái quay ngược từ 'pending' -> 'pending_payment' (Từ chối cọc)
-  // Hoặc từ 'final_payment_pending' -> 'waiting_final_payment' (Từ chối TT cuối)
+  // 6. ✅ [FIX] TỪ CHỐI THANH TOÁN -> THÔNG BÁO KHÁCH HÀNG & XÓA LỊCH TRÌNH
   if (
       (order.status === 'pending' && status === 'pending_payment') || 
       (order.status === 'final_payment_pending' && status === 'waiting_final_payment')
@@ -211,6 +209,16 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
       const isDeposit = (order.status === 'pending');
       const notiTitle = isDeposit ? "⚠️ Thanh toán cọc bị từ chối" : "⚠️ Thanh toán cuối bị từ chối";
       const notiMsg = `Admin đã từ chối xác nhận thanh toán đơn #${order.order_id}. Lý do: "${note}". Vui lòng kiểm tra và gửi lại ảnh bằng chứng.`;
+
+      // 🔥 LOGIC QUAN TRỌNG: NẾU TỪ CHỐI CỌC -> XÓA LỊCH TRÌNH ĐỂ GIẢI PHÓNG LỊCH CHO THỢ
+      if (isDeposit) {
+          try {
+              await Schedule.deleteMany({ orderId: order._id });
+              console.log(`🗑️ [System] Đã xóa lịch trình đơn #${order.order_id} do từ chối cọc.`);
+          } catch (delErr) {
+              console.error("❌ Lỗi xóa lịch trình:", delErr);
+          }
+      }
 
       try {
           await createNotification({
@@ -220,7 +228,6 @@ export const updateOrderStatus = async (orderId, status, userId = null, note = "
               type: "PAYMENT",
               link: `/orders/${order.order_id}` // Dẫn khách về trang chi tiết đơn để Re-upload
           });
-          console.log(`[Notification] Đã gửi thông báo từ chối thanh toán cho khách ${order.customer_id}`);
       } catch (err) {
           console.error("❌ Lỗi gửi thông báo từ chối thanh toán:", err);
       }

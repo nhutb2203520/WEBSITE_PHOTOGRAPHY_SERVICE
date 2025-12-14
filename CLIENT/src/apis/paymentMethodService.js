@@ -15,8 +15,7 @@ const getAllPaymentMethods = async (isActive = null) => {
     // Nếu đang ở trang Admin, nên dùng axiosInstance để có quyền đầy đủ
     // Nhưng để tránh lỗi Token NULL nếu auth chưa load kịp, axiosUser là fallback an toàn cho việc GET
     const response = await axiosUser.get(API_PATH, { params });
-    
-    // ✅ FIX LỖI: Kiểm tra nếu response đã là data (do interceptor)
+  
     if (Array.isArray(response)) return response;
     if (response && response.data) return response.data;
     return response; // Fallback

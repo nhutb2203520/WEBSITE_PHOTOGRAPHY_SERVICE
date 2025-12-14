@@ -181,6 +181,7 @@ export const confirmPayment = async (req, res) => {
 
         if (order.status === 'pending_payment') {
             if (order.photographer_id) {
+                // Check lại trùng lịch một lần nữa cho chắc
                 const conflictOrder = await Order.findOne({
                     _id: { $ne: order._id },
                     photographer_id: order.photographer_id,
@@ -203,6 +204,9 @@ export const confirmPayment = async (req, res) => {
             order.status = 'pending';
             order.status_history.push({ status: 'pending', changed_by: req.user.id, note: `Khách cọc: ${transaction_code}` });
 
+            // 🔥 QUAN TRỌNG: TẠO LẠI LỊCH NẾU CHƯA CÓ
+            // Nếu trước đó Admin từ chối, Schedule đã bị xóa.
+            // Đoạn này sẽ tự động tạo lại Schedule mới cho thợ.
             if (order.photographer_id) {
                 const existingSchedule = await Schedule.findOne({ orderId: order._id });
                 if (!existingSchedule) {

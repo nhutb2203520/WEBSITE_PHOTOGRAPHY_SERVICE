@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Edit, Trash2, Upload, Star, X, Info, CheckCircle, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Star, X, Info, CheckCircle, RefreshCw, Search, Navigation, Loader } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import "./Package.css";
+import "./ServicePackageManage.css";
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -29,6 +29,9 @@ export default function Package() {
   const [editingPackage, setEditingPackage] = useState(null);
   const [platformFeePercent, setPlatformFeePercent] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // ✅ State hiển thị trạng thái tìm địa chỉ
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
 
   const [formData, setFormData] = useState({
     TenGoi: "",
@@ -61,22 +64,17 @@ export default function Package() {
         navigate('/'); 
         return;
     }
-    // Gọi API lấy gói của tôi
     dispatch(getMyPackages());
     fetchPlatformFee();
   }, [dispatch, user, navigate]);
 
-  // ✅ 3. LOGIC LỌC QUAN TRỌNG (FIX LỖI HIỂN THỊ TẤT CẢ)
-  // Dù Redux có chứa tất cả gói, hàm này sẽ chỉ lọc ra gói của User hiện tại
+  // 3. LOGIC LỌC
   const myPackages = useMemo(() => {
     if (!packages || !user) return [];
     
     return packages.filter(pkg => {
-        // Kiểm tra ID người tạo (Xử lý các trường hợp tên trường khác nhau từ Backend)
         const creatorId = pkg.NguoiTao?._id || pkg.NguoiTao || pkg.PhotographerId?._id || pkg.PhotographerId || pkg.user;
         const currentUserId = user._id || user.id;
-
-        // So sánh ID (chuyển về string để chắc chắn)
         return String(creatorId) === String(currentUserId);
     });
   }, [packages, user]);
@@ -128,6 +126,73 @@ export default function Package() {
       baseLocation: newConfig.baseLocation,
       travelFeeConfig: newConfig.travelFeeConfig
     }));
+  };
+
+  // ✅ 4. CHỨC NĂNG TÌM TỌA ĐỘ TỰ ĐỘNG (GIỐNG ORDER SERVICE)
+  const handleAutoGetCoordinates = async () => {
+    // Lấy thông tin từ formData.baseLocation (Vì TravelFeeConfig cập nhật vào đây)
+    const { address, district, city } = formData.baseLocation;
+    const fullAddress = `${address || ''}, ${district || ''}, ${city || ''}`.replace(/(^,)|(,$)/g, "").trim();
+    
+    if (fullAddress.length < 5) return alert("Vui lòng nhập địa chỉ, quận/huyện, tỉnh/thành phố trong phần Cấu Hình Phí Di Chuyển trước!");
+
+    try {
+      setIsSearchingAddress(true);
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        
+        // Cập nhật tọa độ vào formData.baseLocation
+        setFormData(prev => ({
+          ...prev,
+          baseLocation: {
+            ...prev.baseLocation,
+            coordinates: { lat, lng },
+            mapLink: `https://www.google.com/maps?q=$${lat},${lng}`
+          }
+        }));
+        alert("Đã tìm thấy tọa độ thành công! Bản đồ đã được cập nhật.");
+      } else {
+        alert("Không tìm thấy tọa độ. Vui lòng kiểm tra lại địa chỉ.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi khi tìm kiếm địa chỉ.");
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
+  // ✅ 5. CHỨC NĂNG LẤY VỊ TRÍ HIỆN TẠI
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) return alert("Trình duyệt không hỗ trợ định vị!");
+    
+    setIsSearchingAddress(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const { latitude, longitude } = coords;
+        
+        setFormData(prev => ({
+          ...prev,
+          baseLocation: {
+            ...prev.baseLocation,
+            coordinates: { lat: latitude, lng: longitude },
+            mapLink: `https://www.google.com/maps?q=$${latitude},${longitude}`
+          }
+        }));
+        setIsSearchingAddress(false);
+        alert("Đã lấy tọa độ hiện tại thành công!");
+      },
+      () => {
+        setIsSearchingAddress(false);
+        alert("Vui lòng cho phép truy cập vị trí hoặc nhập thủ công.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleServiceChange = (index, field, value) => {
@@ -306,7 +371,6 @@ export default function Package() {
 
             {loading && <div className="loading">Đang tải...</div>}
 
-            {/* ✅ SỬA LẠI ĐIỀU KIỆN HIỂN THỊ DỰA TRÊN myPackages */}
             {!loading && (!myPackages || myPackages.length === 0) && (
               <div className="no-packages">
                 <p>Bạn chưa có gói dịch vụ nào.</p>
@@ -315,7 +379,6 @@ export default function Package() {
             )}
 
             <div className="packages-grid">
-              {/* ✅ MAP QUA myPackages THAY VÌ packages */}
               {myPackages?.map((pkg) => {
                 const imgUrl = getImageUrl(pkg.AnhBia || (pkg.Images && pkg.Images[0]) || pkg.images?.[0]);
                 return (
@@ -421,7 +484,14 @@ export default function Package() {
                     </div>
 
                     <div className="form-section-divider"></div>
-                    <TravelFeeConfig value={{ baseLocation: formData.baseLocation, travelFeeConfig: formData.travelFeeConfig }} onChange={handleTravelConfigChange} />
+                    
+                   
+
+                    {/* Component cấu hình phí di chuyển */}
+                    <TravelFeeConfig 
+                        value={{ baseLocation: formData.baseLocation, travelFeeConfig: formData.travelFeeConfig }} 
+                        onChange={handleTravelConfigChange} 
+                    />
                     <div className="form-section-divider"></div>
 
                     <div className="form-group">
